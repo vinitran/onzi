@@ -7,11 +7,176 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model users {
-  id      String @id @default(uuid()) @db.Uuid
-  address String @db.VarChar
-  created_at                 DateTime                     @default(now()) @db.Timestamptz(3)
-  updated_at                 DateTime                     @default(now()) @db.Timestamptz(3)
+model User {
+  id        String  @id @default(uuid()) @db.Uuid
+  address   String  @unique @db.VarChar
+  username  String? @db.VarChar
+  bio       String? @db.VarChar
+  avatarUrl String? @map("avatar_url") @db.VarChar
+  network   Network @default(Solana)
+  premium   Boolean @default(false)
+
+  tokens            Token[]
+  tokenOwners       TokenOwner[]
+  comments          Comment[]
+  commentLikes      CommentLike[]
+  tokenTransactions TokenTransaction[]
+  follower          UserConnection[]   @relation("follower")
+  following         UserConnection[]   @relation("following")
+  config            Config?
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("user")
+}
+
+model UserConnection {
+  id          String @id @default(uuid()) @db.Uuid
+  followerId  String @map("follower_id") @db.Uuid
+  followingId String @map("following_id") @db.Uuid
+
+  follower  User @relation(fields: [followerId], references: [id], onDelete: Cascade, name: "follower")
+  following User @relation(fields: [followingId], references: [id], onDelete: Cascade, name: "following")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("user_connection")
+}
+
+model Comment {
+  id       String  @id @default(uuid()) @db.Uuid
+  content  String  @db.Text
+  authorId String  @map("author_id") @db.Uuid
+  tokenId  String  @map("token_id") @db.Uuid
+  parentId String? @map("parent_id") @db.Uuid
+
+  replies Comment[]     @relation("CommentReplies")
+  likes   CommentLike[]
+
+  parent Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  token  Token    @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  author User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("comment")
+}
+
+model CommentLike {
+  id        String @id @default(uuid()) @db.Uuid
+  userId    String @map("user_id") @db.Uuid
+  commentId String @map("comment_id") @db.Uuid
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([userId, commentId])
+  @@map("comment_like")
+}
+
+model Token {
+  id                      String    @id @default(uuid()) @db.Uuid
+  address                 String    @unique @db.VarChar
+  name                    String    @db.VarChar
+  price                   Float?
+  symbol                  String    @db.VarChar
+  uri                     String    @db.VarChar
+  ticker                  String?   @db.VarChar
+  metadata                Json
+  isHighlight             Boolean   @default(false) @map("is_highlight")
+  network                 Network   @default(Solana)
+  isCompletedBondingCurve Boolean   @default(false) @map("bonding_curve")
+  createdAtBondingCurve   DateTime? @map("created_at_bonding_curve")
+  bump                    Boolean?  @default(false)
+  creatorAddress          String    @map("creator_address") @db.VarChar
+
+  marketCapacity Float? @default(28) @db.DoublePrecision
+  // totalSupply             Decimal? // 1.000.000
+
+  tokenOwners      TokenOwner[]
+  comments         Comment[]
+  TokenTransaction TokenTransaction[]
+
+  creator User @relation(fields: [creatorAddress], references: [address], onDelete: Cascade)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("token")
+}
+
+model TokenOwner {
+  id           String  @id @default(uuid()) @db.Uuid
+  userAddress  String  @map("user_address") @db.VarChar
+  tokenAddress String  @map("token_address") @db.VarChar
+  amount       Decimal @db.Decimal(20, 0)
+
+  token Token @relation(fields: [tokenAddress], references: [address], onDelete: Cascade)
+  user  User  @relation(fields: [userAddress], references: [address], onDelete: Cascade)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([userAddress, tokenAddress])
+  @@map("token_owner")
+}
+
+model Config {
+  id          String  @id @default(uuid()) @db.Uuid
+  maxSlippage Float   @default(1) @map("max_slippage")
+  priorityFee Decimal @default(0.01) @map("priority_fee")
+  userId      String  @unique @map("user_id") @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("config")
+}
+
+model TokenTransaction {
+  id           String          @id @default(uuid()) @db.Uuid
+  signature    String          @unique @db.VarChar
+  kind         TransactionType
+  amount       Decimal         @db.Decimal(20, 0)
+  tokenAddress String          @db.VarChar
+  lamports     Decimal         @db.Decimal(20, 0)
+  date         DateTime        @db.Timestamptz(3)
+  signer       String          @db.VarChar
+  price        Decimal         @db.Decimal(20, 20)
+  newPrice     Decimal         @map("new_price") @db.Decimal(20, 20)
+  network      Network         @default(Solana)
+
+  createdBy User  @relation(fields: [signer], references: [address], onDelete: Cascade)
+  token     Token @relation(fields: [tokenAddress], references: [address], onDelete: Cascade)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("token_transaction")
+}
+
+model Setting {
+  key   String @id @db.VarChar(120)
+  value String @db.VarChar
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("setting")
+}
+
+enum Network {
+  Solana
+}
+
+enum TransactionType {
+  Buy
+  Sell
 }
