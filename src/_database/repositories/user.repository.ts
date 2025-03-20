@@ -14,7 +14,7 @@ export class UserRepository {
 		const user = await this.findByAddress(params.address)
 
 		if (!user) {
-			return this.prisma.users.create({
+			return this.prisma.user.create({
 				data: {
 					address: params.address
 				}
@@ -24,8 +24,8 @@ export class UserRepository {
 		return user
 	}
 
-	async update(id: string, payload: Prisma.usersUpdateInput) {
-		return this.prisma.users.update({
+	async update(id: string, payload: Prisma.UserUpdateInput) {
+		return this.prisma.user.update({
 			where: {
 				id
 			},
@@ -34,7 +34,7 @@ export class UserRepository {
 	}
 
 	findByAddress(address: string) {
-		return this.prisma.users.findFirst({
+		return this.prisma.user.findFirst({
 			where: {
 				address
 			}
@@ -42,7 +42,7 @@ export class UserRepository {
 	}
 
 	findById(id: string) {
-		return this.prisma.users.findUnique({
+		return this.prisma.user.findUnique({
 			where: {
 				id
 			}
