@@ -1,3 +1,4 @@
+import { UserConnection } from "@root/users/dto/user-connection.dto"
 import { Expose } from "class-transformer"
 
 export class UserResponse {
@@ -6,6 +7,12 @@ export class UserResponse {
 
 	@Expose()
 	address: string
+
+	@Expose()
+	follower: UserConnection[]
+
+	@Expose()
+	following: UserConnection[]
 
 	@Expose()
 	createdAt: string

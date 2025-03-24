@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post, Query } from "@nestjs/common"
 import { ApiTags } from "@nestjs/swagger"
 import { plainToInstance } from "class-transformer"
 import { AuthService } from "./auth.service"
-import { GetMessageParams, GetMessageResponse } from "./dto/get-message.dto"
+import { GetMessagePayload, GetMessageResponse } from "./dto/get-message.dto"
 import {
 	VerifySignaturePayload,
 	VerifySignatureResponse
@@ -14,7 +14,7 @@ export class AuthController {
 	constructor(private authService: AuthService) {}
 
 	@Get("message")
-	async createMessage(@Query() { publicKey }: GetMessageParams) {
+	async createMessage(@Query() { publicKey }: GetMessagePayload) {
 		const message = await this.authService.generateMessage(publicKey)
 		return plainToInstance(
 			GetMessageResponse,

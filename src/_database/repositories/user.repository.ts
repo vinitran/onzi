@@ -45,6 +45,10 @@ export class UserRepository {
 		return this.prisma.user.findUnique({
 			where: {
 				id
+			},
+			include: {
+				follower: true,
+				following: true
 			}
 		})
 	}
