@@ -2,6 +2,7 @@ import {
 	BadRequestException,
 	ForbiddenException,
 	Injectable,
+	InternalServerErrorException,
 	NotFoundException
 } from "@nestjs/common"
 import { UserConnectionRepository } from "@root/_database/repositories/user-connection.repository"
@@ -20,6 +21,26 @@ export class UsersService {
 	async getMe(id: string) {
 		const user = await this.userRepository.findById(id)
 		if (!user) throw new NotFoundException("not found user")
+
+		return user
+	}
+
+	async setUsername(id: string, username: string) {
+		const userWithUsername = await this.userRepository.findByUsername(username)
+		if (userWithUsername)
+			throw new BadRequestException(
+				"Username is already taken. Please choose another one."
+			)
+
+		const user = await this.userRepository.update(id, { username })
+		if (!user) throw new InternalServerErrorException("can not update")
+
+		return user
+	}
+
+	async setAvatar(id: string, avatarUrl: string) {
+		const user = await this.userRepository.update(id, { avatarUrl })
+		if (!user) throw new InternalServerErrorException("can not update")
 
 		return user
 	}
