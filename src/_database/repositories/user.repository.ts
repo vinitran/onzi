@@ -41,6 +41,14 @@ export class UserRepository {
 		})
 	}
 
+	findByUsername(username: string) {
+		return this.prisma.user.findFirst({
+			where: {
+				username
+			}
+		})
+	}
+
 	findById(id: string) {
 		return this.prisma.user.findUnique({
 			where: {

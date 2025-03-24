@@ -7,7 +7,11 @@ import {
 	UnfollowingPayload,
 	UserConnection
 } from "@root/users/dto/user-connection.dto"
-import { UserResponse } from "@root/users/dto/user.dto"
+import {
+	SetAvatarPayload,
+	SetUsernamePayload,
+	UserResponse
+} from "@root/users/dto/user.dto"
 import { User } from "@root/users/user.decorator"
 import { plainToInstance } from "class-transformer"
 import { UsersService } from "./users.service"
@@ -34,6 +38,30 @@ export class UsersController {
 	) {
 		const following = await this.userService.following(id, followingId)
 		return plainToInstance(UserConnection, following, {
+			excludeExtraneousValues: true
+		})
+	}
+
+	@Post("username")
+	@Auth()
+	async setUsername(
+		@User() { id }: Claims,
+		@Query() { username }: SetUsernamePayload
+	) {
+		const user = await this.userService.setUsername(id, username)
+		return plainToInstance(UserResponse, user, {
+			excludeExtraneousValues: true
+		})
+	}
+
+	@Post("avatar")
+	@Auth()
+	async setAvatar(
+		@User() { id }: Claims,
+		@Query() { avatarUrl }: SetAvatarPayload
+	) {
+		const user = await this.userService.setAvatar(id, avatarUrl)
+		return plainToInstance(UserResponse, user, {
 			excludeExtraneousValues: true
 		})
 	}
