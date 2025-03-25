@@ -11,7 +11,7 @@ export class UnfollowingPayload {
 	followId: string
 }
 
-export class UserConnection {
+export class UserConnectionResponse {
 	@Expose()
 	id: string
 
@@ -27,7 +27,7 @@ export class UserConnection {
 	@Expose()
 	updatedAt: string
 
-	constructor(partial: Partial<UserConnection>) {
+	constructor(partial: Partial<UserConnectionResponse>) {
 		Object.assign(this, partial)
 	}
 }

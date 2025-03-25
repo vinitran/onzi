@@ -1,5 +1,4 @@
 import { Prop } from "@root/_shared/utils/decorators"
-import { UserConnection } from "@root/users/dto/user-connection.dto"
 import { Expose } from "class-transformer"
 import { IsNotEmpty, IsUrl, MaxLength } from "class-validator"
 
@@ -24,12 +23,6 @@ export class UserResponse {
 
 	@Expose()
 	premium: string
-
-	@Expose()
-	follower: UserConnection[]
-
-	@Expose()
-	following: UserConnection[]
 
 	@Expose()
 	createdAt: string

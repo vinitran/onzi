@@ -1,11 +1,12 @@
 import { Controller, Delete, Get, Post, Query } from "@nestjs/common"
 import { ApiTags } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
+import { PaginatedParams, PaginatedResponse } from "@root/_shared/utils/parsers"
 import { Claims } from "@root/auth/auth.service"
 import {
 	FollowingPayload,
 	UnfollowingPayload,
-	UserConnection
+	UserConnectionResponse
 } from "@root/users/dto/user-connection.dto"
 import {
 	SetAvatarPayload,
@@ -30,6 +31,38 @@ export class UsersController {
 		})
 	}
 
+	@Get("followers")
+	@Auth()
+	async getFollower(@User() { id }: Claims, @Query() query: PaginatedParams) {
+		const { total, page, connections } = await this.userService.getFollower(
+			id,
+			query
+		)
+		return plainToInstance(
+			PaginatedResponse<UserConnectionResponse>,
+			new PaginatedResponse(connections, total, page),
+			{
+				excludeExtraneousValues: true
+			}
+		)
+	}
+
+	@Get("following")
+	@Auth()
+	async getFollowing(@User() { id }: Claims, @Query() query: PaginatedParams) {
+		const { total, page, connections } = await this.userService.getFollowing(
+			id,
+			query
+		)
+		return plainToInstance(
+			PaginatedResponse<UserConnectionResponse>,
+			new PaginatedResponse(connections, total, page),
+			{
+				excludeExtraneousValues: true
+			}
+		)
+	}
+
 	@Post("following")
 	@Auth()
 	async following(
@@ -37,7 +70,7 @@ export class UsersController {
 		@Query() { followingId }: FollowingPayload
 	) {
 		const following = await this.userService.following(id, followingId)
-		return plainToInstance(UserConnection, following, {
+		return plainToInstance(UserConnectionResponse, following, {
 			excludeExtraneousValues: true
 		})
 	}
@@ -73,7 +106,7 @@ export class UsersController {
 		@Query() { followId }: UnfollowingPayload
 	) {
 		const unfollowing = await this.userService.unfollowing(id, followId)
-		return plainToInstance(UserConnection, unfollowing, {
+		return plainToInstance(UserConnectionResponse, unfollowing, {
 			excludeExtraneousValues: true
 		})
 	}

@@ -8,6 +8,7 @@ import {
 import { UserConnectionRepository } from "@root/_database/repositories/user-connection.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
+import { PaginatedParams } from "@root/_shared/utils/parsers"
 
 @Injectable()
 export class UsersService {
@@ -23,6 +24,28 @@ export class UsersService {
 		if (!user) throw new NotFoundException("not found user")
 
 		return user
+	}
+
+	async getFollower(id: string, query: PaginatedParams) {
+		const connections = await this.userConnectionRepository.getConnection(
+			id,
+			"follower",
+			query
+		)
+		if (!connections) throw new NotFoundException("can not find connections")
+
+		return connections
+	}
+
+	async getFollowing(id: string, query: PaginatedParams) {
+		const connections = await this.userConnectionRepository.getConnection(
+			id,
+			"following",
+			query
+		)
+		if (!connections) throw new NotFoundException("can not find connections")
+
+		return connections
 	}
 
 	async setUsername(id: string, username: string) {
