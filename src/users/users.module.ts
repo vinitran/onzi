@@ -3,13 +3,15 @@ import { JwtService } from "@nestjs/jwt"
 import { DatabaseModule } from "@root/_database/database.module"
 import { EnvModule } from "@root/_env/env.module"
 import { AuthService } from "@root/auth/auth.service"
+import { FileModule } from "@root/file/file.module"
+import { S3Service } from "@root/file/file.service"
 import { UsersController } from "@root/users/users.controller"
 import { UsersService } from "@root/users/users.service"
 
 @Module({
-	imports: [EnvModule, DatabaseModule],
+	imports: [EnvModule, DatabaseModule, FileModule],
 	controllers: [UsersController],
-	providers: [UsersService, AuthService, JwtService],
+	providers: [UsersService, AuthService, JwtService, S3Service],
 	exports: [UsersService]
 })
 export class UsersModule {}

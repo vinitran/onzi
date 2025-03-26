@@ -9,7 +9,7 @@ import {
 	UserConnectionResponse
 } from "@root/users/dto/user-connection.dto"
 import {
-	SetAvatarPayload,
+	AvatarPresignedUrlResponse,
 	SetUsernamePayload,
 	UserResponse
 } from "@root/users/dto/user.dto"
@@ -87,14 +87,11 @@ export class UsersController {
 		})
 	}
 
-	@Post("avatar")
+	@Get("avatar/presignedUrl")
 	@Auth()
-	async setAvatar(
-		@User() { id }: Claims,
-		@Query() { avatarUrl }: SetAvatarPayload
-	) {
-		const user = await this.userService.setAvatar(id, avatarUrl)
-		return plainToInstance(UserResponse, user, {
+	async setAvatarPresignedUrl(@User() { id }: Claims) {
+		const presignedUrl = await this.userService.setAvatarPresignedUrl(id)
+		return plainToInstance(AvatarPresignedUrlResponse, presignedUrl, {
 			excludeExtraneousValues: true
 		})
 	}
