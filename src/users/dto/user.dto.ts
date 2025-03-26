@@ -1,6 +1,7 @@
 import { Prop } from "@root/_shared/utils/decorators"
 import { Expose } from "class-transformer"
-import { IsNotEmpty, IsUrl, MaxLength } from "class-validator"
+import { IsNotEmpty, IsOptional, IsUrl, MaxLength } from 'class-validator';
+import { PaginatedParams } from '@root/_shared/utils/parsers';
 
 export class UserResponse {
 	@Expose()
@@ -35,6 +36,55 @@ export class UserResponse {
 	}
 }
 
+export class TokenResponse {
+	@Expose()
+	id: string;
+
+	@Expose()
+	address: string;
+
+	@Expose()
+	name: string;
+
+	@Expose()
+	symbol: string;
+
+	@Expose()
+	uri: string;
+
+	@Expose()
+	ticker?: string;
+
+	@Expose()
+	metadata: Record<string, any>;
+
+	@Expose()
+	network: string;
+
+	@Expose()
+	isCompletedBondingCurve: boolean;
+
+	@Expose()
+	createdAtBondingCurve?: string;
+
+	@Expose()
+	bump?: boolean;
+
+	@Expose()
+	marketCapacity?: number;
+
+	@Expose()
+	createdAt: string;
+
+	@Expose()
+	updatedAt?: string;
+
+	constructor(partial: Partial<TokenResponse>) {
+		Object.assign(this, partial);
+	}
+}
+
+
 export class AvatarPresignedUrlResponse {
 	@Expose()
 	url: string
@@ -47,11 +97,16 @@ export class AvatarPresignedUrlResponse {
 	}
 }
 
-export class SetUsernamePayload {
-	@Prop()
-	@IsNotEmpty({ message: "Username must not be empty" })
-	@MaxLength(20, { message: "Maximum length allowed is 20 characters." })
-	username: string
+export class SetInformationPayload {
+  @Prop({ required: false })
+  @IsOptional()
+  @MaxLength(20, { message: 'Maximum length allowed is 20 characters.' })
+  username?: string;
+
+  @Prop({ required: false })
+  @IsOptional()
+  @MaxLength(50, { message: 'Maximum length allowed is 20 characters.' })
+  bio?: string;
 }
 
 export class SetAvatarPayload {
@@ -59,4 +114,9 @@ export class SetAvatarPayload {
 	@IsNotEmpty({ message: "Avatar url must not be empty" })
 	@IsUrl({}, { message: "Avatar URL must be a valid URL" })
 	avatarUrl: string
+}
+
+export class GetCoinCreatedParams extends PaginatedParams {
+	@Prop()
+	creatorAddress: string
 }

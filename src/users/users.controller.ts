@@ -9,10 +9,9 @@ import {
 	UserConnectionResponse
 } from "@root/users/dto/user-connection.dto"
 import {
-	AvatarPresignedUrlResponse,
-	SetUsernamePayload,
-	UserResponse
-} from "@root/users/dto/user.dto"
+	AvatarPresignedUrlResponse, SetInformationPayload, TokenResponse,
+	UserResponse,
+} from '@root/users/dto/user.dto';
 import { User } from "@root/users/user.decorator"
 import { plainToInstance } from "class-transformer"
 import { UsersService } from "./users.service"
@@ -63,6 +62,29 @@ export class UsersController {
 		)
 	}
 
+	@Get("coinCreated")
+	@Auth()
+	async getCoinCreated(
+		@User() { address }: Claims,
+		@Query() query: PaginatedParams
+	) {
+		const {total, maxPage, coinCreated} = await this.userService.getCoinCreated(address, query)
+		return plainToInstance(
+			PaginatedResponse<TokenResponse>,
+			new PaginatedResponse(coinCreated, total, maxPage), {
+				excludeExtraneousValues: true
+			})
+	}
+
+	@Get("avatar/presignedUrl")
+	@Auth()
+	async setAvatarPresignedUrl(@User() { id }: Claims) {
+		const presignedUrl = await this.userService.setAvatarPresignedUrl(id)
+		return plainToInstance(AvatarPresignedUrlResponse, presignedUrl, {
+			excludeExtraneousValues: true
+		})
+	}
+
 	@Post("following")
 	@Auth()
 	async following(
@@ -75,23 +97,14 @@ export class UsersController {
 		})
 	}
 
-	@Post("username")
+	@Post("/infor")
 	@Auth()
 	async setUsername(
 		@User() { id }: Claims,
-		@Query() { username }: SetUsernamePayload
+		@Query() payload: SetInformationPayload
 	) {
-		const user = await this.userService.setUsername(id, username)
+		const user = await this.userService.setInformation(id, payload)
 		return plainToInstance(UserResponse, user, {
-			excludeExtraneousValues: true
-		})
-	}
-
-	@Get("avatar/presignedUrl")
-	@Auth()
-	async setAvatarPresignedUrl(@User() { id }: Claims) {
-		const presignedUrl = await this.userService.setAvatarPresignedUrl(id)
-		return plainToInstance(AvatarPresignedUrlResponse, presignedUrl, {
 			excludeExtraneousValues: true
 		})
 	}

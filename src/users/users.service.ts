@@ -10,12 +10,15 @@ import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { PaginatedParams } from "@root/_shared/utils/parsers"
 import { S3Service } from "@root/file/file.service"
+import { GetCoinCreatedParams, SetInformationPayload } from '@root/users/dto/user.dto';
+import { TokenRepository } from '@root/_database/repositories/token.repository';
 
 @Injectable()
 export class UsersService {
 	constructor(
 		private userRepository: UserRepository,
 		private userConnectionRepository: UserConnectionRepository,
+		private token: TokenRepository,
 		private s3Service: S3Service,
 
 		@InjectEnv() private env: Env
@@ -50,28 +53,48 @@ export class UsersService {
 		return connections
 	}
 
-	async setUsername(id: string, username: string) {
-		const userWithUsername = await this.userRepository.findByUsername(username)
-		if (userWithUsername)
-			throw new BadRequestException(
-				"Username is already taken. Please choose another one."
-			)
+	async getCoinCreated(creatorAddress: string, query: PaginatedParams) {
+		const coinCreatedList = await this.token.getCoinCreated({
+			creatorAddress,
+			take: query.take,
+			page: query.page
+		});
+		if (!coinCreatedList) throw new NotFoundException("can not find connections")
 
-		const user = await this.userRepository.update(id, { username })
+		return coinCreatedList
+	}
+
+	async setInformation(id: string, payload: SetInformationPayload) {
+		if (payload.username) {
+			const userWithUsername = await this.userRepository.findByUsername(payload.username)
+			if (userWithUsername)
+				throw new BadRequestException(
+					"Username is already taken. Please choose another one."
+				)
+		}
+
+		const updatedPayload = Object.fromEntries(
+			Object.entries(payload).filter(([_, value]) => value)
+		);
+
+		if (Object.keys(updatedPayload).length === 0) {
+			throw new BadRequestException("No valid fields to update.");
+		}
+
+		const user = await this.userRepository.update(id,updatedPayload)
 		if (!user) throw new InternalServerErrorException("can not update")
 
 		return user
 	}
 
 	async setAvatarPresignedUrl(id: string) {
-		const { url, fields } = await this.s3Service.postPresignedSignedUrl(
-			`avatar-${id}`
-		)
+		const key = `avatar-${id}`
+		const { url, fields } = await this.s3Service.postPresignedSignedUrl(key)
 		if (!url || !fields)
 			throw new InternalServerErrorException("can not get presigned url")
 
 		const user = await this.userRepository.update(id, {
-			avatarUrl: `${url}\avatar-${id}`
+			avatarUrl: `${url}${key}`
 		})
 		if (!user) throw new InternalServerErrorException("can not update")
 

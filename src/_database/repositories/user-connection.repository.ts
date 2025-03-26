@@ -51,11 +51,11 @@ export class UserConnectionRepository {
 
 		const { page, take } = query
 
-		const total = await this.prisma.userConnection.count({
+		const getTotal = this.prisma.userConnection.count({
 			where: whereCondition
 		})
 
-		const connections = await this.prisma.userConnection.findMany({
+		const getConnections = this.prisma.userConnection.findMany({
 			where: whereCondition,
 			orderBy: {
 				updatedAt: "desc"
@@ -63,6 +63,8 @@ export class UserConnectionRepository {
 			skip: (page - 1) * take,
 			take
 		})
+
+		const [total, connections] = await Promise.all([getTotal, getConnections])
 
 		return {
 			total,
