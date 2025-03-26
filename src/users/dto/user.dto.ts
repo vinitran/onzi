@@ -35,6 +35,18 @@ export class UserResponse {
 	}
 }
 
+export class AvatarPresignedUrlResponse {
+	@Expose()
+	url: string
+
+	@Expose()
+	fields: string
+
+	constructor(partial: Partial<AvatarPresignedUrlResponse>) {
+		Object.assign(this, partial)
+	}
+}
+
 export class SetUsernamePayload {
 	@Prop()
 	@IsNotEmpty({ message: "Username must not be empty" })

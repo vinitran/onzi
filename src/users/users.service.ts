@@ -9,12 +9,14 @@ import { UserConnectionRepository } from "@root/_database/repositories/user-conn
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { PaginatedParams } from "@root/_shared/utils/parsers"
+import { S3Service } from "@root/file/file.service"
 
 @Injectable()
 export class UsersService {
 	constructor(
 		private userRepository: UserRepository,
 		private userConnectionRepository: UserConnectionRepository,
+		private s3Service: S3Service,
 
 		@InjectEnv() private env: Env
 	) {}
@@ -59,6 +61,16 @@ export class UsersService {
 		if (!user) throw new InternalServerErrorException("can not update")
 
 		return user
+	}
+
+	async setAvatarPresignedUrl(id: string) {
+		const { url, fields } = await this.s3Service.postPresignedSignedUrl(
+			`avatar-${id}`
+		)
+		if (!url || !fields)
+			throw new InternalServerErrorException("can not get presigned url")
+
+		return { url, fields }
 	}
 
 	async setAvatar(id: string, avatarUrl: string) {

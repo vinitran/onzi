@@ -5,6 +5,7 @@ import { EnvModule } from "@root/_env/env.module"
 import { AppController } from "@root/app.controller"
 import { AppService } from "@root/app.service"
 import { AuthModule } from "@root/auth/auth.module"
+import { FileModule } from "@root/file/file.module"
 import { UsersModule } from "@root/users/users.module"
 
 @Module({
@@ -13,6 +14,7 @@ import { UsersModule } from "@root/users/users.module"
 		EnvModule,
 		AuthModule,
 		UsersModule,
+		FileModule,
 		RedisModule.forRoot({
 			type: "single"
 		})
