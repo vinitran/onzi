@@ -1,10 +1,17 @@
-import { User } from "@prisma/client"
+import { PresignedPost } from "@aws-sdk/s3-presigned-post"
+import { Comment, User } from "@prisma/client"
+import { CreateCommentDto } from "@root/comment/dtos/create-comment.dto"
 import { PaginateCommentsDto } from "@root/comment/dtos/paginate-comments.dto"
 
-export type ICreateComment = {
+/* Create comment */
+export type ICreateComment = CreateCommentDto & {
 	tokenId: string
 	userId: string
-	content: string
+}
+
+export type ICreateCommentResponse = {
+	comment: Comment
+	attachment?: PresignedPost
 }
 
 export type IReplyComment = Omit<ICreateComment, "tokenId">

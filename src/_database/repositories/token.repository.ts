@@ -1,7 +1,6 @@
 import { Injectable } from "@nestjs/common"
+import { GetCoinCreatedParams } from "@root/users/dto/user.dto"
 import { PrismaService } from "../prisma.service"
-import { PaginatedParams } from '@root/_shared/utils/parsers';
-import { GetCoinCreatedParams } from '@root/users/dto/user.dto';
 
 @Injectable()
 export class TokenRepository {
@@ -21,8 +20,8 @@ export class TokenRepository {
 		const getTotal = this.prisma.token.count({
 			where: {
 				creatorAddress
-			},
-		});
+			}
+		})
 
 		const getCoins = this.prisma.token.findMany({
 			where: {

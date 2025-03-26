@@ -9,9 +9,11 @@ import {
 	UserConnectionResponse
 } from "@root/users/dto/user-connection.dto"
 import {
-	AvatarPresignedUrlResponse, SetInformationPayload, TokenResponse,
-	UserResponse,
-} from '@root/users/dto/user.dto';
+	AvatarPresignedUrlResponse,
+	SetInformationPayload,
+	TokenResponse,
+	UserResponse
+} from "@root/users/dto/user.dto"
 import { User } from "@root/users/user.decorator"
 import { plainToInstance } from "class-transformer"
 import { UsersService } from "./users.service"
@@ -68,12 +70,15 @@ export class UsersController {
 		@User() { address }: Claims,
 		@Query() query: PaginatedParams
 	) {
-		const {total, maxPage, coinCreated} = await this.userService.getCoinCreated(address, query)
+		const { total, maxPage, coinCreated } =
+			await this.userService.getCoinCreated(address, query)
 		return plainToInstance(
 			PaginatedResponse<TokenResponse>,
-			new PaginatedResponse(coinCreated, total, maxPage), {
+			new PaginatedResponse(coinCreated, total, maxPage),
+			{
 				excludeExtraneousValues: true
-			})
+			}
+		)
 	}
 
 	@Get("avatar/presignedUrl")

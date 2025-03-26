@@ -5,13 +5,13 @@ import {
 	InternalServerErrorException,
 	NotFoundException
 } from "@nestjs/common"
+import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserConnectionRepository } from "@root/_database/repositories/user-connection.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { PaginatedParams } from "@root/_shared/utils/parsers"
 import { S3Service } from "@root/file/file.service"
-import { GetCoinCreatedParams, SetInformationPayload } from '@root/users/dto/user.dto';
-import { TokenRepository } from '@root/_database/repositories/token.repository';
+import { SetInformationPayload } from "@root/users/dto/user.dto"
 
 @Injectable()
 export class UsersService {
@@ -58,15 +58,19 @@ export class UsersService {
 			creatorAddress,
 			take: query.take,
 			page: query.page
-		});
-		if (!coinCreatedList) throw new NotFoundException("can not find connections")
+		})
+		if (!coinCreatedList)
+			throw new NotFoundException("can not find connections")
 
 		return coinCreatedList
 	}
 
 	async setInformation(id: string, payload: SetInformationPayload) {
 		if (payload.username) {
-			const userWithUsername = await this.userRepository.findByUsername(payload.username)
+			const userWithUsername = await this.userRepository.findByUsername(
+				payload.username
+			)
+
 			if (userWithUsername)
 				throw new BadRequestException(
 					"Username is already taken. Please choose another one."
@@ -75,13 +79,14 @@ export class UsersService {
 
 		const updatedPayload = Object.fromEntries(
 			Object.entries(payload).filter(([_, value]) => value)
-		);
+		)
 
 		if (Object.keys(updatedPayload).length === 0) {
-			throw new BadRequestException("No valid fields to update.");
+			throw new BadRequestException("No valid fields to update.")
 		}
 
-		const user = await this.userRepository.update(id,updatedPayload)
+		const user = await this.userRepository.update(id, updatedPayload)
+
 		if (!user) throw new InternalServerErrorException("can not update")
 
 		return user

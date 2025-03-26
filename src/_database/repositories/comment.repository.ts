@@ -11,6 +11,11 @@ export class CommentRepository {
 		return this.prisma.comment.create({ data })
 	}
 
+	// Update
+	update(commentId: string, data: Prisma.CommentUpdateInput) {
+		return this.prisma.comment.update({ where: { id: commentId }, data })
+	}
+
 	// Find by id
 	findById(id: string) {
 		return this.prisma.comment.findUnique({

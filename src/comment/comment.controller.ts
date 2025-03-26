@@ -37,8 +37,9 @@ export class CommentController {
 	) {
 		return this.commentService.createComment({
 			content: body.content,
-			tokenId,
-			userId: user.id
+			isContainAttachment: body.isContainAttachment,
+			userId: user.id,
+			tokenId
 		})
 	}
 
@@ -70,7 +71,7 @@ export class CommentController {
 		@User() user: RequestUser
 	) {
 		return this.commentService.replyComment({
-			content: body.content,
+			...body,
 			commentId,
 			userId: user.id
 		})

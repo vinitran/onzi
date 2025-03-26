@@ -94,7 +94,7 @@ model Token {
   network                 Network   @default(Solana)
   isCompletedBondingCurve Boolean   @default(false) @map("bonding_curve")
   createdAtBondingCurve   DateTime? @map("created_at_bonding_curve")
-  bump                    Boolean?  @default(false)
+  bump                    Boolean?  @default(false) // on chain
   creatorAddress          String    @map("creator_address") @db.VarChar
 
   marketCapacity Float? @default(28) @db.DoublePrecision
