@@ -70,14 +70,12 @@ export class UsersService {
 		if (!url || !fields)
 			throw new InternalServerErrorException("can not get presigned url")
 
-		return { url, fields }
-	}
-
-	async setAvatar(id: string, avatarUrl: string) {
-		const user = await this.userRepository.update(id, { avatarUrl })
+		const user = await this.userRepository.update(id, {
+			avatarUrl: `${url}\avatar-${id}`
+		})
 		if (!user) throw new InternalServerErrorException("can not update")
 
-		return user
+		return { url, fields }
 	}
 
 	async following(id: string, followingId: string) {
