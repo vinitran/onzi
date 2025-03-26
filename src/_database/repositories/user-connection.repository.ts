@@ -66,7 +66,7 @@ export class UserConnectionRepository {
 
 		return {
 			total,
-			page,
+			maxPage: Math.ceil(total / take),
 			connections
 		}
 	}

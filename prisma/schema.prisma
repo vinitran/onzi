@@ -47,11 +47,12 @@ model UserConnection {
 }
 
 model Comment {
-  id       String  @id @default(uuid()) @db.Uuid
-  content  String  @db.Text
-  authorId String  @map("author_id") @db.Uuid
-  tokenId  String  @map("token_id") @db.Uuid
-  parentId String? @map("parent_id") @db.Uuid
+  id            String  @id @default(uuid()) @db.Uuid
+  content       String  @db.Text
+  attachmentUrl String? @map("attachment_url") @db.VarChar
+  authorId      String  @map("author_id") @db.Uuid
+  tokenId       String  @map("token_id") @db.Uuid
+  parentId      String? @map("parent_id") @db.Uuid
 
   replies Comment[]     @relation("CommentReplies")
   likes   CommentLike[]

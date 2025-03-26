@@ -36,7 +36,11 @@ const provider: Provider = {
 @Global()
 @Module({
 	providers: [provider],
-	imports: [ConfigModule.forRoot()],
+	imports: [
+		ConfigModule.forRoot({
+			isGlobal: true
+		})
+	],
 	exports: [provider]
 })
 export class EnvModule {}

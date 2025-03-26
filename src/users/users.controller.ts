@@ -34,13 +34,13 @@ export class UsersController {
 	@Get("followers")
 	@Auth()
 	async getFollower(@User() { id }: Claims, @Query() query: PaginatedParams) {
-		const { total, page, connections } = await this.userService.getFollower(
+		const { total, maxPage, connections } = await this.userService.getFollower(
 			id,
 			query
 		)
 		return plainToInstance(
 			PaginatedResponse<UserConnectionResponse>,
-			new PaginatedResponse(connections, total, page),
+			new PaginatedResponse(connections, total, maxPage),
 			{
 				excludeExtraneousValues: true
 			}
@@ -50,13 +50,13 @@ export class UsersController {
 	@Get("following")
 	@Auth()
 	async getFollowing(@User() { id }: Claims, @Query() query: PaginatedParams) {
-		const { total, page, connections } = await this.userService.getFollowing(
+		const { total, maxPage, connections } = await this.userService.getFollowing(
 			id,
 			query
 		)
 		return plainToInstance(
 			PaginatedResponse<UserConnectionResponse>,
-			new PaginatedResponse(connections, total, page),
+			new PaginatedResponse(connections, total, maxPage),
 			{
 				excludeExtraneousValues: true
 			}

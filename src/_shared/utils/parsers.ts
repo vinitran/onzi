@@ -1,14 +1,16 @@
 import { Expose } from "class-transformer"
-import { Max, Min } from "class-validator"
+import { IsPositive, Max, Min } from "class-validator"
 import { IsInterger, OptionalProp } from "./decorators"
 
 export class PaginatedParams {
 	@OptionalProp({ default: 1 })
+	@IsPositive()
 	@IsInterger
 	@Min(1)
 	readonly page: number = 1
 
 	@OptionalProp({ default: 20 })
+	@IsPositive()
 	@IsInterger
 	@Min(1)
 	@Max(300)
@@ -23,11 +25,11 @@ export class PaginatedResponse<T> {
 	total: number
 
 	@Expose()
-	page: number
+	maxPage: number
 
-	constructor(data: T[], total: number, page: number) {
+	constructor(data: T[], total: number, maxPage: number) {
 		this.data = data
 		this.total = total
-		this.page = page
+		this.maxPage = maxPage
 	}
 }
