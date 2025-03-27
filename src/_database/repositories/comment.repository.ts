@@ -9,12 +9,27 @@ export class CommentRepository {
 
 	// Create
 	create(data: Prisma.CommentCreateInput) {
-		return this.prisma.comment.create({ data })
+		return this.prisma.comment.create({
+			data,
+			include: {
+				author: {
+					select: { id: true, address: true, avatarUrl: true, username: true }
+				}
+			}
+		})
 	}
 
 	// Update
 	update(commentId: string, data: Prisma.CommentUpdateInput) {
-		return this.prisma.comment.update({ where: { id: commentId }, data })
+		return this.prisma.comment.update({
+			data,
+			where: { id: commentId },
+			include: {
+				author: {
+					select: { id: true, address: true, avatarUrl: true, username: true }
+				}
+			}
+		})
 	}
 
 	// Find by id
@@ -51,7 +66,14 @@ export class CommentRepository {
 
 	// Reply comment
 	reply(data: Prisma.CommentCreateInput) {
-		return this.prisma.comment.create({ data })
+		return this.prisma.comment.create({
+			data,
+			include: {
+				author: {
+					select: { id: true, address: true, avatarUrl: true, username: true }
+				}
+			}
+		})
 	}
 
 	// Paginate

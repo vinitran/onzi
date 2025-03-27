@@ -10,7 +10,14 @@ export type ICreateComment = CreateCommentDto & {
 }
 
 export type ICreateCommentResponse = {
-	comment: Comment
+	comment: Comment & {
+		author: {
+			id: string
+			address: string
+			username: string | null
+			avatarUrl: string | null
+		}
+	}
 	attachment?: PresignedPost
 }
 

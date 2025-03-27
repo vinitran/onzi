@@ -1,0 +1,15 @@
+export const COMMENT_GATEWAY_LISTEN_EVENTS = {
+	SEND: "send-comment"
+}
+
+export const COMMENT_GATEWAY_EMIT_EVENTS = {
+	RECEIVE: "receive-comment"
+}
+
+export const REPLY_COMMENT_GATEWAY_LISTEN_EVENTS = {
+	...COMMENT_GATEWAY_LISTEN_EVENTS
+}
+
+export const REPLY_COMMENT_GATEWAY_EMIT_EVENTS = {
+	...COMMENT_GATEWAY_EMIT_EVENTS
+}

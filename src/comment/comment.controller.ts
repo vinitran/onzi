@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common"
 import { ApiOperation, ApiTags } from "@nestjs/swagger"
-import { RequestUser } from "@root/_shared/types/user"
 import { Auth } from "@root/_shared/utils/decorators"
+import { Claims } from "@root/auth/auth.service"
 import { User } from "@root/users/user.decorator"
 import { CommentService } from "./comment.service"
 import { CreateCommentDto } from "./dtos/create-comment.dto"
@@ -19,7 +19,7 @@ export class CommentController {
 	paginateComments(
 		@Param("tokenId") tokenId: string,
 		@Query() query: PaginateCommentsDto,
-		@User() user: RequestUser
+		@User() user: Claims
 	) {
 		return this.commentService.paginateComments({
 			...query,
@@ -33,7 +33,7 @@ export class CommentController {
 	createComment(
 		@Body() body: CreateCommentDto,
 		@Param("tokenId") tokenId: string,
-		@User() user: RequestUser
+		@User() user: Claims
 	) {
 		return this.commentService.createComment({
 			content: body.content,
@@ -45,7 +45,7 @@ export class CommentController {
 
 	@Post(":commentId/toggle-like")
 	@ApiOperation({ summary: "Toggle like" })
-	toggleLike(@Param("commentId") commentId: string, @User() user: RequestUser) {
+	toggleLike(@Param("commentId") commentId: string, @User() user: Claims) {
 		return this.commentService.toggleLike(commentId, user.id)
 	}
 
@@ -53,7 +53,7 @@ export class CommentController {
 	@ApiOperation({ summary: "Get paginate replies" })
 	paginateReplies(
 		@Param("commentId") commentId: string,
-		@User() user: RequestUser,
+		@User() user: Claims,
 		@Query() query: PaginateRepliesDto
 	) {
 		return this.commentService.paginateReplies({
@@ -68,7 +68,7 @@ export class CommentController {
 	replyComment(
 		@Body() body: CreateCommentDto,
 		@Param("commentId") commentId: string,
-		@User() user: RequestUser
+		@User() user: Claims
 	) {
 		return this.commentService.replyComment({
 			...body,
