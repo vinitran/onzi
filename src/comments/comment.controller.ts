@@ -10,7 +10,7 @@ import { PaginateRepliesDto } from "./dtos/paginate-replies.dto"
 
 @Auth()
 @Controller("tokens/comments")
-@ApiTags("comment")
+@ApiTags("comments")
 export class CommentController {
 	constructor(private readonly commentService: CommentService) {}
 
