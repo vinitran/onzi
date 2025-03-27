@@ -98,12 +98,8 @@ model Token {
   createdAtBondingCurve   DateTime? @map("created_at_bonding_curve")
   bump                    Boolean?  @default(false) // on chain
   creatorAddress          String    @map("creator_address") @db.VarChar
-<<<<<<< HEAD
-  marketCapacity          Float?    @default(28) @db.DoublePrecision
-=======
+  marketCapacity          Float?    @default(28) @map("market_capacity") @db.DoublePrecision
 
-  marketCapacity Float? @default(28) @map("market_capacity") @db.DoublePrecision
->>>>>>> dev
   // totalSupply             Decimal? // 1.000.000
 
   creator   User      @relation(fields: [creatorAddress], references: [address], onDelete: Cascade)
