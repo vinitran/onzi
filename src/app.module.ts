@@ -7,6 +7,7 @@ import { AppController } from "@root/app.controller"
 import { AppService } from "@root/app.service"
 import { AuthModule } from "@root/auth/auth.module"
 import { FileModule } from "@root/file/file.module"
+import { IndexerModule } from "@root/indexer/indexer.module"
 import { UsersModule } from "@root/users/users.module"
 import { CommentModule } from "./comment/comment.module"
 
@@ -23,7 +24,8 @@ import { CommentModule } from "./comment/comment.module"
 		FileModule,
 		RedisModule.forRoot({
 			type: "single"
-		})
+		}),
+		IndexerModule
 	],
 	controllers: [AppController],
 	providers: [AppService]

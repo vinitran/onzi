@@ -33,6 +33,25 @@ export class UsersController {
 		})
 	}
 
+	@Get("coinHelds")
+	@Auth()
+	async getCoinHelds(
+		@User() { address }: Claims,
+		@Query() query: PaginatedParams
+	) {
+		const { data, total, maxPage } = await this.userService.getCoinHeld(
+			address,
+			query
+		)
+		return plainToInstance(
+			PaginatedResponse<TokenAccount>,
+			new PaginatedResponse(data, total, maxPage),
+			{
+				excludeExtraneousValues: true
+			}
+		)
+	}
+
 	@Get("followers")
 	@Auth()
 	async getFollower(@User() { id }: Claims, @Query() query: PaginatedParams) {

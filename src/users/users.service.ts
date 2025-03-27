@@ -13,6 +13,7 @@ import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { PaginatedParams } from "@root/_shared/utils/parsers"
 import { S3Service } from "@root/file/file.service"
+import { IndexerService } from "@root/indexer/indexer.service"
 import { SetInformationPayload } from "@root/users/dto/user.dto"
 
 @Injectable()
@@ -23,6 +24,7 @@ export class UsersService {
 		private token: TokenRepository,
 		private comment: CommentRepository,
 		private s3Service: S3Service,
+		private indexer: IndexerService,
 
 		@InjectEnv() private env: Env
 	) {}
@@ -32,6 +34,20 @@ export class UsersService {
 		if (!user) throw new NotFoundException("not found user")
 
 		return user
+	}
+
+	async getCoinHeld(address: string, query: PaginatedParams) {
+		const items = await this.indexer.getTokenAccounts(address)
+		const itemsFilted = items.token_accounts.filter((account: TokenAccount) =>
+			account.mint.endsWith("ponz")
+		)
+
+		const total = itemsFilted.length
+		const maxPage = Math.ceil(total / query.take)
+		const start = (query.page - 1) * query.take
+		const end = start + query.take
+		const data = itemsFilted.slice(start, end)
+		return { data, maxPage, total }
 	}
 
 	async getFollower(id: string, query: PaginatedParams) {
