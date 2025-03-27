@@ -96,6 +96,36 @@ export class AvatarPresignedUrlResponse {
 	}
 }
 
+export class CommentResponse {
+	@Expose()
+	id: string
+
+	@Expose()
+	content: string
+
+	@Expose()
+	attachmentUrl?: string
+
+	@Expose()
+	authorId: string
+
+	@Expose()
+	tokenId: string
+
+	@Expose()
+	parentId?: string
+
+	@Expose()
+	createdAt: string
+
+	@Expose()
+	updatedAt?: string
+
+	constructor(partial: Partial<CommentResponse>) {
+		Object.assign(this, partial)
+	}
+}
+
 export class SetInformationPayload {
 	@Prop({ required: false })
 	@IsOptional()

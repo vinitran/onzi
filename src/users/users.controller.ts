@@ -10,6 +10,7 @@ import {
 } from "@root/users/dto/user-connection.dto"
 import {
 	AvatarPresignedUrlResponse,
+	CommentResponse,
 	SetInformationPayload,
 	TokenResponse,
 	UserResponse
@@ -88,6 +89,22 @@ export class UsersController {
 		return plainToInstance(AvatarPresignedUrlResponse, presignedUrl, {
 			excludeExtraneousValues: true
 		})
+	}
+
+	@Get("replies")
+	@Auth()
+	async getReplies(@User() { id }: Claims, @Query() query: PaginatedParams) {
+		const { replies, total, maxPage } = await this.userService.getReplies(
+			id,
+			query
+		)
+		return plainToInstance(
+			PaginatedResponse<CommentResponse>,
+			new PaginatedResponse(replies, total, maxPage),
+			{
+				excludeExtraneousValues: true
+			}
+		)
 	}
 
 	@Post("following")

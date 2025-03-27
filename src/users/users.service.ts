@@ -5,6 +5,7 @@ import {
 	InternalServerErrorException,
 	NotFoundException
 } from "@nestjs/common"
+import { CommentRepository } from "@root/_database/repositories/comment.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserConnectionRepository } from "@root/_database/repositories/user-connection.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
@@ -19,6 +20,7 @@ export class UsersService {
 		private userRepository: UserRepository,
 		private userConnectionRepository: UserConnectionRepository,
 		private token: TokenRepository,
+		private comment: CommentRepository,
 		private s3Service: S3Service,
 
 		@InjectEnv() private env: Env
@@ -63,6 +65,13 @@ export class UsersService {
 			throw new NotFoundException("can not find connections")
 
 		return coinCreatedList
+	}
+
+	async getReplies(id: string, query: PaginatedParams) {
+		const replies = await this.comment.findReplyByUserId(id, query)
+		if (!replies) throw new NotFoundException("can not find replies")
+
+		return replies
 	}
 
 	async setInformation(id: string, payload: SetInformationPayload) {

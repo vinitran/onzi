@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common"
 import { Prisma } from "@prisma/client"
+import { PaginatedParams } from "@root/_shared/utils/parsers"
 import { PrismaService } from "../prisma.service"
 
 @Injectable()
@@ -85,5 +86,37 @@ export class CommentRepository {
 		return this.prisma.commentLike.findUnique({
 			where: { userId_commentId: { userId, commentId } }
 		})
+	}
+
+	async findReplyByUserId(userId: string, query: PaginatedParams) {
+		const { page, take } = query
+
+		const getTotal = this.prisma.comment.count({
+			where: {
+				parentId: {
+					not: null
+				},
+				authorId: userId
+			}
+		})
+
+		const getReplies = this.prisma.comment.findMany({
+			where: {
+				parentId: {
+					not: null
+				},
+				authorId: userId
+			},
+			skip: (page - 1) * take,
+			take
+		})
+
+		const [total, replies] = await Promise.all([getTotal, getReplies])
+
+		return {
+			total,
+			maxPage: Math.ceil(total / take),
+			replies
+		}
 	}
 }

@@ -64,6 +64,8 @@ model Comment {
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  @@index([authorId])
+  @@index([tokenId])
   @@map("comment")
 }
 
@@ -97,7 +99,7 @@ model Token {
   bump                    Boolean?  @default(false) // on chain
   creatorAddress          String    @map("creator_address") @db.VarChar
 
-  marketCapacity Float? @default(28) @db.DoublePrecision
+  marketCapacity Float? @default(28) @map("market_capacity") @db.DoublePrecision
   // totalSupply             Decimal? // 1.000.000
 
   tokenOwners      TokenOwner[]
