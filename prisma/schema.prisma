@@ -98,21 +98,34 @@ model Token {
   createdAtBondingCurve   DateTime? @map("created_at_bonding_curve")
   bump                    Boolean?  @default(false) // on chain
   creatorAddress          String    @map("creator_address") @db.VarChar
+<<<<<<< HEAD
+  marketCapacity          Float?    @default(28) @db.DoublePrecision
+=======
 
   marketCapacity Float? @default(28) @map("market_capacity") @db.DoublePrecision
+>>>>>>> dev
   // totalSupply             Decimal? // 1.000.000
+
+  creator   User      @relation(fields: [creatorAddress], references: [address], onDelete: Cascade)
+  bumpAt    DateTime? @map("pump_at") @db.Timestamptz(3) // Time on chain
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   tokenOwners      TokenOwner[]
   comments         Comment[]
   TokenTransaction TokenTransaction[]
 
-  creator User @relation(fields: [creatorAddress], references: [address], onDelete: Cascade)
-
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
-
   @@index([creatorAddress, createdAt(sort: Desc)])
   @@map("token")
+}
+
+model TokenKey {
+  id         String   @id @default(uuid()) @db.Uuid
+  privateKey String   @map("private_key")
+  publicKey  String   @map("public_key")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@map("token_key")
 }
 
 model TokenOwner {
