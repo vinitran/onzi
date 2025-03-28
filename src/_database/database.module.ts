@@ -5,6 +5,7 @@ import { PrismaService } from "./prisma.service"
 import { CommentRepository } from "./repositories/comment.repository"
 import { TokenKeyRepository } from "./repositories/token-key.repository"
 import { TokenOwnerRepository } from "./repositories/token-owner.repository"
+import { TokenTransactionRepository } from "./repositories/token-transaction.repository"
 import { TokenRepository } from "./repositories/token.repository"
 
 const repositories = [
@@ -13,7 +14,8 @@ const repositories = [
 	CommentRepository,
 	TokenRepository,
 	TokenKeyRepository,
-	TokenOwnerRepository
+	TokenOwnerRepository,
+	TokenTransactionRepository
 ]
 
 @Global()

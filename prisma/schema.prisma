@@ -161,21 +161,19 @@ model Config {
 model TokenTransaction {
   id           String          @id @default(uuid()) @db.Uuid
   signature    String          @unique @db.VarChar
-  kind         TransactionType
   amount       Decimal         @db.Decimal(20, 0)
-  tokenAddress String          @db.VarChar
+  tokenAddress String          @map("token_address") @db.VarChar
   lamports     Decimal         @db.Decimal(20, 0)
   date         DateTime        @db.Timestamptz(3)
   signer       String          @db.VarChar
   price        Decimal         @db.Decimal(20, 20)
   newPrice     Decimal         @map("new_price") @db.Decimal(20, 20)
+  type         TransactionType
   network      Network         @default(Solana)
-
-  createdBy User  @relation(fields: [signer], references: [address], onDelete: Cascade)
-  token     Token @relation(fields: [tokenAddress], references: [address], onDelete: Cascade)
-
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime?       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy    User            @relation(fields: [signer], references: [address], onDelete: Cascade)
+  token        Token           @relation(fields: [tokenAddress], references: [address], onDelete: Cascade)
 
   @@map("token_transaction")
 }

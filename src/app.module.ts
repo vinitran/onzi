@@ -10,6 +10,7 @@ import { FileModule } from "@root/file/file.module"
 import { IndexerModule } from "@root/indexer/indexer.module"
 import { UsersModule } from "@root/users/users.module"
 import { CommentModule } from "./comments/comment.module"
+import { NotificationsModule } from "./notifications/notifications.module"
 import { TokensModule } from "./tokens/tokens.module"
 
 @Module({
@@ -27,7 +28,8 @@ import { TokensModule } from "./tokens/tokens.module"
 		RedisModule.forRoot({
 			type: "single"
 		}),
-		IndexerModule
+		IndexerModule,
+		NotificationsModule
 	],
 	controllers: [AppController],
 	providers: [AppService]

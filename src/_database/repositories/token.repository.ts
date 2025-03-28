@@ -135,4 +135,18 @@ export class TokenRepository {
 			take: 20
 		})
 	}
+
+	// Get latest on chain token
+	getLatestOnChain() {
+		return this.prisma.token.findFirst({
+			where: { bump: true, bumpAt: { not: null } },
+			orderBy: { bumpAt: "desc" },
+			select: {
+				id: true,
+				address: true,
+				uri: true,
+				creator: { select: { id: true, address: true, avatarUrl: true } }
+			}
+		})
+	}
 }
