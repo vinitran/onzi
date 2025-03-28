@@ -6,7 +6,10 @@ import {
 import { TokenKeyRepository } from "@root/_database/repositories/token-key.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
-import { ICreateTokenPayload } from "@root/_shared/types/token"
+import {
+	ICreateTokenPayload,
+	ICreateTokenResponse
+} from "@root/_shared/types/token"
 import { S3Service } from "@root/file/file.service"
 
 @Injectable()
@@ -18,7 +21,9 @@ export class TokensService {
 		private s3Service: S3Service
 	) {}
 
-	async createToken(payload: ICreateTokenPayload) {
+	async createToken(
+		payload: ICreateTokenPayload
+	): Promise<ICreateTokenResponse> {
 		const { description, name, ticker, creatorAddress } = payload
 
 		const [tokenKey, user] = await Promise.all([

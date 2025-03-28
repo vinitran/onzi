@@ -53,7 +53,18 @@ export class TokenRepository {
 	create(data: ICreateToken) {
 		const { dataCreate, tokenKeyId, getImagePresignedUrl } = data
 		return this.prisma.$transaction(async tx => {
-			let token = await tx.token.create({ data: { ...dataCreate } })
+			let token = await tx.token.create({
+				data: { ...dataCreate },
+				include: {
+					creator: {
+						select: {
+							id: true,
+							address: true,
+							username: true
+						}
+					}
+				}
+			})
 
 			// Get image uri
 			const { imageUri, fields, url } = await getImagePresignedUrl(token.id)

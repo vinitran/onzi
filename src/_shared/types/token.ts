@@ -1,5 +1,5 @@
 import { PresignedPost } from "@aws-sdk/s3-presigned-post"
-import { Prisma } from "@prisma/client"
+import { Prisma, Token } from "@prisma/client"
 import { CreateTokenDto } from "@root/tokens/dtos/create-token.dto"
 
 /* Create token */
@@ -13,4 +13,15 @@ export type ICreateToken = {
 	getImagePresignedUrl: (
 		tokenId: string
 	) => Promise<{ imageUri: string } & PresignedPost>
+}
+
+export type ICreateTokenResponse = {
+	token: Token & {
+		creator: {
+			id: string
+			address: string
+			username: string | null
+		}
+	}
+	attachment?: PresignedPost
 }
