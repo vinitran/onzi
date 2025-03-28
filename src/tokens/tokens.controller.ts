@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from "@nestjs/common"
+import { Body, Controller, Get, Param, Post } from "@nestjs/common"
 import { ApiOperation, ApiTags } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
 import { Claims } from "@root/auth/auth.service"
@@ -19,5 +19,23 @@ export class TokensController {
 			...body,
 			creatorAddress: user.address
 		})
+	}
+
+	@Get(":address/similar")
+	@ApiOperation({ summary: "Get list 20 similar tokens (lte its market cap)" })
+	getListSimilar(@Param("address") address: string) {
+		return this.tokensService.getListSimilar(address)
+	}
+
+	@Get(":address/list-holder")
+	@ApiOperation({ summary: "Get list holder (list user own token)" })
+	getListHolder(@Param("address") address: string) {
+		return this.tokensService.getListHolder(address)
+	}
+
+	@Get(":address")
+	@ApiOperation({ summary: "Get detail token" })
+	getDetail(@Param("address") address: string) {
+		return this.tokensService.getByAddress(address)
 	}
 }

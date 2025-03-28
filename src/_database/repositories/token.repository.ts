@@ -111,4 +111,28 @@ export class TokenRepository {
 			}
 		})
 	}
+
+	//   Find token is King of hill (not ever bonding curve & highest marketcap)
+	findKingOfHill() {
+		return this.prisma.token.findFirst({
+			where: {
+				isCompletedBondingCurve: false
+			},
+			orderBy: { marketCapacity: "desc" }
+		})
+	}
+
+	//   Find token by address
+	findByAddress(address: string) {
+		return this.prisma.token.findUnique({ where: { address } })
+	}
+
+	//   Get 20 silimar market cap tokens
+	findSimilar(marketCapacity: number) {
+		return this.prisma.token.findMany({
+			where: { marketCapacity: { lte: marketCapacity } },
+			orderBy: { createdAt: "desc" },
+			take: 20
+		})
+	}
 }
