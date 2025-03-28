@@ -88,10 +88,10 @@ model Token {
   address                 String    @unique @db.VarChar
   name                    String    @db.VarChar
   price                   Float?
-  symbol                  String    @db.VarChar
-  uri                     String    @db.VarChar
-  ticker                  String?   @db.VarChar
+  uri                     String    @db.VarChar // image url
+  ticker                  String    @db.VarChar
   metadata                Json
+  description             String    @db.Text
   isHighlight             Boolean   @default(false) @map("is_highlight")
   network                 Network   @default(Solana)
   isCompletedBondingCurve Boolean   @default(false) @map("bonding_curve")
@@ -102,11 +102,11 @@ model Token {
 
   // totalSupply             Decimal? // 1.000.000
 
-  creator   User      @relation(fields: [creatorAddress], references: [address], onDelete: Cascade)
   bumpAt    DateTime? @map("pump_at") @db.Timestamptz(3) // Time on chain
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  creator          User               @relation(fields: [creatorAddress], references: [address], onDelete: Cascade)
   tokenOwners      TokenOwner[]
   comments         Comment[]
   TokenTransaction TokenTransaction[]
@@ -117,8 +117,9 @@ model Token {
 
 model TokenKey {
   id         String   @id @default(uuid()) @db.Uuid
-  privateKey String   @map("private_key")
-  publicKey  String   @map("public_key")
+  privateKey String   @unique @map("private_key")
+  publicKey  String   @unique @map("public_key")
+  isPicked   Boolean  @default(false) @map("is_picked")
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   @@map("token_key")

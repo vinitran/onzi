@@ -1,7 +1,7 @@
 import { PresignedPost } from "@aws-sdk/s3-presigned-post"
 import { Comment, User } from "@prisma/client"
-import { CreateCommentDto } from "@root/comment/dtos/create-comment.dto"
-import { PaginateCommentsDto } from "@root/comment/dtos/paginate-comments.dto"
+import { CreateCommentDto } from "@root/comments/dtos/create-comment.dto"
+import { PaginateCommentsDto } from "@root/comments/dtos/paginate-comments.dto"
 
 /* Create comment */
 export type ICreateComment = CreateCommentDto & {

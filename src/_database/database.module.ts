@@ -3,13 +3,15 @@ import { UserConnectionRepository } from "@root/_database/repositories/user-conn
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { PrismaService } from "./prisma.service"
 import { CommentRepository } from "./repositories/comment.repository"
+import { TokenKeyRepository } from "./repositories/token-key.repository"
 import { TokenRepository } from "./repositories/token.repository"
 
 const repositories = [
 	UserRepository,
 	UserConnectionRepository,
 	CommentRepository,
-	TokenRepository
+	TokenRepository,
+	TokenKeyRepository
 ]
 
 @Global()
