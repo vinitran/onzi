@@ -1,4 +1,4 @@
-interface TokenAccount {
+export interface TokenAccount {
 	address: string
 	mint: string
 	owner: string
@@ -7,7 +7,7 @@ interface TokenAccount {
 	frozen: boolean
 }
 
-interface TokenAccountResponse {
+export interface TokenAccountResponse {
 	total: number
 	limit: number
 	page: number

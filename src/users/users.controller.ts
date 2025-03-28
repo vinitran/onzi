@@ -3,6 +3,7 @@ import { ApiTags } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
 import { PaginatedParams, PaginatedResponse } from "@root/_shared/utils/parsers"
 import { Claims } from "@root/auth/auth.service"
+import { TokenAccount } from "@root/indexer/dto/tokenAccount.dto"
 import {
 	FollowingPayload,
 	UnfollowingPayload,

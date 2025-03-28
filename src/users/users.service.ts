@@ -13,6 +13,7 @@ import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { PaginatedParams } from "@root/_shared/utils/parsers"
 import { S3Service } from "@root/file/file.service"
+import { TokenAccount } from "@root/indexer/dto/tokenAccount.dto"
 import { IndexerService } from "@root/indexer/indexer.service"
 import { SetInformationPayload } from "@root/users/dto/user.dto"
 
