@@ -110,7 +110,7 @@ export class CommentService {
 	async paginateComments(
 		payload: IPaginateComments
 	): Promise<PaginatedResponse<IPaginateCommentsData>> {
-		const { tokenId, userId, page, take } = payload
+		const { tokenId, userId, page, take, sortCreatedAt } = payload
 
 		// Get data & total
 		// Only get comment level 1
@@ -121,7 +121,7 @@ export class CommentService {
 
 		const getComments = this.comment.paginate({
 			skip: (page - 1) * take,
-			orderBy: { createdAt: "desc" },
+			orderBy: { createdAt: sortCreatedAt },
 			where: whereConditions,
 			take
 		})
