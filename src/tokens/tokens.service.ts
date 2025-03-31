@@ -7,6 +7,7 @@ import { Decimal } from "@prisma/client/runtime/library"
 import { CommentRepository } from "@root/_database/repositories/comment.repository"
 import { TokenKeyRepository } from "@root/_database/repositories/token-key.repository"
 import { TokenOwnerRepository } from "@root/_database/repositories/token-owner.repository"
+import { TokenTransactionRepository } from "@root/_database/repositories/token-transaction.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { TOKEN_TOTAL_SUPPLY_DEFAULT } from "@root/_shared/constants/token"
@@ -14,8 +15,12 @@ import {
 	ICreateTokenPayload,
 	ICreateTokenResponse
 } from "@root/_shared/types/token"
-import { S3Service } from "@root/file/file.service"
 
+import { TokenTransaction } from "@prisma/client"
+import { PaginatedResponse } from "@root/_shared/utils/parsers"
+import { Claims } from "@root/auth/auth.service"
+import { S3Service } from "@root/file/file.service"
+import { PaginateListTransactionDto } from "./dtos/paginate-list-transaction.dto"
 @Injectable()
 export class TokensService {
 	constructor(
@@ -24,7 +29,8 @@ export class TokensService {
 		private tokenOwner: TokenOwnerRepository,
 		private comment: CommentRepository,
 		private user: UserRepository,
-		private s3Service: S3Service
+		private s3Service: S3Service,
+		private tokenTransaction: TokenTransactionRepository
 	) {}
 
 	// Create token
@@ -162,5 +168,43 @@ export class TokensService {
 		})
 
 		return listHolder
+	}
+
+	// Get list transaction
+	async paginateListTransaction(
+		address: string,
+		query: PaginateListTransactionDto,
+		user: Claims
+	): Promise<PaginatedResponse<TokenTransaction>> {
+		const { filterBy, minimumLamports, page, take } = query
+		const token = await this.token.findByAddress(address)
+		if (!token) throw new NotFoundException("Not found token")
+
+		const getListTransaction = this.tokenTransaction.paginate({
+			tokenAddress: address,
+			filterBy,
+			minimumLamports,
+			page,
+			take,
+			user
+		})
+
+		const getTotal = this.tokenTransaction.count({
+			tokenAddress: address,
+			filterBy,
+			minimumLamports,
+			user
+		})
+
+		const [listTransaction, total] = await Promise.all([
+			getListTransaction,
+			getTotal
+		])
+
+		return {
+			data: listTransaction,
+			total,
+			maxPage: Math.ceil(total / take)
+		}
 	}
 }

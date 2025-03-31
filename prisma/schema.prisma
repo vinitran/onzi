@@ -163,7 +163,7 @@ model TokenTransaction {
   signature    String          @unique @db.VarChar
   amount       Decimal         @db.Decimal(20, 0)
   tokenAddress String          @map("token_address") @db.VarChar
-  lamports     Decimal         @db.Decimal(20, 0)
+  lamports     Decimal         @db.Decimal(20, 0) // amout of solana coin
   date         DateTime        @db.Timestamptz(3)
   signer       String          @db.VarChar
   price        Decimal         @db.Decimal(20, 20)
