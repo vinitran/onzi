@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common"
 import { Prisma } from "@prisma/client"
 import { PrismaService } from "@root/_database/prisma.service"
+import { RedisService } from "@root/_redis/redis.service"
 
 type CreateUserIfNotExistParams = {
 	address: string
@@ -8,7 +9,11 @@ type CreateUserIfNotExistParams = {
 
 @Injectable()
 export class UserRepository {
-	constructor(private prisma: PrismaService) {}
+	constructor(
+		private prisma: PrismaService,
+		private redis: RedisService
+	) {}
+
 
 	async createIfNotExist(params: CreateUserIfNotExistParams) {
 		const user = await this.findByAddress(params.address)
@@ -41,23 +46,35 @@ export class UserRepository {
 		})
 	}
 
-	findByUsername(username: string) {
-		return this.prisma.user.findFirst({
-			where: {
-				username
-			}
-		})
+	async findByUsername(username: string) {
+		return this.redis.getOrSet(
+			`findUserByUsername:${username}`,
+			async () => {
+				return this.prisma.user.findFirst({
+					where: {
+						username
+					}
+				})
+			},
+			3
+		)
 	}
 
-	findById(id: string) {
-		return this.prisma.user.findUnique({
-			where: {
-				id
+	async findById(id: string) {
+		return this.redis.getOrSet(
+			`findUserById:${id}`,
+			async () => {
+				return this.prisma.user.findUnique({
+					where: {
+						id
+					},
+					include: {
+						follower: true,
+						following: true
+					}
+				})
 			},
-			include: {
-				follower: true,
-				following: true
-			}
-		})
+			3
+		)
 	}
 }

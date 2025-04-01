@@ -10,6 +10,7 @@ export type Env = {
 	HELIUS_API_KEY: string
 	CONTRACT_ADDRESS: string
 	RPC_URL: string
+	REDIS_URL: string
 }
 
 export const InjectEnv = () => Inject(ENV_TOKEN)
@@ -24,6 +25,7 @@ const provider: Provider = {
 		const HELIUS_API_KEY = configService.get<string>("HELIUS_API_KEY")
 		const CONTRACT_ADDRESS = configService.get<string>("CONTRACT_ADDRESS")
 		const RPC_URL = configService.get<string>("RPC_URL")
+		const REDIS_URL = configService.get<string>("REDIS_URL")
 
 		if (!DATABASE_URL) throw new Error("missing DATABASE_URL env")
 		if (!JWT_SECRET) throw new Error("missing JWT_SECRET env")
@@ -32,6 +34,7 @@ const provider: Provider = {
 		if (!HELIUS_API_KEY) throw new Error("missing HELIUS_API_KEY env")
 		if (!CONTRACT_ADDRESS) throw new Error("missing CONTRACT_ADDRESS env")
 		if (!RPC_URL) throw new Error("missing RPC_URL env")
+		if (!REDIS_URL) throw new Error("missing REDIS_URL env")
 
 		return {
 			JWT_SECRET,
@@ -39,7 +42,8 @@ const provider: Provider = {
 			S3_BUCKET_NAME,
 			HELIUS_API_KEY,
 			CONTRACT_ADDRESS,
-			RPC_URL
+			RPC_URL,
+			REDIS_URL
 		} satisfies Env
 	},
 	inject: [ConfigService]

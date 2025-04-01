@@ -1,4 +1,3 @@
-import { InjectRedis } from "@nestjs-modules/ioredis"
 import { Injectable, UnauthorizedException } from "@nestjs/common"
 import { JwtService } from "@nestjs/jwt"
 import { UserRepository } from "@root/_database/repositories/user.repository"
@@ -9,6 +8,7 @@ import randomstr from "randomstring"
 import nacl from "tweetnacl"
 import { decodeUTF8 } from "tweetnacl-util"
 import { VerifySignaturePayload } from "./dto/verify-signature.dto"
+import { RedisService } from "@root/_redis/redis.service"
 
 export type Claims = {
 	id: string
@@ -20,7 +20,7 @@ export class AuthService {
 	constructor(
 		private jwtService: JwtService,
 		private userRepository: UserRepository,
-		@InjectRedis() private redis: Redis,
+		private redis: RedisService,
 		@InjectEnv() private env: Env
 	) {}
 
@@ -31,7 +31,7 @@ export class AuthService {
 	async generateMessage(pubkey: string) {
 		const message = randomstr.generate(12)
 
-		await this.redis.set(this.authMessageKey(pubkey), message, "EX", 300)
+		await this.redis.set(this.authMessageKey(pubkey), message)
 
 		return message
 	}

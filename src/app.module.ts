@@ -1,8 +1,7 @@
-import { RedisModule } from "@nestjs-modules/ioredis"
 import { Module } from "@nestjs/common"
 import { JwtModule } from "@nestjs/jwt"
 import { DatabaseModule } from "@root/_database/database.module"
-import { EnvModule } from "@root/_env/env.module"
+import { Env, ENV_TOKEN, EnvModule } from "@root/_env/env.module"
 import { AppController } from "@root/app.controller"
 import { AppService } from "@root/app.service"
 import { AuthModule } from "@root/auth/auth.module"
@@ -12,6 +11,8 @@ import { UsersModule } from "@root/users/users.module"
 import { CommentModule } from "./comments/comment.module"
 import { NotificationsModule } from "./notifications/notifications.module"
 import { TokensModule } from "./tokens/tokens.module"
+import { RedisModule } from "@root/_redis/redis.module"
+
 
 @Module({
 	imports: [
@@ -25,9 +26,7 @@ import { TokensModule } from "./tokens/tokens.module"
 			global: true
 		}),
 		FileModule,
-		RedisModule.forRoot({
-			type: "single"
-		}),
+		RedisModule,
 		IndexerModule,
 		NotificationsModule
 	],
