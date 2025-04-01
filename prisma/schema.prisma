@@ -125,6 +125,8 @@ model TokenKey {
   isPicked   Boolean  @default(false) @map("is_picked")
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
+  @@index([publicKey])
+  @@index([isPicked])
   @@map("token_key")
 }
 
@@ -195,4 +197,5 @@ enum Network {
 enum TransactionType {
   Buy
   Sell
+  Create
 }

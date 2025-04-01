@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common"
+import { Prisma } from "@prisma/client"
 import { ICreateToken } from "@root/_shared/types/token"
 import { GetCoinCreatedParams } from "@root/users/dto/user.dto"
 import { PrismaService } from "../prisma.service"
@@ -6,6 +7,25 @@ import { PrismaService } from "../prisma.service"
 @Injectable()
 export class TokenRepository {
 	constructor(private prisma: PrismaService) {}
+
+	async findOneByAddress(address: string) {
+		return this.prisma.token.findUnique({
+			where: {
+				address
+			},
+			include: {
+				creator: true,
+				tokenOwners: {
+					include: {
+						user: true
+					},
+					orderBy: {
+						amount: "desc"
+					}
+				}
+			}
+		})
+	}
 
 	findById(tokenId: string) {
 		return this.prisma.token.findFirst({
@@ -42,6 +62,38 @@ export class TokenRepository {
 			maxPage: Math.ceil(total / take),
 			coinCreated
 		}
+	}
+
+	async updateKingOfCoin(id: string) {
+		return this.prisma.token.update({
+			where: {
+				id
+			},
+			data: {
+				isCompletedKingOfHill: true,
+				createdAtKingOfHill: new Date()
+			}
+		})
+	}
+
+	async findMaxMarketCap() {
+		return this.prisma.token.findFirst({
+			where: {
+				isCompletedBondingCurve: false
+			},
+			orderBy: {
+				marketCapacity: "desc"
+			}
+		})
+	}
+
+	async update(address: string, payload: Prisma.TokenUpdateInput) {
+		return this.prisma.token.update({
+			where: {
+				address
+			},
+			data: payload
+		})
 	}
 
 	/**  Create token
@@ -112,6 +164,17 @@ export class TokenRepository {
 		})
 	}
 
+	updateMarketCap(address: string, marketCapacity: number) {
+		return this.prisma.token.update({
+			where: {
+				address
+			},
+			data: {
+				marketCapacity
+			}
+		})
+	}
+
 	//   Find token is King of hill (not ever bonding curve & highest marketcap)
 	findKingOfHill() {
 		return this.prisma.token.findFirst({
@@ -146,6 +209,17 @@ export class TokenRepository {
 				address: true,
 				uri: true,
 				creator: { select: { id: true, address: true, avatarUrl: true } }
+			}
+		})
+	}
+
+	async updatePrice(id: string, price: number) {
+		return this.prisma.token.update({
+			where: {
+				id
+			},
+			data: {
+				price
 			}
 		})
 	}

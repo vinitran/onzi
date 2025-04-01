@@ -5,7 +5,7 @@ import axios from "axios"
 
 @Injectable()
 export class IndexerService {
-	private HELIUS_URL = "https://mainnet.helius-rpc.com/?api-key="
+	private HELIUS_URL = "https://devnet.helius-rpc.com/?api-key="
 
 	constructor(@InjectEnv() private env: Env) {}
 
