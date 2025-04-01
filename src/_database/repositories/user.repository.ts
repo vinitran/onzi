@@ -14,7 +14,6 @@ export class UserRepository {
 		private redis: RedisService
 	) {}
 
-
 	async createIfNotExist(params: CreateUserIfNotExistParams) {
 		const user = await this.findByAddress(params.address)
 

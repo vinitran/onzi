@@ -1,6 +1,6 @@
+import { InjectRedis } from "@nestjs-modules/ioredis"
 import { Injectable } from "@nestjs/common"
 import { Redis } from "ioredis"
-import { InjectRedis } from "@nestjs-modules/ioredis"
 
 @Injectable()
 export class RedisService {
@@ -9,7 +9,7 @@ export class RedisService {
 	async set(
 		key: string,
 		value: string,
-		seconds: number | string = 300
+		_seconds: number | string = 300
 	): Promise<void> {
 		await this.redis.set(key, value, "EX", 300)
 	}
