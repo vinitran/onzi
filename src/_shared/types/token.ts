@@ -25,3 +25,11 @@ export type ICreateTokenResponse = {
 	}
 	attachment?: PresignedPost
 }
+
+/* Create token onchain */
+export type ICreateTokenOnchainPayload = {
+	tokenID: string
+	creatorAddress: string
+	minSol: string
+	maxSol: string
+}

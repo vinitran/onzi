@@ -18,7 +18,15 @@ export class TokenKeyRepository {
 		return this.prisma.tokenKey.create({ data })
 	}
 
-	findByPrivateKey(privateKey: string) {
-		return this.prisma.tokenKey.findUnique({ where: { privateKey } })
+	delete(id: string) {
+		return this.prisma.tokenKey.delete({
+			where: {
+				id
+			}
+		})
+	}
+
+	findByPublicKey(publicKey: string) {
+		return this.prisma.tokenKey.findUnique({ where: { publicKey } })
 	}
 }

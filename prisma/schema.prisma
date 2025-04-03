@@ -113,6 +113,7 @@ model Token {
   tokenOwners      TokenOwner[]
   comments         Comment[]
   TokenTransaction TokenTransaction[]
+  tokenKey         TokenKey           @relation(fields: address, references: publicKey)
 
   @@index([creatorAddress, createdAt(sort: Desc)])
   @@map("token")
@@ -124,6 +125,8 @@ model TokenKey {
   publicKey  String   @unique @map("public_key")
   isPicked   Boolean  @default(false) @map("is_picked")
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  Token Token?
 
   @@index([publicKey])
   @@index([isPicked])

@@ -12,15 +12,25 @@ import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { TOKEN_TOTAL_SUPPLY_DEFAULT } from "@root/_shared/constants/token"
 import {
+	ICreateTokenOnchainPayload,
 	ICreateTokenPayload,
 	ICreateTokenResponse
 } from "@root/_shared/types/token"
 
+import { BN, web3 } from "@coral-xyz/anchor"
 import { TokenTransaction } from "@prisma/client"
+import {
+	encodeTransaction,
+	keypairFromPrivateKey
+} from "@root/_shared/helpers/encode-decode-tx"
 import { PaginatedResponse } from "@root/_shared/utils/parsers"
 import { Claims } from "@root/auth/auth.service"
 import { S3Service } from "@root/file/file.service"
+import { Ponz } from "@root/programs/ponz/program"
+import { InjectConnection } from "@root/programs/programs.module"
+import { PublicKey } from "@solana/web3.js"
 import { PaginateListTransactionDto } from "./dtos/paginate-list-transaction.dto"
+
 @Injectable()
 export class TokensService {
 	constructor(
@@ -30,7 +40,9 @@ export class TokensService {
 		private comment: CommentRepository,
 		private user: UserRepository,
 		private s3Service: S3Service,
-		private tokenTransaction: TokenTransactionRepository
+		private tokenTransaction: TokenTransactionRepository,
+		private ponz: Ponz,
+		@InjectConnection() private connection: web3.Connection
 	) {}
 
 	// Create token
@@ -63,7 +75,7 @@ export class TokensService {
 			ticker,
 			metadata,
 			uri: "",
-			address: tokenKey.publicKey,
+			tokenKey: { connect: { publicKey: tokenKey.publicKey } },
 			creator: { connect: { address: creatorAddress } }
 		}
 
@@ -73,6 +85,42 @@ export class TokensService {
 			tokenKeyId: tokenKey.id,
 			getImagePresignedUrl: this.getImagePresignedUrl.bind(this)
 		})
+	}
+
+	async broadcastCreateOnChain(payload: ICreateTokenOnchainPayload) {
+		const token = await this.token.findWithPrivateKey(payload.tokenID)
+		if (!token) throw new NotFoundException("not found token")
+
+		if (token.bump)
+			throw new InternalServerErrorException("token already create")
+
+		const tokenKeypair = keypairFromPrivateKey(token.tokenKey.privateKey)
+		const transferFeeBasisPoints = 1000 // 1% = 100
+		const maximumFee = new BN("1000000000000000")
+		const tokenMetadata = {
+			name: token.name,
+			symbol: token.ticker,
+			uri: token.uri,
+			transferFeeBasisPoints,
+			maximumFee
+		}
+
+		let tx: web3.Transaction
+		try {
+			tx = await this.ponz.createTokenAndBuyTx(
+				tokenMetadata,
+				new PublicKey(token.address),
+				new PublicKey(payload.creatorAddress),
+				tokenKeypair,
+				payload.minSol,
+				payload.maxSol
+			)
+		} catch (error) {
+			console.log("err: ", error)
+			throw new InternalServerErrorException("Failed to create transaction")
+		}
+
+		return encodeTransaction(tx)
 	}
 
 	//   Get image url & authorize data to push image Aws3

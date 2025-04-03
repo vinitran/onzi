@@ -21,11 +21,10 @@ export type CreateTokenEventDto = {
 
 export type CreateTokenEvent = {
 	creator: web3.PublicKey
-	address: web3.PublicKey
+	mint: web3.PublicKey
 	name: string
 	symbol: string
 	uri: string
-	ticker?: string
 }
 
 export type SellTokensEvent = {
@@ -43,3 +42,11 @@ export const EVENTS = {
 	SellTokens: "sellTokensEvent",
 	ClaimEvent: "claimTicketEvent"
 } as const
+
+export type TokenMetadataArgs = {
+	name: string
+	symbol: string
+	uri: string
+	transferFeeBasisPoints: number
+	maximumFee: BN
+}

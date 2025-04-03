@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/ponz_sc.json`.
  */
 export type PonzSc = {
-	address: "CnZwQbRAwQRK6XXojJ9B1VMkeaFP7ekEkNPH2Ctqg3S6"
+	address: "7j6Jrjx1qZ4VTwRAQg8nosr9iGwqKRsLbpJDcu2UuZjc"
 	metadata: {
 		name: "ponzSc"
 		version: "0.1.0"
@@ -263,6 +263,18 @@ export type PonzSc = {
 					}
 				},
 				{
+					name: "feePool"
+					writable: true
+					pda: {
+						seeds: [
+							{
+								kind: "const"
+								value: [102, 101, 101, 95, 112, 111, 111, 108]
+							}
+						]
+					}
+				},
+				{
 					name: "payer"
 					writable: true
 					signer: true
@@ -291,8 +303,8 @@ export type PonzSc = {
 			]
 		},
 		{
-			name: "createPool"
-			discriminator: [233, 146, 209, 142, 207, 104, 64, 188]
+			name: "buyLock"
+			discriminator: [112, 223, 72, 179, 160, 80, 43, 53]
 			accounts: [
 				{
 					name: "globalConfiguration"
@@ -321,7 +333,168 @@ export type PonzSc = {
 				},
 				{
 					name: "mint"
+				},
+				{
+					name: "bondingCurve"
 					writable: true
+					pda: {
+						seeds: [
+							{
+								kind: "account"
+								path: "mint"
+							},
+							{
+								kind: "const"
+								value: [
+									98,
+									111,
+									110,
+									100,
+									105,
+									110,
+									103,
+									95,
+									99,
+									117,
+									114,
+									118,
+									101
+								]
+							}
+						]
+					}
+				},
+				{
+					name: "tokenPool"
+					writable: true
+					pda: {
+						seeds: [
+							{
+								kind: "account"
+								path: "mint"
+							},
+							{
+								kind: "const"
+								value: [116, 111, 107, 101, 110, 95, 112, 111, 111, 108]
+							}
+						]
+					}
+				},
+				{
+					name: "tokenPoolLock"
+					writable: true
+					pda: {
+						seeds: [
+							{
+								kind: "account"
+								path: "mint"
+							},
+							{
+								kind: "const"
+								value: [
+									116,
+									111,
+									107,
+									101,
+									110,
+									95,
+									112,
+									111,
+									111,
+									108,
+									95,
+									108,
+									111,
+									99,
+									107
+								]
+							}
+						]
+					}
+				},
+				{
+					name: "feePool"
+					writable: true
+					pda: {
+						seeds: [
+							{
+								kind: "const"
+								value: [102, 101, 101, 95, 112, 111, 111, 108]
+							}
+						]
+					}
+				},
+				{
+					name: "payer"
+					writable: true
+					signer: true
+				},
+				{
+					name: "associatedTokenProgram"
+					address: "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+				},
+				{
+					name: "tokenProgram"
+				},
+				{
+					name: "systemProgram"
+					address: "11111111111111111111111111111111"
+				}
+			]
+			args: [
+				{
+					name: "solInAmt"
+					type: "u64"
+				},
+				{
+					name: "expectedTokenAmt"
+					type: "u64"
+				},
+				{
+					name: "lockTime"
+					type: "i64"
+				}
+			]
+		},
+		{
+			name: "createToken"
+			discriminator: [84, 52, 204, 228, 24, 140, 234, 75]
+			accounts: [
+				{
+					name: "payer"
+					writable: true
+					signer: true
+				},
+				{
+					name: "mint"
+					writable: true
+					signer: true
+				},
+				{
+					name: "globalConfiguration"
+					writable: true
+					pda: {
+						seeds: [
+							{
+								kind: "const"
+								value: [
+									103,
+									108,
+									111,
+									98,
+									97,
+									108,
+									95,
+									99,
+									111,
+									110,
+									102,
+									105,
+									103
+								]
+							}
+						]
+					}
 				},
 				{
 					name: "bondingCurve"
@@ -390,96 +563,8 @@ export type PonzSc = {
 					}
 				},
 				{
-					name: "payer"
-					writable: true
-					signer: true
-				},
-				{
 					name: "ponzScRewardVault"
-					address: "4ViYgYEQwm2h8B41RjkvhLaBqFgqgSFCbTjK1uMtuYbP"
-				},
-				{
-					name: "tokenProgram"
-				},
-				{
-					name: "systemProgram"
-					address: "11111111111111111111111111111111"
-				}
-			]
-			args: []
-		},
-		{
-			name: "createToken"
-			discriminator: [84, 52, 204, 228, 24, 140, 234, 75]
-			accounts: [
-				{
-					name: "globalConfiguration"
-					writable: true
-					pda: {
-						seeds: [
-							{
-								kind: "const"
-								value: [
-									103,
-									108,
-									111,
-									98,
-									97,
-									108,
-									95,
-									99,
-									111,
-									110,
-									102,
-									105,
-									103
-								]
-							}
-						]
-					}
-				},
-				{
-					name: "mint"
-					writable: true
-					signer: true
-				},
-				{
-					name: "bondingCurve"
-					writable: true
-					pda: {
-						seeds: [
-							{
-								kind: "account"
-								path: "mint"
-							},
-							{
-								kind: "const"
-								value: [
-									98,
-									111,
-									110,
-									100,
-									105,
-									110,
-									103,
-									95,
-									99,
-									117,
-									114,
-									118,
-									101
-								]
-							}
-						]
-					}
-				},
-				{
-					name: "payer"
-					writable: true
-					signer: true
-				},
-				{
-					name: "ponzRewardSystemWallet"
+					address: "2wVeAGMs4Q2ve57XxAmpJC7qVs8Doegwq9AzE6zbSVE5"
 				},
 				{
 					name: "tokenProgram"
@@ -508,21 +593,6 @@ export type PonzSc = {
 					}
 				}
 			]
-		},
-		{
-			name: "harvest"
-			discriminator: [228, 241, 31, 182, 53, 169, 59, 199]
-			accounts: [
-				{
-					name: "mintAccount"
-					writable: true
-				},
-				{
-					name: "tokenProgram"
-					address: "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-				}
-			]
-			args: []
 		},
 		{
 			name: "initConfiguration"
@@ -828,268 +898,6 @@ export type PonzSc = {
 			]
 		},
 		{
-			name: "proxyInitialize"
-			discriminator: [185, 41, 170, 16, 237, 245, 76, 134]
-			accounts: [
-				{
-					name: "cpSwapProgram"
-					address: "CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C"
-				},
-				{
-					name: "creator"
-					docs: ["Address paying to create the pool. Can be anyone"]
-					writable: true
-					signer: true
-				},
-				{
-					name: "ammConfig"
-					docs: ["Which config the pool belongs to."]
-				},
-				{
-					name: "authority"
-					pda: {
-						seeds: [
-							{
-								kind: "const"
-								value: [
-									118,
-									97,
-									117,
-									108,
-									116,
-									95,
-									97,
-									110,
-									100,
-									95,
-									108,
-									112,
-									95,
-									109,
-									105,
-									110,
-									116,
-									95,
-									97,
-									117,
-									116,
-									104,
-									95,
-									115,
-									101,
-									101,
-									100
-								]
-							}
-						]
-						program: {
-							kind: "account"
-							path: "cpSwapProgram"
-						}
-					}
-				},
-				{
-					name: "poolState"
-					writable: true
-					pda: {
-						seeds: [
-							{
-								kind: "const"
-								value: [112, 111, 111, 108]
-							},
-							{
-								kind: "account"
-								path: "ammConfig"
-							},
-							{
-								kind: "account"
-								path: "token0Mint"
-							},
-							{
-								kind: "account"
-								path: "token1Mint"
-							}
-						]
-						program: {
-							kind: "account"
-							path: "cpSwapProgram"
-						}
-					}
-				},
-				{
-					name: "token0Mint"
-					docs: ["Token_0 mint, the key must smaller then token_1 mint."]
-				},
-				{
-					name: "token1Mint"
-					docs: ["Token_1 mint, the key must grater then token_0 mint."]
-				},
-				{
-					name: "lpMint"
-					writable: true
-					pda: {
-						seeds: [
-							{
-								kind: "const"
-								value: [
-									112,
-									111,
-									111,
-									108,
-									95,
-									108,
-									112,
-									95,
-									109,
-									105,
-									110,
-									116
-								]
-							},
-							{
-								kind: "account"
-								path: "poolState"
-							}
-						]
-						program: {
-							kind: "account"
-							path: "cpSwapProgram"
-						}
-					}
-				},
-				{
-					name: "creatorToken0"
-					docs: ["payer token0 account"]
-					writable: true
-				},
-				{
-					name: "creatorToken1"
-					docs: ["creator token1 account"]
-					writable: true
-				},
-				{
-					name: "creatorLpToken"
-					writable: true
-				},
-				{
-					name: "token0Vault"
-					writable: true
-					pda: {
-						seeds: [
-							{
-								kind: "const"
-								value: [112, 111, 111, 108, 95, 118, 97, 117, 108, 116]
-							},
-							{
-								kind: "account"
-								path: "poolState"
-							},
-							{
-								kind: "account"
-								path: "token0Mint"
-							}
-						]
-						program: {
-							kind: "account"
-							path: "cpSwapProgram"
-						}
-					}
-				},
-				{
-					name: "token1Vault"
-					writable: true
-					pda: {
-						seeds: [
-							{
-								kind: "const"
-								value: [112, 111, 111, 108, 95, 118, 97, 117, 108, 116]
-							},
-							{
-								kind: "account"
-								path: "poolState"
-							},
-							{
-								kind: "account"
-								path: "token1Mint"
-							}
-						]
-						program: {
-							kind: "account"
-							path: "cpSwapProgram"
-						}
-					}
-				},
-				{
-					name: "createPoolFee"
-					docs: ["create pool fee account"]
-					writable: true
-					address: "DNXgeM9EiiaAbaWvwjHj9fQQLAX5ZsfHyvmYUNRAdNC8"
-				},
-				{
-					name: "observationState"
-					writable: true
-					pda: {
-						seeds: [
-							{
-								kind: "const"
-								value: [111, 98, 115, 101, 114, 118, 97, 116, 105, 111, 110]
-							},
-							{
-								kind: "account"
-								path: "poolState"
-							}
-						]
-						program: {
-							kind: "account"
-							path: "cpSwapProgram"
-						}
-					}
-				},
-				{
-					name: "tokenProgram"
-					docs: ["Program to create mint account and mint tokens"]
-					address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-				},
-				{
-					name: "token0Program"
-					docs: ["Spl token program or token program 2022"]
-				},
-				{
-					name: "token1Program"
-					docs: ["Spl token program or token program 2022"]
-				},
-				{
-					name: "associatedTokenProgram"
-					docs: ["Program to create an ATA for receiving position NFT"]
-					address: "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-				},
-				{
-					name: "systemProgram"
-					docs: ["To create a new program account"]
-					address: "11111111111111111111111111111111"
-				},
-				{
-					name: "rent"
-					docs: ["Sysvar for program account"]
-					address: "SysvarRent111111111111111111111111111111111"
-				}
-			]
-			args: [
-				{
-					name: "initAmount0"
-					type: "u64"
-				},
-				{
-					name: "initAmount1"
-					type: "u64"
-				},
-				{
-					name: "openTime"
-					type: "u64"
-				}
-			]
-		},
-		{
 			name: "removeLiquidity"
 			discriminator: [80, 85, 209, 72, 24, 206, 177, 108]
 			accounts: [
@@ -1231,6 +1039,10 @@ export type PonzSc = {
 				},
 				{
 					name: "tokenProgram"
+				},
+				{
+					name: "associatedTokenProgram"
+					address: "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
 				},
 				{
 					name: "systemProgram"
@@ -1375,6 +1187,18 @@ export type PonzSc = {
 					}
 				},
 				{
+					name: "feePool"
+					writable: true
+					pda: {
+						seeds: [
+							{
+								kind: "const"
+								value: [102, 101, 101, 95, 112, 111, 111, 108]
+							}
+						]
+					}
+				},
+				{
 					name: "payer"
 					writable: true
 					signer: true
@@ -1449,6 +1273,57 @@ export type PonzSc = {
 				{
 					name: "amount"
 					type: "u64"
+				}
+			]
+		},
+		{
+			name: "updateConfiguration"
+			discriminator: [156, 68, 173, 185, 72, 133, 242, 232]
+			accounts: [
+				{
+					name: "globalConfiguration"
+					writable: true
+					pda: {
+						seeds: [
+							{
+								kind: "const"
+								value: [
+									103,
+									108,
+									111,
+									98,
+									97,
+									108,
+									95,
+									99,
+									111,
+									110,
+									102,
+									105,
+									103
+								]
+							}
+						]
+					}
+				},
+				{
+					name: "payer"
+					writable: true
+					signer: true
+				},
+				{
+					name: "systemProgram"
+					address: "11111111111111111111111111111111"
+				}
+			]
+			args: [
+				{
+					name: "param"
+					type: {
+						defined: {
+							name: "updateConfigurationParam"
+						}
+					}
 				}
 			]
 		},
@@ -1574,13 +1449,179 @@ export type PonzSc = {
 				}
 			]
 			args: []
+		},
+		{
+			name: "withdrawTokenPoolLock"
+			discriminator: [100, 245, 110, 226, 8, 144, 132, 95]
+			accounts: [
+				{
+					name: "globalConfiguration"
+					pda: {
+						seeds: [
+							{
+								kind: "const"
+								value: [
+									103,
+									108,
+									111,
+									98,
+									97,
+									108,
+									95,
+									99,
+									111,
+									110,
+									102,
+									105,
+									103
+								]
+							}
+						]
+					}
+				},
+				{
+					name: "payer"
+					writable: true
+					signer: true
+				},
+				{
+					name: "mint"
+				},
+				{
+					name: "bondingCurve"
+					writable: true
+					pda: {
+						seeds: [
+							{
+								kind: "account"
+								path: "mint"
+							},
+							{
+								kind: "const"
+								value: [
+									98,
+									111,
+									110,
+									100,
+									105,
+									110,
+									103,
+									95,
+									99,
+									117,
+									114,
+									118,
+									101
+								]
+							}
+						]
+					}
+				},
+				{
+					name: "tokenPoolLock"
+					writable: true
+					pda: {
+						seeds: [
+							{
+								kind: "account"
+								path: "mint"
+							},
+							{
+								kind: "const"
+								value: [
+									116,
+									111,
+									107,
+									101,
+									110,
+									95,
+									112,
+									111,
+									111,
+									108,
+									95,
+									108,
+									111,
+									99,
+									107
+								]
+							}
+						]
+					}
+				},
+				{
+					name: "payerAta"
+					writable: true
+					pda: {
+						seeds: [
+							{
+								kind: "account"
+								path: "payer"
+							},
+							{
+								kind: "account"
+								path: "tokenProgram"
+							},
+							{
+								kind: "account"
+								path: "mint"
+							}
+						]
+						program: {
+							kind: "const"
+							value: [
+								140,
+								151,
+								37,
+								143,
+								78,
+								36,
+								137,
+								241,
+								187,
+								61,
+								16,
+								41,
+								20,
+								142,
+								13,
+								131,
+								11,
+								90,
+								19,
+								153,
+								218,
+								255,
+								16,
+								132,
+								4,
+								142,
+								123,
+								216,
+								219,
+								233,
+								248,
+								89
+							]
+						}
+					}
+				},
+				{
+					name: "associatedTokenProgram"
+					address: "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+				},
+				{
+					name: "tokenProgram"
+				},
+				{
+					name: "systemProgram"
+					address: "11111111111111111111111111111111"
+				}
+			]
+			args: []
 		}
 	]
 	accounts: [
-		{
-			name: "ammConfig"
-			discriminator: [218, 244, 33, 104, 203, 203, 43, 111]
-		},
 		{
 			name: "bondingCurve"
 			discriminator: [23, 183, 248, 55, 96, 216, 172, 96]
@@ -1618,10 +1659,6 @@ export type PonzSc = {
 		{
 			name: "initConfigurationEvent"
 			discriminator: [79, 206, 51, 242, 171, 132, 87, 224]
-		},
-		{
-			name: "proxyInitializeEvent"
-			discriminator: [196, 109, 230, 68, 63, 121, 100, 202]
 		},
 		{
 			name: "removeLiquidityEvent"
@@ -1699,70 +1736,19 @@ export type PonzSc = {
 			code: 6010
 			name: "emptyWallet"
 			msg: "Empty wallet"
+		},
+		{
+			code: 6011
+			name: "invalidSwapFee"
+			msg: "Invalid swap fee"
+		},
+		{
+			code: 6012
+			name: "tokenPoolLockNotExpired"
+			msg: "Token pool lock not expired"
 		}
 	]
 	types: [
-		{
-			name: "ammConfig"
-			docs: ["Holds the current owner of the factory"]
-			type: {
-				kind: "struct"
-				fields: [
-					{
-						name: "bump"
-						docs: ["Bump to identify PDA"]
-						type: "u8"
-					},
-					{
-						name: "disableCreatePool"
-						docs: ["Status to control if new pool can be create"]
-						type: "bool"
-					},
-					{
-						name: "index"
-						docs: ["Config index"]
-						type: "u16"
-					},
-					{
-						name: "tradeFeeRate"
-						docs: ["The trade fee, denominated in hundredths of a bip (10^-6)"]
-						type: "u64"
-					},
-					{
-						name: "protocolFeeRate"
-						docs: ["The protocol fee"]
-						type: "u64"
-					},
-					{
-						name: "fundFeeRate"
-						docs: ["The fund fee, denominated in hundredths of a bip (10^-6)"]
-						type: "u64"
-					},
-					{
-						name: "createPoolFee"
-						docs: ["Fee for create a new pool"]
-						type: "u64"
-					},
-					{
-						name: "protocolOwner"
-						docs: ["Address of the protocol fee owner"]
-						type: "pubkey"
-					},
-					{
-						name: "fundOwner"
-						docs: ["Address of the fund fee owner"]
-						type: "pubkey"
-					},
-					{
-						name: "padding"
-						docs: ["padding"]
-						type: {
-							array: ["u64", 16]
-						}
-					}
-				]
-			}
-		},
 		{
 			name: "bondingCurve"
 			type: {
@@ -1801,28 +1787,8 @@ export type PonzSc = {
 						type: "u128"
 					},
 					{
-						name: "rewardBuyTax"
-						type: "f32"
-					},
-					{
-						name: "rewardSellTax"
-						type: "f32"
-					},
-					{
-						name: "jackpotBuyTax"
-						type: "f32"
-					},
-					{
-						name: "jackpotSellTax"
-						type: "f32"
-					},
-					{
-						name: "burnBuyTax"
-						type: "f32"
-					},
-					{
-						name: "burnSellTax"
-						type: "f32"
+						name: "unlockTime"
+						type: "i64"
 					}
 				]
 			}
@@ -1905,8 +1871,24 @@ export type PonzSc = {
 				kind: "struct"
 				fields: [
 					{
+						name: "creator"
+						type: "pubkey"
+					},
+					{
 						name: "mint"
 						type: "pubkey"
+					},
+					{
+						name: "name"
+						type: "string"
+					},
+					{
+						name: "symbol"
+						type: "string"
+					},
+					{
+						name: "uri"
+						type: "string"
 					}
 				]
 			}
@@ -1974,6 +1956,10 @@ export type PonzSc = {
 						type: "u8"
 					},
 					{
+						name: "swapFee"
+						type: "f32"
+					},
+					{
 						name: "bondingCurveLimitation"
 						type: "u64"
 					},
@@ -2010,6 +1996,10 @@ export type PonzSc = {
 						type: "pubkey"
 					},
 					{
+						name: "swapFee"
+						type: "f32"
+					},
+					{
 						name: "bondingCurveLimitation"
 						type: "u64"
 					},
@@ -2036,18 +2026,6 @@ export type PonzSc = {
 					{
 						name: "bump"
 						type: "u8"
-					}
-				]
-			}
-		},
-		{
-			name: "proxyInitializeEvent"
-			type: {
-				kind: "struct"
-				fields: [
-					{
-						name: "poolAddress"
-						type: "pubkey"
 					}
 				]
 			}
@@ -2151,6 +2129,34 @@ export type PonzSc = {
 					},
 					{
 						name: "maximumFee"
+						type: "u64"
+					}
+				]
+			}
+		},
+		{
+			name: "updateConfigurationParam"
+			type: {
+				kind: "struct"
+				fields: [
+					{
+						name: "swapFee"
+						type: "f32"
+					},
+					{
+						name: "bondingCurveLimitation"
+						type: "u64"
+					},
+					{
+						name: "initialVirtualSol"
+						type: "u64"
+					},
+					{
+						name: "initialVirtualToken"
+						type: "u64"
+					},
+					{
+						name: "createPoolFeeLamports"
 						type: "u64"
 					}
 				]

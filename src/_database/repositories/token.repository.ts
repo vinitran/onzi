@@ -35,6 +35,22 @@ export class TokenRepository {
 		})
 	}
 
+	findWithPrivateKey(id: string) {
+		return this.prisma.token.findFirst({
+			where: {
+				id
+			},
+			include: {
+				tokenKey: {
+					select: {
+						id: true,
+						privateKey: true
+					}
+				}
+			}
+		})
+	}
+
 	async getCoinCreated(query: GetCoinCreatedParams) {
 		const { page, take, creatorAddress } = query
 
@@ -73,6 +89,29 @@ export class TokenRepository {
 				isCompletedKingOfHill: true,
 				createdAtKingOfHill: new Date()
 			}
+		})
+	}
+
+	async updateTokenOnchain(address: string, data: Prisma.TokenUpdateInput) {
+		return this.prisma.$transaction(async tx => {
+			const token = await tx.token.update({
+				where: { address },
+				data,
+				include: {
+					tokenKey: true
+				}
+			})
+
+			if (token.tokenKey) {
+				await tx.tokenKey.update({
+					where: { id: token.tokenKey.id },
+					data: {
+						privateKey: ""
+					}
+				})
+			}
+
+			return token
 		})
 	}
 

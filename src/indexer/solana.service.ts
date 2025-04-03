@@ -117,20 +117,25 @@ export class SolanaIndexerService implements OnModuleInit {
 
 		const metadata = await getTokenMetaData(event.uri)
 
-		await this.tokenRepository.update(event.address.toBase58(), {
+		await this.tokenRepository.updateTokenOnchain(event.mint.toBase58(), {
 			metadata,
 			bumpAt: date.toJSDate(),
 			name: event.name,
 			uri: event.uri,
-			ticker: event.ticker || "",
+			ticker: event.symbol,
 			network: Network.Solana,
-			bump: true
+			bump: true,
+			creator: {
+				connect: {
+					address: event.creator.toBase58()
+				}
+			}
 		})
 
-		await this.updateMarketCap(event.address)
+		await this.updateMarketCap(event.mint)
 
 		this.socketService.emitNewTokenCreation({
-			address: event.address,
+			address: event.mint,
 			name: event.name,
 			network: Network.Solana,
 			createdBy: user

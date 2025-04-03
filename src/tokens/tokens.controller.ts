@@ -2,10 +2,11 @@ import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common"
 import { ApiOperation, ApiTags } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
 import { Claims } from "@root/auth/auth.service"
+import { BuyTokenOnchainDto } from "@root/tokens/dtos/buy-token.dto"
+import { CreateTokenDto } from "@root/tokens/dtos/create-token.dto"
+import { PaginateListTransactionDto } from "@root/tokens/dtos/paginate-list-transaction.dto"
+import { TokensService } from "@root/tokens/tokens.service"
 import { User } from "@root/users/user.decorator"
-import { CreateTokenDto } from "./dtos/create-token.dto"
-import { PaginateListTransactionDto } from "./dtos/paginate-list-transaction.dto"
-import { TokensService } from "./tokens.service"
 
 @Auth()
 @Controller("tokens")
@@ -19,6 +20,21 @@ export class TokensController {
 		return this.tokensService.createToken({
 			...body,
 			creatorAddress: user.address
+		})
+	}
+
+	@Post(":id")
+	@ApiOperation({ summary: "Create token" })
+	createTokenOnchain(
+		@Param("id") tokenId: string,
+		@Body() body: BuyTokenOnchainDto,
+		@User() user: Claims
+	) {
+		return this.tokensService.broadcastCreateOnChain({
+			creatorAddress: user.address,
+			tokenID: tokenId,
+			minSol: body.minSol,
+			maxSol: body.maxSol
 		})
 	}
 
