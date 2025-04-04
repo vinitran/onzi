@@ -8,6 +8,36 @@ import { PrismaService } from "../prisma.service"
 export class TokenRepository {
 	constructor(private prisma: PrismaService) {}
 
+	async findAllByPage(page: number, take: number) {
+		const skip = (page - 1) * take
+
+		const [tokens, total] = await Promise.all([
+			this.prisma.token.findMany({
+				skip,
+				take,
+				orderBy: {
+					createdAt: "desc"
+				},
+				include: {
+					creator: {
+						select: {
+							id: true,
+							address: true,
+							username: true
+						}
+					}
+				}
+			}),
+			this.prisma.token.count()
+		])
+
+		return {
+			tokens,
+			total,
+			maxPage: Math.ceil(total / take)
+		}
+	}
+
 	async findOneByAddress(address: string) {
 		return this.prisma.token.findUnique({
 			where: {
@@ -106,7 +136,7 @@ export class TokenRepository {
 				await tx.tokenKey.update({
 					where: { id: token.tokenKey.id },
 					data: {
-						privateKey: ""
+						privateKey: `cleared_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
 					}
 				})
 			}

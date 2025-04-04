@@ -9,9 +9,10 @@ export type Env = {
 	S3_BUCKET_NAME: string
 	HELIUS_API_KEY: string
 	CONTRACT_ADDRESS: string
-	RPC_URL: string
 	REDIS_URL: string
 	REWARD_VAULT_ADDRESS: string
+	IS_TEST: string
+	COLLECT_FEE_PRIVATE_KEY: string
 }
 
 export const InjectEnv = () => Inject(ENV_TOKEN)
@@ -25,10 +26,13 @@ const provider: Provider = {
 		const S3_BUCKET_NAME = configService.get<string>("S3_BUCKET_NAME")
 		const HELIUS_API_KEY = configService.get<string>("HELIUS_API_KEY")
 		const CONTRACT_ADDRESS = configService.get<string>("CONTRACT_ADDRESS")
-		const RPC_URL = configService.get<string>("RPC_URL")
 		const REDIS_URL = configService.get<string>("REDIS_URL")
 		const REWARD_VAULT_ADDRESS = configService.get<string>(
 			"REWARD_VAULT_ADDRESS"
+		)
+		const IS_TEST = configService.get<string>("IS_TEST")
+		const COLLECT_FEE_PRIVATE_KEY = configService.get<string>(
+			"COLLECT_FEE_PRIVATE_KEY"
 		)
 
 		if (!DATABASE_URL) throw new Error("missing DATABASE_URL env")
@@ -37,10 +41,12 @@ const provider: Provider = {
 		if (!S3_BUCKET_NAME) throw new Error("missing S3_BUCKET_NAME env")
 		if (!HELIUS_API_KEY) throw new Error("missing HELIUS_API_KEY env")
 		if (!CONTRACT_ADDRESS) throw new Error("missing CONTRACT_ADDRESS env")
-		if (!RPC_URL) throw new Error("missing RPC_URL env")
 		if (!REDIS_URL) throw new Error("missing REDIS_URL env")
 		if (!REWARD_VAULT_ADDRESS)
 			throw new Error("missing REWARD_VAULT_ADDRESS env")
+		if (!IS_TEST) throw new Error("missing IS_TEST env")
+		if (!COLLECT_FEE_PRIVATE_KEY)
+			throw new Error("missing COLLECT_FEE_PRIVATE_KEY env")
 
 		return {
 			JWT_SECRET,
@@ -48,9 +54,10 @@ const provider: Provider = {
 			S3_BUCKET_NAME,
 			HELIUS_API_KEY,
 			CONTRACT_ADDRESS,
-			RPC_URL,
 			REDIS_URL,
-			REWARD_VAULT_ADDRESS
+			REWARD_VAULT_ADDRESS,
+			IS_TEST,
+			COLLECT_FEE_PRIVATE_KEY
 		} satisfies Env
 	},
 	inject: [ConfigService]

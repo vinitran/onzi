@@ -38,7 +38,7 @@ export class UsersService {
 	}
 
 	async getCoinHeld(address: string, query: PaginatedParams) {
-		const items = await this.indexer.getTokenAccounts(address)
+		const items = await this.indexer.getUserTokenAccounts(address)
 		const itemsFilted = items.token_accounts.filter((account: TokenAccount) =>
 			account.mint.endsWith("ponz")
 		)
