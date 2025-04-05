@@ -6,7 +6,6 @@ import { TokenTransactionRepository } from "@root/_database/repositories/token-t
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
-import { getTokenMetaData } from "@root/_shared/helpers/get-token-metdata.helper"
 import {
 	BuyTokensEvent,
 	CreateTokenEvent,
@@ -115,7 +114,14 @@ export class SolanaIndexerService implements OnModuleInit {
 			address: event.creator.toBase58()
 		})
 
-		const metadata = await getTokenMetaData(event.uri)
+		const metadata = {
+			mint: event.mint.toBase58(),
+			data: {
+				name: event.name,
+				symbol: event.symbol,
+				uri: event.uri
+			}
+		}
 
 		await this.tokenRepository.updateTokenOnchain(event.mint.toBase58(), {
 			metadata,
