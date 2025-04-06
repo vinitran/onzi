@@ -83,7 +83,8 @@ export class TokensService {
 		return this.token.create({
 			dataCreate: data,
 			tokenKeyId: tokenKey.id,
-			getImagePresignedUrl: this.getImagePresignedUrl.bind(this)
+			getImagePresignedUrl: this.getImagePresignedUrl.bind(this),
+			postMetadataToS3: this.postMetadateToS3.bind(this)
 		})
 	}
 
@@ -125,7 +126,7 @@ export class TokensService {
 
 	//   Get image url & authorize data to push image Aws3
 	async getImagePresignedUrl(tokenId: string) {
-		const key = `token-${tokenId}`
+		const key = `token-image-${tokenId}`
 		const { fields, url } = await this.s3Service.postPresignedSignedUrl(key)
 		if (!url || !fields)
 			throw new InternalServerErrorException("Can not post presigned url")
@@ -135,6 +136,15 @@ export class TokensService {
 			url,
 			fields
 		}
+	}
+
+	//   Get image url & authorize data to push image Aws3
+	async postMetadateToS3(tokenId: string, metadata: Object) {
+		const key = `token-metadata-${tokenId}`
+		const { success } = await this.s3Service.uploadJsonFile(key, metadata)
+		if (!success)
+			throw new InternalServerErrorException("Can not post metadata")
+		return success
 	}
 
 	/*  Get detail token by address (public key)

@@ -1,4 +1,8 @@
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3"
+import {
+	GetObjectCommand,
+	PutObjectCommand,
+	S3Client
+} from "@aws-sdk/client-s3"
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { Injectable, InternalServerErrorException } from "@nestjs/common"
@@ -44,6 +48,22 @@ export class S3Service {
 			})
 
 			return { url }
+		} catch (error) {
+			throw new InternalServerErrorException(error)
+		}
+	}
+
+	async uploadJsonFile(key: string, body: object) {
+		try {
+			const command = new PutObjectCommand({
+				Bucket: this.env.S3_BUCKET_NAME,
+				Key: key,
+				Body: JSON.stringify(body),
+				ContentType: "application/json"
+			})
+
+			await this.client.send(command)
+			return { success: true }
 		} catch (error) {
 			throw new InternalServerErrorException(error)
 		}

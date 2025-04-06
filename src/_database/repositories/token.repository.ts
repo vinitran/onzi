@@ -172,7 +172,8 @@ export class TokenRepository {
 	 * - Update status (picked) for selected tokenKey
 	 */
 	create(data: ICreateToken) {
-		const { dataCreate, tokenKeyId, getImagePresignedUrl } = data
+		const { dataCreate, tokenKeyId, getImagePresignedUrl, postMetadataToS3 } =
+			data
 		return this.prisma.$transaction(async tx => {
 			let token = await tx.token.create({
 				data: { ...dataCreate },
@@ -194,7 +195,15 @@ export class TokenRepository {
 			const newMetadata = {
 				ticker: token.ticker,
 				name: token.name,
-				uri: imageUri
+				description: token.description,
+				image: imageUri
+			}
+
+			const uploadMetadata = await postMetadataToS3(token.id, newMetadata)
+			if (!uploadMetadata) {
+				throw new Error(
+					"Failed to upload metadata to S3. Token creation aborted."
+				)
 			}
 
 			//   Update token & status picked of token key
@@ -202,7 +211,7 @@ export class TokenRepository {
 				tx.token.update({
 					where: { id: token.id },
 					data: {
-						uri: imageUri,
+						uri: `${url}token-metadata-${token.id}`,
 						metadata: newMetadata
 					},
 					include: {

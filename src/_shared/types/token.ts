@@ -13,6 +13,7 @@ export type ICreateToken = {
 	getImagePresignedUrl: (
 		tokenId: string
 	) => Promise<{ imageUri: string } & PresignedPost>
+	postMetadataToS3: (tokenId: string, metadata: Object) => Promise<boolean>
 }
 
 export type ICreateTokenResponse = {
