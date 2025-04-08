@@ -1,5 +1,5 @@
 import { Controller, Delete, Get, Post, Query } from "@nestjs/common"
-import { ApiTags } from "@nestjs/swagger"
+import { ApiResponse, ApiTags } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
 import { PaginatedParams, PaginatedResponse } from "@root/_shared/utils/parsers"
 import { Claims } from "@root/auth/auth.service"
@@ -27,6 +27,7 @@ export class UsersController {
 
 	@Get("me")
 	@Auth()
+	@ApiResponse({ type: UserResponse })
 	async me(@User() { id }: Claims) {
 		const user = await this.userService.getMe(id)
 		return plainToInstance(UserResponse, user, {
