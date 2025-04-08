@@ -10,11 +10,9 @@ import {
 	ICreateComment,
 	ICreateCommentResponse,
 	IPaginateComments,
-	IPaginateCommentsData,
 	IPaginateReplies,
 	IReplyComment
 } from "@root/_shared/types/comment"
-import { PaginatedResponse } from "@root/_shared/utils/parsers"
 import { S3Service } from "@root/file/file.service"
 
 @Injectable()
@@ -106,10 +104,8 @@ export class CommentService {
 		}
 	}
 
-	// Paginate comments
-	async paginateComments(
-		payload: IPaginateComments
-	): Promise<PaginatedResponse<IPaginateCommentsData>> {
+	// get comments.dto.ts
+	async getComments(payload: IPaginateComments) {
 		const { tokenId, userId, page, take, sortCreatedAt } = payload
 
 		// Get data & total
@@ -153,7 +149,7 @@ export class CommentService {
 	}
 
 	// Paginate replies
-	async paginateReplies(payload: IPaginateReplies) {
+	async getReplies(payload: IPaginateReplies) {
 		const { page, take, parentId, userId } = payload
 		// Get data & total
 		// Get comment by its parent

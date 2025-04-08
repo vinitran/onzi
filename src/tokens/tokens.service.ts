@@ -18,18 +18,18 @@ import {
 } from "@root/_shared/types/token"
 
 import { BN, web3 } from "@coral-xyz/anchor"
-import { TokenTransaction } from "@prisma/client"
 import {
 	encodeTransaction,
 	keypairFromPrivateKey
 } from "@root/_shared/helpers/encode-decode-tx"
-import { PaginatedResponse } from "@root/_shared/utils/parsers"
 import { Claims } from "@root/auth/auth.service"
 import { S3Service } from "@root/file/file.service"
 import { Ponz } from "@root/programs/ponz/program"
 import { InjectConnection } from "@root/programs/programs.module"
 import { PublicKey } from "@solana/web3.js"
+import { plainToInstance } from "class-transformer"
 import { PaginateListTransactionDto } from "./dtos/paginate-list-transaction.dto"
+import { SimilarTokenResponseDto } from "./dtos/token.dto"
 
 @Injectable()
 export class TokensService {
@@ -190,22 +190,27 @@ export class TokensService {
 	}
 
 	// Get list similar token (lte market cap)
-	async getListSimilar(address: string) {
+	async getListSimilar(address: string): Promise<SimilarTokenResponseDto[]> {
 		const token = await this.token.findByAddress(address)
 		if (!token) throw new NotFoundException("Not found token")
+
 		const listToken = await this.token.findSimilar(token.marketCapacity)
+
 		const data = await Promise.all(
 			listToken.map(async token => {
 				const totalReplies = await this.comment.countByTokenId({
 					where: { tokenId: token.id }
 				})
 				return {
-					...token,
+					token,
 					totalReplies
 				}
 			})
 		)
-		return data
+
+		return plainToInstance(SimilarTokenResponseDto, data, {
+			excludeExtraneousValues: true
+		})
 	}
 
 	// Get list holder
@@ -229,11 +234,11 @@ export class TokensService {
 	}
 
 	// Get list transaction
-	async paginateListTransaction(
+	async getTransactions(
 		address: string,
 		query: PaginateListTransactionDto,
 		user: Claims
-	): Promise<PaginatedResponse<TokenTransaction>> {
+	) {
 		const { filterBy, minimumLamports, page, take } = query
 		const token = await this.token.findByAddress(address)
 		if (!token) throw new NotFoundException("Not found token")

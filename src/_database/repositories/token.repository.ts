@@ -286,7 +286,7 @@ export class TokenRepository {
 				id: true,
 				address: true,
 				uri: true,
-				creator: { select: { id: true, address: true, avatarUrl: true } }
+				creator: true
 			}
 		})
 	}

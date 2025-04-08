@@ -5,7 +5,7 @@ import { IsEnum, IsOptional } from "class-validator"
 
 export class PaginateCommentsDto extends PaginatedParams {
 	@ApiProperty({
-		description: "Sort order for comments by creation date",
+		description: "Sort order for comments.dto.ts by creation date",
 		enum: ["desc", "asc"],
 		example: "desc",
 		required: false,

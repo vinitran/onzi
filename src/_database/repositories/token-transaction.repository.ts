@@ -55,17 +55,8 @@ export class TokenTransactionRepository {
 				signature: true,
 				tokenAddress: true,
 				type: true,
-				token: {
-					select: {
-						address: true,
-						name: true,
-						network: true,
-						marketCapacity: true
-					}
-				},
-				createdBy: {
-					select: { username: true, address: true, avatarUrl: true }
-				}
+				token: true,
+				createdBy: true
 			}
 		})
 	}

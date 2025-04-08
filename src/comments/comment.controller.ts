@@ -1,9 +1,16 @@
 import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common"
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
+import {
+	ApiPaginatedResponse,
+	PaginatedResponse
+} from "@root/_shared/utils/parsers"
 import { Claims } from "@root/auth/auth.service"
+import { ToggleLikeResponse } from "@root/comments/dtos/like.dto"
 import { User } from "@root/users/user.decorator"
+import { plainToInstance } from "class-transformer"
 import { CommentService } from "./comment.service"
+import { CommentResponse, CreateCommentResponse } from "./dtos/comments.dto"
 import { CreateCommentDto } from "./dtos/create-comment.dto"
 import { PaginateCommentsDto } from "./dtos/paginate-comments.dto"
 import { PaginateRepliesDto } from "./dtos/paginate-replies.dto"
@@ -11,27 +18,37 @@ import { PaginateRepliesDto } from "./dtos/paginate-replies.dto"
 @Auth()
 @Controller("tokens/comments")
 @ApiTags("comments")
+@ApiResponse({ status: 401, description: "Unauthorized" })
+@ApiResponse({ status: 404, description: "Token not found" })
+@ApiResponse({ status: 400, description: "Invalid comment data" })
 export class CommentController {
 	constructor(private readonly commentService: CommentService) {}
 
 	@Get(":tokenId")
+	@ApiPaginatedResponse(CommentResponse)
 	@ApiOperation({ summary: "Get paginated comments for a token" })
 	@ApiResponse({
 		status: 200,
 		description: "Comments retrieved successfully"
 	})
-	@ApiResponse({ status: 400, description: "Invalid pagination parameters" })
-	@ApiResponse({ status: 404, description: "Token not found" })
-	paginateComments(
+	async getComments(
 		@Param("tokenId") tokenId: string,
 		@Query() query: PaginateCommentsDto,
 		@User() user: Claims
 	) {
-		return this.commentService.paginateComments({
+		const { total, maxPage, data } = await this.commentService.getComments({
 			...query,
 			tokenId,
 			userId: user.id
 		})
+
+		return plainToInstance(
+			PaginatedResponse<CommentResponse>,
+			new PaginatedResponse(data, total, maxPage),
+			{
+				excludeExtraneousValues: true
+			}
+		)
 	}
 
 	@Post(":tokenId")
@@ -39,21 +56,22 @@ export class CommentController {
 	@ApiResponse({
 		status: 201,
 		description: "Comment created successfully",
-		type: CreateCommentDto
+		type: CreateCommentResponse
 	})
-	@ApiResponse({ status: 400, description: "Invalid comment data" })
-	@ApiResponse({ status: 401, description: "Unauthorized" })
-	@ApiResponse({ status: 404, description: "Token not found" })
-	createComment(
+	async createComment(
 		@Body() body: CreateCommentDto,
 		@Param("tokenId") tokenId: string,
 		@User() user: Claims
 	) {
-		return this.commentService.createComment({
+		const result = await this.commentService.createComment({
 			content: body.content,
 			isContainAttachment: body.isContainAttachment,
 			userId: user.id,
 			tokenId
+		})
+
+		return plainToInstance(CreateCommentResponse, result, {
+			excludeExtraneousValues: true
 		})
 	}
 
@@ -61,32 +79,44 @@ export class CommentController {
 	@ApiOperation({ summary: "Toggle like on a comment" })
 	@ApiResponse({
 		status: 200,
-		description: "Like toggled successfully"
+		description: "Like toggled successfully",
+		type: ToggleLikeResponse
 	})
-	@ApiResponse({ status: 401, description: "Unauthorized" })
-	@ApiResponse({ status: 404, description: "Comment not found" })
-	toggleLike(@Param("commentId") commentId: string, @User() user: Claims) {
-		return this.commentService.toggleLike(commentId, user.id)
+	async toggleLike(
+		@Param("commentId") commentId: string,
+		@User() user: Claims
+	) {
+		const result = await this.commentService.toggleLike(commentId, user.id)
+		return plainToInstance(ToggleLikeResponse, result, {
+			excludeExtraneousValues: true
+		})
 	}
 
 	@Get(":commentId/reply")
+	@ApiPaginatedResponse(CommentResponse)
 	@ApiOperation({ summary: "Get paginated replies to a comment" })
 	@ApiResponse({
 		status: 200,
 		description: "Replies retrieved successfully"
 	})
-	@ApiResponse({ status: 400, description: "Invalid pagination parameters" })
-	@ApiResponse({ status: 404, description: "Comment not found" })
-	paginateReplies(
+	async paginateReplies(
 		@Param("commentId") commentId: string,
 		@User() user: Claims,
 		@Query() query: PaginateRepliesDto
 	) {
-		return this.commentService.paginateReplies({
+		const { total, maxPage, data } = await this.commentService.getReplies({
 			...query,
 			parentId: commentId,
 			userId: user.id
 		})
+
+		return plainToInstance(
+			PaginatedResponse<CommentResponse>,
+			new PaginatedResponse(data, total, maxPage),
+			{
+				excludeExtraneousValues: true
+			}
+		)
 	}
 
 	@Post(":commentId/reply")
@@ -94,20 +124,21 @@ export class CommentController {
 	@ApiResponse({
 		status: 201,
 		description: "Reply created successfully",
-		type: CreateCommentDto
+		type: CreateCommentResponse
 	})
-	@ApiResponse({ status: 400, description: "Invalid reply data" })
-	@ApiResponse({ status: 401, description: "Unauthorized" })
-	@ApiResponse({ status: 404, description: "Comment not found" })
-	replyComment(
+	async replyComment(
 		@Body() body: CreateCommentDto,
 		@Param("commentId") commentId: string,
 		@User() user: Claims
 	) {
-		return this.commentService.replyComment({
+		const result = await this.commentService.replyComment({
 			...body,
 			commentId,
 			userId: user.id
+		})
+
+		return plainToInstance(CreateCommentResponse, result, {
+			excludeExtraneousValues: true
 		})
 	}
 }

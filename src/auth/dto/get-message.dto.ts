@@ -14,7 +14,7 @@ export class GetMessagePayload {
 export class GetMessageResponse {
 	@ApiProperty({
 		description: "Authentication message to be signed by the wallet",
-		example: "Sign this message to authenticate: MQTiGPGVJzWI"
+		example: "MQTiGPGVJzWI"
 	})
 	@Expose()
 	message: string
