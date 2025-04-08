@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common"
-import { ApiOperation, ApiTags } from "@nestjs/swagger"
+import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
 import { Claims } from "@root/auth/auth.service"
 import { User } from "@root/users/user.decorator"
@@ -15,7 +15,13 @@ export class CommentController {
 	constructor(private readonly commentService: CommentService) {}
 
 	@Get(":tokenId")
-	@ApiOperation({ summary: "Paginate comments and data related to user" })
+	@ApiOperation({ summary: "Get paginated comments for a token" })
+	@ApiResponse({
+		status: 200,
+		description: "Comments retrieved successfully"
+	})
+	@ApiResponse({ status: 400, description: "Invalid pagination parameters" })
+	@ApiResponse({ status: 404, description: "Token not found" })
 	paginateComments(
 		@Param("tokenId") tokenId: string,
 		@Query() query: PaginateCommentsDto,
@@ -29,7 +35,15 @@ export class CommentController {
 	}
 
 	@Post(":tokenId")
-	@ApiOperation({ summary: "Create comment" })
+	@ApiOperation({ summary: "Create a new comment on a token" })
+	@ApiResponse({
+		status: 201,
+		description: "Comment created successfully",
+		type: CreateCommentDto
+	})
+	@ApiResponse({ status: 400, description: "Invalid comment data" })
+	@ApiResponse({ status: 401, description: "Unauthorized" })
+	@ApiResponse({ status: 404, description: "Token not found" })
 	createComment(
 		@Body() body: CreateCommentDto,
 		@Param("tokenId") tokenId: string,
@@ -44,13 +58,25 @@ export class CommentController {
 	}
 
 	@Post(":commentId/toggle-like")
-	@ApiOperation({ summary: "Toggle like" })
+	@ApiOperation({ summary: "Toggle like on a comment" })
+	@ApiResponse({
+		status: 200,
+		description: "Like toggled successfully"
+	})
+	@ApiResponse({ status: 401, description: "Unauthorized" })
+	@ApiResponse({ status: 404, description: "Comment not found" })
 	toggleLike(@Param("commentId") commentId: string, @User() user: Claims) {
 		return this.commentService.toggleLike(commentId, user.id)
 	}
 
 	@Get(":commentId/reply")
-	@ApiOperation({ summary: "Get paginate replies" })
+	@ApiOperation({ summary: "Get paginated replies to a comment" })
+	@ApiResponse({
+		status: 200,
+		description: "Replies retrieved successfully"
+	})
+	@ApiResponse({ status: 400, description: "Invalid pagination parameters" })
+	@ApiResponse({ status: 404, description: "Comment not found" })
 	paginateReplies(
 		@Param("commentId") commentId: string,
 		@User() user: Claims,
@@ -64,7 +90,15 @@ export class CommentController {
 	}
 
 	@Post(":commentId/reply")
-	@ApiOperation({ summary: "Reply comment" })
+	@ApiOperation({ summary: "Create a reply to a comment" })
+	@ApiResponse({
+		status: 201,
+		description: "Reply created successfully",
+		type: CreateCommentDto
+	})
+	@ApiResponse({ status: 400, description: "Invalid reply data" })
+	@ApiResponse({ status: 401, description: "Unauthorized" })
+	@ApiResponse({ status: 404, description: "Comment not found" })
 	replyComment(
 		@Body() body: CreateCommentDto,
 		@Param("commentId") commentId: string,
