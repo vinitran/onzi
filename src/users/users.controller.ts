@@ -27,7 +27,13 @@ export class UsersController {
 
 	@Get("me")
 	@Auth()
-	@ApiResponse({ type: UserResponse })
+	@ApiResponse({
+		status: 200,
+		description: "Successfully retrieved user info",
+		type: UserResponse
+	})
+	@ApiResponse({ status: 401, description: "Unauthorized" })
+	@ApiResponse({ status: 500, description: "Internal server error" })
 	async me(@User() { id }: Claims) {
 		const user = await this.userService.getMe(id)
 		return plainToInstance(UserResponse, user, {

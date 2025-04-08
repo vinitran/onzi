@@ -1,33 +1,43 @@
+import { ApiProperty } from "@nestjs/swagger"
 import { Prop } from "@root/_shared/utils/decorators"
 import { PaginatedParams } from "@root/_shared/utils/parsers"
 import { Expose } from "class-transformer"
 import { IsNotEmpty, IsOptional, IsUrl, MaxLength } from "class-validator"
 
 export class UserResponse {
+	@ApiProperty()
 	@Expose()
 	id: string
 
+	@ApiProperty()
 	@Expose()
 	address: string
 
+	@ApiProperty()
 	@Expose()
 	username: string
 
+	@ApiProperty()
 	@Expose()
 	bio: string
 
+	@ApiProperty()
 	@Expose()
 	avatarUrl: string
 
+	@ApiProperty()
 	@Expose()
 	network: string
 
+	@ApiProperty()
 	@Expose()
 	premium: string
 
+	@ApiProperty()
 	@Expose()
 	createdAt: string
 
+	@ApiProperty()
 	@Expose()
 	updatedAt: string
 
