@@ -7,6 +7,7 @@ import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { getTokenMetaData } from "@root/_shared/helpers/get-token-metadata"
+import { IndexerGateway } from "@root/indexer/indexer.gateway"
 import {
 	BuyTokensEvent,
 	CreateTokenEvent,
@@ -14,7 +15,6 @@ import {
 } from "@root/programs/ponz/events"
 import { Ponz } from "@root/programs/ponz/program"
 import { InjectConnection } from "@root/programs/programs.module"
-import { SocketService } from "@root/socket/socket.service"
 import { DateTime } from "luxon"
 import WebSocket from "ws"
 
@@ -31,7 +31,7 @@ export class SolanaIndexerService implements OnModuleInit {
 		private tokenRepository: TokenRepository,
 		private tokenTxRepository: TokenTransactionRepository,
 		private tokenOwner: TokenOwnerRepository,
-		private socketService: SocketService
+		private socket: IndexerGateway
 	) {}
 
 	async onModuleInit() {
@@ -134,8 +134,8 @@ export class SolanaIndexerService implements OnModuleInit {
 
 		await this.updateMarketCap(event.mint)
 
-		this.socketService.emitNewTokenCreation({
-			address: event.mint,
+		this.socket.handleTokenCreation({
+			address: event.mint.toBase58(),
 			name: event.name,
 			network: Network.Solana,
 			createdBy: user
@@ -148,15 +148,16 @@ export class SolanaIndexerService implements OnModuleInit {
 	}: { event: BuyTokensEvent; signature: string }) {
 		const date = await this.getTimeFromSignature(signature)
 
-		this.socketService.emitNewTransaction({
+		this.socket.handleBuyTx({
 			address: event.mint.toBase58(),
-			low: event.previousPrice,
-			high: event.previousPrice,
-			open: event.previousPrice,
-			close: event.newPrice,
-			volume: event.amount.toString(),
 			date: date.toMillis(),
-			network: Network.Solana
+			amount: event.amount,
+			lamports: event.lamports,
+			signer: event.buyer.toBase58(),
+			price: event.previousPrice,
+			newPrice: event.newPrice,
+			network: "Solana",
+			signature: signature
 		})
 
 		await this.updateMarketCap(event.mint)
@@ -184,13 +185,6 @@ export class SolanaIndexerService implements OnModuleInit {
 			network: "Solana",
 			signature: signature
 		})
-
-		this.socketService.emitNewTransactionCause({
-			mint: event.mint.toBase58(),
-			lamports: event.lamports,
-			address: event.buyer.toBase58(),
-			network: Network.Solana
-		})
 	}
 
 	private async handlerSellToken({
@@ -199,15 +193,16 @@ export class SolanaIndexerService implements OnModuleInit {
 	}: { event: SellTokensEvent; signature: string }) {
 		const date = await this.getTimeFromSignature(signature)
 
-		this.socketService.emitNewTransaction({
+		this.socket.handleSellTx({
 			address: event.mint.toBase58(),
-			low: event.previousPrice,
-			high: event.previousPrice,
-			open: event.previousPrice,
-			close: event.newPrice,
-			volume: event.amount.toString(),
 			date: date.toMillis(),
-			network: Network.Solana
+			amount: event.amount,
+			lamports: event.lamports,
+			signer: event.seller.toBase58(),
+			price: event.previousPrice,
+			newPrice: event.newPrice,
+			network: "Solana",
+			signature: signature
 		})
 
 		await this.userRepository.createIfNotExist({
@@ -239,13 +234,6 @@ export class SolanaIndexerService implements OnModuleInit {
 			price: event.previousPrice,
 			newPrice: event.newPrice,
 			network: "Solana"
-		})
-
-		this.socketService.emitNewTransactionCause({
-			mint: event.mint.toBase58(),
-			lamports: event.lamports,
-			address: event.seller.toBase58(),
-			network: Network.Solana
 		})
 	}
 
