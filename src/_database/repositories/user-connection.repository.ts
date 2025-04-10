@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common"
 import { PrismaService } from "@root/_database/prisma.service"
-import { PaginatedParams } from "@root/_shared/utils/parsers"
+import { PaginatedParams } from "@root/dtos/common.dto"
 
 type CreateUserConnectionParams = {
 	followerId: string
@@ -69,7 +69,7 @@ export class UserConnectionRepository {
 		return {
 			total,
 			maxPage: Math.ceil(total / take),
-			connections
+			data: connections
 		}
 	}
 }

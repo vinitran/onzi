@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common"
 import { Prisma } from "@prisma/client"
-import { PaginatedParams } from "@root/_shared/utils/parsers"
+import { PaginatedParams } from "@root/dtos/common.dto"
 import { PrismaService } from "../prisma.service"
 
 @Injectable()

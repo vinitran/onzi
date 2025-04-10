@@ -1,27 +1,29 @@
 import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common"
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
+import { Claims } from "@root/auth/auth.service"
 import {
 	ApiPaginatedResponse,
-	PaginatedResponse
-} from "@root/_shared/utils/parsers"
-import { Claims } from "@root/auth/auth.service"
-import { BuyTokenOnchainDto } from "@root/tokens/dtos/buy-token.dto"
-import { CreateTokenDto } from "@root/tokens/dtos/create-token.dto"
-import { PaginateListTransactionDto } from "@root/tokens/dtos/paginate-list-transaction.dto"
+	Paginate as PaginatedResponse
+} from "@root/dtos/common.dto"
 import {
-	CreateTokenResponseDto,
-	CreateTokenTxResponseDto,
-	SimilarTokenResponseDto,
-	TokenDto,
-	TokenHolderResponseDto
-} from "@root/tokens/dtos/token.dto"
-import { TokenTransactionResponseDto } from "@root/tokens/dtos/transactions.dto"
+	CreateTokenOnchainPayload,
+	CreateTokenPayload,
+	FindTokenParams,
+	ListTransactionParams
+} from "@root/tokens/dtos/payload.dto"
+import {
+	CreateTokenOnchainResponse,
+	CreateTokenResponse,
+	ListTransactionResponse,
+	SimilarTokenResponse,
+	TokenHolderResponse,
+	TokenResponse
+} from "@root/tokens/dtos/response.dto"
 import { TokensService } from "@root/tokens/tokens.service"
 import { User } from "@root/users/user.decorator"
 import { plainToInstance } from "class-transformer"
 
-@Auth()
 @Controller("tokens")
 @ApiTags("tokens")
 @ApiResponse({ status: 400, description: "Invalid token data" })
@@ -31,32 +33,55 @@ export class TokensController {
 	constructor(private readonly tokensService: TokensService) {}
 
 	@Post()
+	@Auth()
 	@ApiOperation({ summary: "Create a new token" })
 	@ApiResponse({
 		status: 201,
 		description: "Token created successfully",
-		type: CreateTokenResponseDto
+		type: CreateTokenResponse
 	})
-	async create(@Body() body: CreateTokenDto, @User() user: Claims) {
-		const result = await this.tokensService.createToken({
-			...body,
-			creatorAddress: user.address
-		})
-		return plainToInstance(CreateTokenResponseDto, result, {
+	async create(@User() user: Claims, @Body() body: CreateTokenPayload) {
+		const result = await this.tokensService.createToken(user.address, body)
+
+		return plainToInstance(CreateTokenResponse, result, {
 			excludeExtraneousValues: true
 		})
 	}
 
+	@Get()
+	@ApiPaginatedResponse(TokenResponse)
+	@ApiOperation({ summary: "Latest token" })
+	@ApiResponse({
+		status: 201,
+		description: "Token created successfully",
+		type: TokenResponse
+	})
+	async findMany(@Query() query: FindTokenParams) {
+		const {
+			tokens: data,
+			total,
+			maxPage
+		} = await this.tokensService.find(query)
+		return plainToInstance(
+			PaginatedResponse<TokenResponse>,
+			new PaginatedResponse(data, total, maxPage),
+			{
+				excludeExtraneousValues: true
+			}
+		)
+	}
+
 	@Post(":id")
+	@Auth()
 	@ApiOperation({ summary: "Create token on blockchain" })
 	@ApiResponse({
 		status: 201,
 		description: "Token created on blockchain successfully",
-		type: CreateTokenTxResponseDto
+		type: CreateTokenOnchainResponse
 	})
 	async createTokenOnchain(
 		@Param("id") tokenId: string,
-		@Body() body: BuyTokenOnchainDto,
+		@Body() body: CreateTokenOnchainPayload,
 		@User() user: Claims
 	) {
 		const data = await this.tokensService.broadcastCreateOnChain({
@@ -66,7 +91,7 @@ export class TokensController {
 			maxSol: body.maxSol
 		})
 
-		return plainToInstance(CreateTokenTxResponseDto, data, {
+		return plainToInstance(CreateTokenOnchainResponse, data, {
 			excludeExtraneousValues: true
 		})
 	}
@@ -79,12 +104,12 @@ export class TokensController {
 	@ApiResponse({
 		status: 200,
 		description: "List of similar tokens retrieved successfully",
-		type: [SimilarTokenResponseDto]
+		type: [SimilarTokenResponse]
 	})
 	async getListSimilar(@Param("address") address: string) {
 		const data = await this.tokensService.getListSimilar(address)
 		return data.map(item =>
-			plainToInstance(SimilarTokenResponseDto, item, {
+			plainToInstance(SimilarTokenResponse, item, {
 				excludeExtraneousValues: true
 			})
 		)
@@ -95,28 +120,28 @@ export class TokensController {
 	@ApiResponse({
 		status: 200,
 		description: "List of token holders retrieved successfully",
-		type: [TokenHolderResponseDto]
+		type: [TokenHolderResponse]
 	})
 	async getListHolder(@Param("address") address: string) {
 		const data = await this.tokensService.getListHolder(address)
 		return data.map(item =>
-			plainToInstance(TokenHolderResponseDto, item, {
+			plainToInstance(TokenHolderResponse, item, {
 				excludeExtraneousValues: true
 			})
 		)
 	}
 
 	@Get(":address/list-transaction")
-	@ApiPaginatedResponse(TokenTransactionResponseDto)
+	@ApiPaginatedResponse(ListTransactionResponse)
 	@ApiOperation({ summary: "Get paginated list of token transactions" })
 	@ApiResponse({
 		status: 200,
 		description: "List of transactions retrieved successfully",
-		type: [TokenTransactionResponseDto]
+		type: [ListTransactionResponse]
 	})
 	async getListTransaction(
 		@Param("address") address: string,
-		@Query() query: PaginateListTransactionDto,
+		@Query() query: ListTransactionParams,
 		@User() user: Claims
 	) {
 		const { data, total, maxPage } = await this.tokensService.getTransactions(
@@ -126,7 +151,7 @@ export class TokensController {
 		)
 
 		return plainToInstance(
-			PaginatedResponse<TokenTransactionResponseDto>,
+			PaginatedResponse<ListTransactionResponse>,
 			new PaginatedResponse(data, total, maxPage),
 			{
 				excludeExtraneousValues: true
@@ -139,12 +164,12 @@ export class TokensController {
 	@ApiResponse({
 		status: 200,
 		description: "Token details retrieved successfully",
-		type: [TokenDto]
+		type: [TokenResponse]
 	})
-	async getDetail(@Param("address") address: string) {
+	async find(@Param("address") address: string) {
 		const data = await this.tokensService.getByAddress(address)
 
-		return plainToInstance(TokenDto, data, {
+		return plainToInstance(TokenResponse, data, {
 			excludeExtraneousValues: true
 		})
 	}

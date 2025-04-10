@@ -1,9 +1,9 @@
 import { PresignedPost } from "@aws-sdk/s3-presigned-post"
 import { Prisma, Token } from "@prisma/client"
-import { CreateTokenDto } from "@root/tokens/dtos/create-token.dto"
+import { CreateTokenPayload } from "@root/tokens/dtos/payload.dto"
 
 /* Create token */
-export type ICreateTokenPayload = CreateTokenDto & {
+export type ICreateTokenPayload = CreateTokenPayload & {
 	creatorAddress: string
 }
 

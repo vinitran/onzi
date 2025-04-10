@@ -11,11 +11,7 @@ import { TokenTransactionRepository } from "@root/_database/repositories/token-t
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { TOKEN_TOTAL_SUPPLY_DEFAULT } from "@root/_shared/constants/token"
-import {
-	ICreateTokenOnchainPayload,
-	ICreateTokenPayload,
-	ICreateTokenResponse
-} from "@root/_shared/types/token"
+import { ICreateTokenOnchainPayload } from "@root/_shared/types/token"
 
 import { BN, web3 } from "@coral-xyz/anchor"
 import {
@@ -26,10 +22,12 @@ import { Claims } from "@root/auth/auth.service"
 import { S3Service } from "@root/file/file.service"
 import { Ponz } from "@root/programs/ponz/program"
 import { InjectConnection } from "@root/programs/programs.module"
+import {
+	CreateTokenPayload,
+	FindTokenParams,
+	ListTransactionParams
+} from "@root/tokens/dtos/payload.dto"
 import { PublicKey } from "@solana/web3.js"
-import { plainToInstance } from "class-transformer"
-import { PaginateListTransactionDto } from "./dtos/paginate-list-transaction.dto"
-import { SimilarTokenResponseDto } from "./dtos/token.dto"
 
 @Injectable()
 export class TokensService {
@@ -46,10 +44,8 @@ export class TokensService {
 	) {}
 
 	// Create token
-	async createToken(
-		payload: ICreateTokenPayload
-	): Promise<ICreateTokenResponse> {
-		const { description, name, ticker, creatorAddress } = payload
+	async createToken(creatorAddress: string, payload: CreateTokenPayload) {
+		const { description, name, ticker } = payload
 
 		const [tokenKey, user] = await Promise.all([
 			this.tokenKey.findOneUnPicked(),
@@ -124,6 +120,10 @@ export class TokensService {
 		return encodeTransaction(tx)
 	}
 
+	find(params: FindTokenParams) {
+		return this.token.find(params)
+	}
+
 	//   Get image url & authorize data to push image Aws3
 	async getImagePresignedUrl(tokenId: string) {
 		const key = `token-image-${tokenId}`
@@ -190,7 +190,7 @@ export class TokensService {
 	}
 
 	// Get list similar token (lte market cap)
-	async getListSimilar(address: string): Promise<SimilarTokenResponseDto[]> {
+	async getListSimilar(address: string) {
 		const token = await this.token.findByAddress(address)
 		if (!token) throw new NotFoundException("Not found token")
 
@@ -208,9 +208,7 @@ export class TokensService {
 			})
 		)
 
-		return plainToInstance(SimilarTokenResponseDto, data, {
-			excludeExtraneousValues: true
-		})
+		return data
 	}
 
 	// Get list holder
@@ -236,7 +234,7 @@ export class TokensService {
 	// Get list transaction
 	async getTransactions(
 		address: string,
-		query: PaginateListTransactionDto,
+		query: ListTransactionParams,
 		user: Claims
 	) {
 		const { filterBy, minimumLamports, page, take } = query

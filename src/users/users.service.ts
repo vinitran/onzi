@@ -11,11 +11,14 @@ import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserConnectionRepository } from "@root/_database/repositories/user-connection.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
-import { PaginatedParams } from "@root/_shared/utils/parsers"
+import { PaginatedParams } from "@root/dtos/common.dto"
 import { S3Service } from "@root/file/file.service"
-import { TokenAccount } from "@root/indexer/dto/tokenAccount.dto"
+import { TokenAccount } from "@root/indexer/dtos/tokenAccount.dto"
 import { IndexerService } from "@root/indexer/indexer.service"
-import { SetInformationPayload } from "@root/users/dto/user.dto"
+import {
+	GetCoinCreatedParams,
+	SetInformationPayload
+} from "@root/users/dtos/payload.dto"
 
 @Injectable()
 export class UsersService {
@@ -73,11 +76,10 @@ export class UsersService {
 		return connections
 	}
 
-	async getCoinCreated(creatorAddress: string, query: PaginatedParams) {
-		const coinCreatedList = await this.token.getCoinCreated({
-			creatorAddress,
-			take: query.take,
-			page: query.page
+	async getCoinCreated(address: string, params: GetCoinCreatedParams) {
+		const coinCreatedList = await this.token.getCoinCreated(address, {
+			take: params.take,
+			page: params.page
 		})
 		if (!coinCreatedList)
 			throw new NotFoundException("can not find connections")

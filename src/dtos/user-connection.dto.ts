@@ -1,26 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger"
-import { Prop } from "@root/_shared/utils/decorators"
 import { Expose } from "class-transformer"
 
-export class FollowingPayload {
-	@ApiProperty({
-		description: "ID of the user to follow",
-		example: "123e4567-e89b-12d3-a456-426614174000"
-	})
-	@Prop()
-	followingId: string
-}
-
-export class UnfollowingPayload {
-	@ApiProperty({
-		description: "ID of the follow connection to remove",
-		example: "123e4567-e89b-12d3-a456-426614174000"
-	})
-	@Prop()
-	followId: string
-}
-
-export class UserConnectionResponse {
+export class UserConnection {
 	@ApiProperty({
 		description: "Unique identifier of the connection",
 		example: "123e4567-e89b-12d3-a456-426614174000"
@@ -56,7 +37,7 @@ export class UserConnectionResponse {
 	@Expose()
 	updatedAt: string
 
-	constructor(partial: Partial<UserConnectionResponse>) {
+	constructor(partial: Partial<UserConnection>) {
 		Object.assign(this, partial)
 	}
 }

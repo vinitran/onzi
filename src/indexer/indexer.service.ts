@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common"
 import { Env, InjectEnv } from "@root/_env/env.module"
-import { TokenAccountResponse } from "@root/indexer/dto/tokenAccount.dto"
+import { TokenAccountResponse } from "@root/indexer/dtos/tokenAccount.dto"
 import axios from "axios"
 
 @Injectable()

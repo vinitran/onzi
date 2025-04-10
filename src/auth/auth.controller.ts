@@ -1,12 +1,15 @@
 import { Body, Controller, Get, Post, Query } from "@nestjs/common"
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
+import {
+	GetMessagePayload,
+	VerifySignaturePayload
+} from "@root/auth/dtos/payload.dto"
+import {
+	GetMessageResponse,
+	VerifySignatureResponse
+} from "@root/auth/dtos/response.dto"
 import { plainToInstance } from "class-transformer"
 import { AuthService } from "./auth.service"
-import { GetMessagePayload, GetMessageResponse } from "./dto/get-message.dto"
-import {
-	VerifySignaturePayload,
-	VerifySignatureResponse
-} from "./dto/verify-signature.dto"
 
 @Controller("auth")
 @ApiTags("auth")

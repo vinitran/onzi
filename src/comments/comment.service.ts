@@ -104,7 +104,7 @@ export class CommentService {
 		}
 	}
 
-	// get comments.dto.ts
+	// get comments.dtos.ts
 	async getComments(payload: IPaginateComments) {
 		const { tokenId, userId, page, take, sortCreatedAt } = payload
 

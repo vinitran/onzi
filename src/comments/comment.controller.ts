@@ -1,19 +1,24 @@
 import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common"
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
+import { Claims } from "@root/auth/auth.service"
+import {
+	CreateCommentPayload,
+	GetCommentsParams,
+	RepliesParams
+} from "@root/comments/dtos/payload.dto"
+import {
+	CreateCommentResponse,
+	ToggleLikeResponse
+} from "@root/comments/dtos/response.dto"
+import { Comment as CommentResponse } from "@root/dtos/comment.dto"
 import {
 	ApiPaginatedResponse,
-	PaginatedResponse
-} from "@root/_shared/utils/parsers"
-import { Claims } from "@root/auth/auth.service"
-import { ToggleLikeResponse } from "@root/comments/dtos/like.dto"
+	Paginate as PaginatedResponse
+} from "@root/dtos/common.dto"
 import { User } from "@root/users/user.decorator"
 import { plainToInstance } from "class-transformer"
 import { CommentService } from "./comment.service"
-import { CommentResponse, CreateCommentResponse } from "./dtos/comments.dto"
-import { CreateCommentDto } from "./dtos/create-comment.dto"
-import { PaginateCommentsDto } from "./dtos/paginate-comments.dto"
-import { PaginateRepliesDto } from "./dtos/paginate-replies.dto"
 
 @Auth()
 @Controller("tokens/comments")
@@ -33,7 +38,7 @@ export class CommentController {
 	})
 	async getComments(
 		@Param("tokenId") tokenId: string,
-		@Query() query: PaginateCommentsDto,
+		@Query() query: GetCommentsParams,
 		@User() user: Claims
 	) {
 		const { total, maxPage, data } = await this.commentService.getComments({
@@ -59,7 +64,7 @@ export class CommentController {
 		type: CreateCommentResponse
 	})
 	async createComment(
-		@Body() body: CreateCommentDto,
+		@Body() body: CreateCommentPayload,
 		@Param("tokenId") tokenId: string,
 		@User() user: Claims
 	) {
@@ -102,7 +107,7 @@ export class CommentController {
 	async paginateReplies(
 		@Param("commentId") commentId: string,
 		@User() user: Claims,
-		@Query() query: PaginateRepliesDto
+		@Query() query: RepliesParams
 	) {
 		const { total, maxPage, data } = await this.commentService.getReplies({
 			...query,
@@ -127,7 +132,7 @@ export class CommentController {
 		type: CreateCommentResponse
 	})
 	async replyComment(
-		@Body() body: CreateCommentDto,
+		@Body() body: CreateCommentPayload,
 		@Param("commentId") commentId: string,
 		@User() user: Claims
 	) {

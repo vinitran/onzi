@@ -10,7 +10,7 @@ import { TX_GATEWAY_EMIT_EVENTS } from "@root/_shared/constants/transaction"
 import {
 	TokenCreationDto,
 	TransactionDto
-} from "@root/indexer/dto/transaction.dto"
+} from "@root/indexer/dtos/transaction.dto"
 import { Server, Socket } from "socket.io"
 
 @WebSocketGateway({

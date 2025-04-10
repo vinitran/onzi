@@ -1,7 +1,6 @@
 import { Injectable } from "@nestjs/common"
 import { TokenTransactionRepository } from "@root/_database/repositories/token-transaction.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
-import { NotificationDto } from "./dto/notification.dto"
 
 @Injectable()
 export class NotificationsService {
@@ -22,33 +21,17 @@ export class NotificationsService {
 		const data = []
 
 		if (token) {
-			const tokenDto = new NotificationDto()
-			tokenDto.token = {
-				id: token.id,
-				address: token.address,
-				uri: token.uri,
-				creator: {
-					id: token.creator.id,
-					address: token.creator.address,
-					avatarUrl: token.creator.avatarUrl
-				}
-			}
-			tokenDto.transaction = null
-			data.push(tokenDto)
+			data.push({
+				token,
+				transaction: null
+			})
 		}
 
 		if (transaction) {
-			const transactionDto = new NotificationDto()
-			transactionDto.token = null
-			transactionDto.transaction = {
-				id: transaction.id,
-				signature: transaction.signature,
-				tokenAddress: transaction.tokenAddress,
-				type: transaction.type,
-				createdBy: transaction.createdBy,
-				token: transaction.token
-			}
-			data.push(transactionDto)
+			data.push({
+				token: null,
+				transaction: transaction
+			})
 		}
 
 		// For simplicity, we're just returning the latest items

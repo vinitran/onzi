@@ -1,12 +1,45 @@
 import { Injectable } from "@nestjs/common"
 import { Prisma } from "@prisma/client"
 import { ICreateToken } from "@root/_shared/types/token"
-import { GetCoinCreatedParams } from "@root/users/dto/user.dto"
+import { FindTokenParams } from "@root/tokens/dtos/payload.dto"
+import { GetCoinCreatedParams } from "@root/users/dtos/payload.dto"
 import { PrismaService } from "../prisma.service"
 
 @Injectable()
 export class TokenRepository {
 	constructor(private prisma: PrismaService) {}
+
+	async find(query: FindTokenParams) {
+		const skip = (query.page - 1) * query.take
+
+		const [tokens, total] = await Promise.all([
+			this.prisma.token.findMany({
+				skip,
+				take: query.take,
+				orderBy: query.latest
+					? {
+							createdAt: "desc"
+						}
+					: undefined,
+				include: {
+					creator: {
+						select: {
+							id: true,
+							address: true,
+							username: true
+						}
+					}
+				}
+			}),
+			this.prisma.token.count()
+		])
+
+		return {
+			tokens,
+			total,
+			maxPage: Math.ceil(total / query.take)
+		}
+	}
 
 	async findAllByPage(page: number, take: number) {
 		const skip = (page - 1) * take
@@ -81,18 +114,18 @@ export class TokenRepository {
 		})
 	}
 
-	async getCoinCreated(query: GetCoinCreatedParams) {
-		const { page, take, creatorAddress } = query
+	async getCoinCreated(address: string, params: GetCoinCreatedParams) {
+		const { page, take } = params
 
 		const getTotal = this.prisma.token.count({
 			where: {
-				creatorAddress
+				address
 			}
 		})
 
 		const getCoins = this.prisma.token.findMany({
 			where: {
-				creatorAddress
+				address
 			},
 			orderBy: {
 				updatedAt: "desc"
@@ -106,7 +139,7 @@ export class TokenRepository {
 		return {
 			total,
 			maxPage: Math.ceil(total / take),
-			coinCreated
+			data: coinCreated
 		}
 	}
 
@@ -257,7 +290,8 @@ export class TokenRepository {
 	findKingOfHill() {
 		return this.prisma.token.findFirst({
 			where: {
-				isCompletedBondingCurve: false
+				isCompletedBondingCurve: false,
+				isCompletedKingOfHill: true
 			},
 			orderBy: { marketCapacity: "desc" }
 		})

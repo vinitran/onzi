@@ -1,25 +1,23 @@
-import { Controller, Delete, Get, Post, Query } from "@nestjs/common"
+import { Body, Controller, Delete, Get, Post, Put, Query } from "@nestjs/common"
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
-import {
-	ApiPaginatedResponse,
-	PaginatedParams,
-	PaginatedResponse
-} from "@root/_shared/utils/parsers"
 import { Claims } from "@root/auth/auth.service"
+import { Comment as CommentResponse } from "@root/dtos/comment.dto"
+import { ApiPaginatedResponse, PaginatedParams } from "@root/dtos/common.dto"
+import { Paginate as PaginatedResponse } from "@root/dtos/common.dto"
+import { Token as TokenResponse } from "@root/dtos/token.dto"
+import { UserConnection as UserConnectionResponse } from "@root/dtos/user-connection.dto"
+import { User as UserResponse } from "@root/dtos/user.dto"
 import {
 	FollowingPayload,
-	UnfollowingPayload,
-	UserConnectionResponse
-} from "@root/users/dto/user-connection.dto"
-import {
-	AvatarPresignedUrlResponse,
-	CoinHeldsResponse,
-	CommentResponse,
+	GetCoinCreatedParams,
 	SetInformationPayload,
-	TokenResponse,
-	UserResponse
-} from "@root/users/dto/user.dto"
+	UnfollowingPayload
+} from "@root/users/dtos/payload.dto"
+import {
+	CoinHeldsResponse,
+	SetAvatarResponse
+} from "@root/users/dtos/response.dto"
 import { User } from "@root/users/user.decorator"
 import { plainToInstance } from "class-transformer"
 import { UsersService } from "./users.service"
@@ -85,13 +83,13 @@ export class UsersController {
 	})
 	@ApiResponse({ status: 404, description: "User not found" })
 	async getFollower(@User() { id }: Claims, @Query() query: PaginatedParams) {
-		const { total, maxPage, connections } = await this.userService.getFollower(
+		const { total, maxPage, data } = await this.userService.getFollower(
 			id,
 			query
 		)
 		return plainToInstance(
 			PaginatedResponse<UserConnectionResponse>,
-			new PaginatedResponse(connections, total, maxPage),
+			new PaginatedResponse(data, total, maxPage),
 			{
 				excludeExtraneousValues: true
 			}
@@ -111,13 +109,13 @@ export class UsersController {
 	})
 	@ApiResponse({ status: 404, description: "User not found" })
 	async getFollowing(@User() { id }: Claims, @Query() query: PaginatedParams) {
-		const { total, maxPage, connections } = await this.userService.getFollowing(
+		const { total, maxPage, data } = await this.userService.getFollowing(
 			id,
 			query
 		)
 		return plainToInstance(
 			PaginatedResponse<UserConnectionResponse>,
-			new PaginatedResponse(connections, total, maxPage),
+			new PaginatedResponse(data, total, maxPage),
 			{
 				excludeExtraneousValues: true
 			}
@@ -137,13 +135,15 @@ export class UsersController {
 	})
 	async getCoinCreated(
 		@User() { address }: Claims,
-		@Query() query: PaginatedParams
+		@Query() query: GetCoinCreatedParams
 	) {
-		const { total, maxPage, coinCreated } =
-			await this.userService.getCoinCreated(address, query)
+		const { total, maxPage, data } = await this.userService.getCoinCreated(
+			address,
+			query
+		)
 		return plainToInstance(
 			PaginatedResponse<TokenResponse>,
-			new PaginatedResponse(coinCreated, total, maxPage),
+			new PaginatedResponse(data, total, maxPage),
 			{
 				excludeExtraneousValues: true
 			}
@@ -156,11 +156,11 @@ export class UsersController {
 	@ApiResponse({
 		status: 200,
 		description: "Successfully generated presigned URL",
-		type: AvatarPresignedUrlResponse
+		type: SetAvatarResponse
 	})
 	async setAvatarPresignedUrl(@User() { id }: Claims) {
 		const presignedUrl = await this.userService.setAvatarPresignedUrl(id)
-		return plainToInstance(AvatarPresignedUrlResponse, presignedUrl, {
+		return plainToInstance(SetAvatarResponse, presignedUrl, {
 			excludeExtraneousValues: true
 		})
 	}
@@ -208,7 +208,7 @@ export class UsersController {
 		})
 	}
 
-	@Post("/infor")
+	@Put("")
 	@Auth()
 	@ApiOperation({ summary: "Update user profile information" })
 	@ApiResponse({
@@ -220,9 +220,9 @@ export class UsersController {
 		status: 400,
 		description: "Username already taken or invalid data"
 	})
-	async setUsername(
+	async setInformation(
 		@User() { id }: Claims,
-		@Query() payload: SetInformationPayload
+		@Body() payload: SetInformationPayload
 	) {
 		const user = await this.userService.setInformation(id, payload)
 		return plainToInstance(UserResponse, user, {

@@ -3,11 +3,11 @@ import { JwtService } from "@nestjs/jwt"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RedisService } from "@root/_redis/redis.service"
+import { VerifySignaturePayload } from "@root/auth/dtos/payload.dto"
 import { PublicKey } from "@solana/web3.js"
 import randomstr from "randomstring"
 import nacl from "tweetnacl"
 import { decodeUTF8 } from "tweetnacl-util"
-import { VerifySignaturePayload } from "./dto/verify-signature.dto"
 
 export type Claims = {
 	id: string

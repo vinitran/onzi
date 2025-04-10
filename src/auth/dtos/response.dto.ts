@@ -1,15 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger"
-import { Prop } from "@root/_shared/utils/decorators"
 import { Expose } from "class-transformer"
-
-export class GetMessagePayload {
-	@ApiProperty({
-		description: "Public key of the wallet to authenticate",
-		example: "DuoULHu4KtX4pSg3DFViE86HLq96VhHD5eUEhY4MQauD"
-	})
-	@Prop()
-	publicKey: string
-}
 
 export class GetMessageResponse {
 	@ApiProperty({
@@ -18,4 +8,13 @@ export class GetMessageResponse {
 	})
 	@Expose()
 	message: string
+}
+
+export class VerifySignatureResponse {
+	@ApiProperty({
+		description: "JWT token for authenticated requests",
+		example: "eyJhbGciOiJIUzI1NiIs..."
+	})
+	@Expose()
+	token: string
 }

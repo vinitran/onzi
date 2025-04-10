@@ -7,7 +7,7 @@ import {
 } from "@nestjs/swagger"
 import { Expose } from "class-transformer"
 import { IsArray, IsPositive, Max, Min } from "class-validator"
-import { IsInterger, OptionalProp } from "./decorators"
+import { IsInterger, OptionalProp } from "../_shared/utils/decorators"
 
 export class PaginatedParams {
 	@ApiProperty({
@@ -37,8 +37,7 @@ export class PaginatedParams {
 	readonly take: number = 10
 }
 
-export class PaginatedResponse<T> {
-	@ApiExtraModels()
+export class Paginate<T> {
 	@ApiProperty({
 		description: "Array of paginated results",
 		isArray: true
@@ -72,11 +71,11 @@ export const ApiPaginatedResponse = <TModel extends Type<unknown>>(
 	model: TModel
 ) => {
 	return applyDecorators(
-		ApiExtraModels(PaginatedResponse, model),
+		ApiExtraModels(Paginate, model),
 		ApiOkResponse({
 			schema: {
 				allOf: [
-					{ $ref: getSchemaPath(PaginatedResponse) },
+					{ $ref: getSchemaPath(Paginate) },
 					{
 						properties: {
 							data: {

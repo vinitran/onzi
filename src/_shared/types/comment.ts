@@ -1,10 +1,12 @@
 import { PresignedPost } from "@aws-sdk/s3-presigned-post"
 import { Comment, User } from "@prisma/client"
-import { CreateCommentDto } from "@root/comments/dtos/create-comment.dto"
-import { PaginateCommentsDto } from "@root/comments/dtos/paginate-comments.dto"
+import {
+	CreateCommentPayload,
+	GetCommentsParams
+} from "@root/comments/dtos/payload.dto"
 
 /* Create comment */
-export type ICreateComment = CreateCommentDto & {
+export type ICreateComment = CreateCommentPayload & {
 	tokenId: string
 	userId: string
 }
@@ -24,7 +26,7 @@ export type ICreateCommentResponse = {
 export type IReplyComment = Omit<ICreateComment, "tokenId">
 
 /* Paginate comment */
-export type IPaginateComments = PaginateCommentsDto & {
+export type IPaginateComments = GetCommentsParams & {
 	tokenId: string
 	userId: string
 }
@@ -44,7 +46,7 @@ export type IPaginateCommentsData = {
 }
 
 /* Paginate replies */
-export type IPaginateReplies = PaginateCommentsDto & {
+export type IPaginateReplies = GetCommentsParams & {
 	parentId: string
 	userId: string
 }
