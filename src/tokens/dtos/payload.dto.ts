@@ -131,6 +131,16 @@ export class FindTokenParams extends PaginatedParams {
 	@IsEnum(["desc", "asc"])
 	@IsOptional()
 	priceChange7d?: "desc" | "asc"
+
+	@ApiProperty({
+		description: "Sort By Amount of Token Holders",
+		example: "desc",
+		required: false,
+		enum: ["desc", "asc"]
+	})
+	@IsEnum(["desc", "asc"])
+	@IsOptional()
+	holders?: "desc" | "asc"
 }
 
 export class BuyTokenOnchainPayload {

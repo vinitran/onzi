@@ -2,7 +2,7 @@ import { ApiProperty } from "@nestjs/swagger"
 import { Decimal } from "@prisma/client/runtime/library"
 import { TokenOwner } from "@root/dtos/token-owner.dto"
 import { User } from "@root/dtos/user.dto"
-import { Expose } from "class-transformer"
+import { Expose, Type } from "class-transformer"
 
 export class Token {
 	@ApiProperty({
@@ -176,6 +176,7 @@ export class Token {
 		type: () => TokenOwner
 	})
 	@Expose()
+	@Type(() => TokenOwner)
 	tokenOwners?: TokenOwner[]
 
 	constructor(partial: Partial<Token>) {

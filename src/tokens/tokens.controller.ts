@@ -1,6 +1,5 @@
 import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common"
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
-import { Token, TokenOwner } from "@prisma/client"
 import { Auth } from "@root/_shared/utils/decorators"
 import { Claims } from "@root/auth/auth.service"
 import {
@@ -64,22 +63,9 @@ export class TokensController {
 			maxPage
 		} = await this.tokensService.find(query)
 
-		// Transform decimal values to strings
-		const transformedData = data.map(
-			(token: Token & { tokenOwners?: TokenOwner[] }) => ({
-				...token,
-				marketCapacity: token.marketCapacity?.toString(),
-				price: token.price?.toString(),
-				tokenOwners: token.tokenOwners?.map((owner: TokenOwner) => ({
-					...owner,
-					amount: owner.amount?.toString()
-				}))
-			})
-		)
-
 		return plainToInstance(
 			PaginatedResponse<FindTokenResponse>,
-			new PaginatedResponse(transformedData, total, maxPage),
+			new PaginatedResponse(data, total, maxPage),
 			{
 				excludeExtraneousValues: true
 			}

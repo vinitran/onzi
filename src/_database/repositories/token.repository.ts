@@ -28,6 +28,9 @@ export class TokenRepository {
 			}),
 			...(query.tx && {
 				_count: { select: { TokenTransaction: true } }
+			}),
+			...(query.holders && {
+				_count: { select: { tokenOwners: true } }
 			})
 		}
 
@@ -36,6 +39,7 @@ export class TokenRepository {
 			...(query.price ? [{ price: query.price }] : []),
 			...(query.tx ? [{ TokenTransaction: { _count: query.tx } }] : []),
 			...(query.volumn ? [{ volumn: query.volumn }] : []),
+			...(query.holders ? [{ tokenOwners: { _count: query.holders } }] : []),
 			...(query.latest ? [{ createdAt: query.latest }] : [])
 		]
 
@@ -60,12 +64,15 @@ export class TokenRepository {
 		// Transform response
 		const transformedTokens = tokens.map((token, index) => {
 			const { _count, ...rest } = token as Prisma.TokenGetPayload<{
-				include: { _count: { select: { TokenTransaction: true } } }
+				include: {
+					_count: { select: { TokenTransaction: true; tokenOwners: true } }
+				}
 			}>
 
 			return {
 				...rest,
 				...(query.tx && { amountTx: _count?.TokenTransaction || 0 }),
+				amountHolders: _count?.tokenOwners || 0,
 				priceChange: priceChanges[index]
 			}
 		})

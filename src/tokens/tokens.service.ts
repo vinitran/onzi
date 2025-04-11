@@ -27,7 +27,9 @@ import {
 	FindTokenParams,
 	ListTransactionParams
 } from "@root/tokens/dtos/payload.dto"
+import { FindTokenResponse } from "@root/tokens/dtos/response.dto"
 import { PublicKey } from "@solana/web3.js"
+import { plainToInstance } from "class-transformer"
 
 @Injectable()
 export class TokensService {
@@ -120,8 +122,17 @@ export class TokensService {
 		return encodeTransaction(tx)
 	}
 
-	find(params: FindTokenParams) {
-		return this.token.find(params)
+	find(
+		params: FindTokenParams
+	): Promise<{ tokens: FindTokenResponse[]; total: number; maxPage: number }> {
+		return this.token.find(params).then(result => ({
+			tokens: plainToInstance(FindTokenResponse, result.tokens, {
+				excludeExtraneousValues: true,
+				enableImplicitConversion: true
+			}),
+			total: result.total,
+			maxPage: result.maxPage
+		}))
 	}
 
 	//   Get image url & authorize data to push image Aws3

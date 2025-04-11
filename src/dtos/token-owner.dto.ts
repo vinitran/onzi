@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger"
-import { Expose } from "class-transformer"
+import { Expose, Type } from "class-transformer"
 
 export class TokenOwner {
 	@ApiProperty({
@@ -29,6 +29,7 @@ export class TokenOwner {
 		required: false
 	})
 	@Expose()
+	@Type(() => String)
 	amount?: string | null
 
 	@ApiProperty({

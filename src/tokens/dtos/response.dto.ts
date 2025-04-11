@@ -3,7 +3,7 @@ import { S3Upload } from "@root/dtos/file.dto"
 import { TokenTransaction } from "@root/dtos/token-transaction.dto"
 import { Token as TokenDto } from "@root/dtos/token.dto"
 import { User } from "@root/dtos/user.dto"
-import { Expose } from "class-transformer"
+import { Expose, Type } from "class-transformer"
 
 export class CreateTokenResponse {
 	@ApiProperty({ description: "Token information", type: TokenDto })
@@ -42,13 +42,59 @@ export class SimilarTokenResponse {
 
 export class ListTransactionResponse extends TokenTransaction {}
 
+export class TokenPriceChangeResponse {
+	@ApiProperty({
+		description: "Price change in last 1 hour",
+		example: 5.25,
+		required: false,
+		default: 0
+	})
+	@Expose()
+	"1h" = 0
+
+	@ApiProperty({
+		description: "Price change in last 24 hours",
+		example: -2.5,
+		required: false,
+		default: 0
+	})
+	@Expose()
+	"24h" = 0
+
+	@ApiProperty({
+		description: "Price change in last 7 days",
+		example: 10.75,
+		required: false,
+		default: 0
+	})
+	@Expose()
+	"7d" = 0
+}
+
 export class FindTokenResponse extends TokenDto {
 	@ApiProperty({
 		description: "Amount of transaction",
+		required: false,
+		default: 0
+	})
+	@Expose()
+	amountTx?: number = 0
+
+	@ApiProperty({
+		description: "Price change of token",
+		required: false,
+		type: TokenPriceChangeResponse
+	})
+	@Expose()
+	@Type(() => TokenPriceChangeResponse)
+	priceChange?: TokenPriceChangeResponse
+
+	@ApiProperty({
+		description: "Amount Holder of token",
 		required: false
 	})
 	@Expose()
-	amountTx?: number
+	amountHolders?: number
 }
 
 export class TokenHolderResponse extends User {
