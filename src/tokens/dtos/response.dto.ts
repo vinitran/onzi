@@ -42,7 +42,14 @@ export class SimilarTokenResponse {
 
 export class ListTransactionResponse extends TokenTransaction {}
 
-export class TokenResponse extends TokenDto {}
+export class FindTokenResponse extends TokenDto {
+	@ApiProperty({
+		description: "Amount of transaction",
+		required: false
+	})
+	@Expose()
+	amountTx?: number
+}
 
 export class TokenHolderResponse extends User {
 	@ApiProperty({

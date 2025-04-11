@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger"
 import { OptionalProp, Prop } from "@root/_shared/utils/decorators"
 import { PaginatedParams } from "@root/dtos/common.dto"
-import { Type } from "class-transformer"
+import { Transform, Type } from "class-transformer"
 import {
 	IsBoolean,
 	IsEnum,
@@ -44,15 +44,63 @@ export class CreateTokenPayload {
 export class FindTokenParams extends PaginatedParams {
 	@ApiProperty({
 		description: "Sort by latest creation date",
-		example: true,
+		example: "desc",
 		required: false,
-		default: false
+		enum: ["desc", "asc"]
 	})
-	@OptionalProp({ default: false })
+	@IsEnum(["desc", "asc"])
+	@IsOptional()
+	latest?: "desc" | "asc"
+
+	@ApiProperty({
+		description: "Show detail token",
+		example: false,
+		required: true
+	})
 	@IsBoolean()
 	@IsOptional()
-	@Type(() => Boolean)
-	latest?: boolean
+	@Transform(({ value }) => value === "true")
+	detail?: boolean
+
+	@ApiProperty({
+		description: "Sort By MarketCap",
+		example: "desc",
+		required: false,
+		enum: ["desc", "asc"]
+	})
+	@IsEnum(["desc", "asc"])
+	@IsOptional()
+	marketCap?: "desc" | "asc"
+
+	@ApiProperty({
+		description: "Sort By Price",
+		example: "desc",
+		required: false,
+		enum: ["desc", "asc"]
+	})
+	@IsEnum(["desc", "asc"])
+	@IsOptional()
+	price?: "desc" | "asc"
+
+	@ApiProperty({
+		description: "Sort By Transaction amount",
+		example: "desc",
+		required: false,
+		enum: ["desc", "asc"]
+	})
+	@IsEnum(["desc", "asc"])
+	@IsOptional()
+	tx?: "desc" | "asc"
+
+	@ApiProperty({
+		description: "Sort By Transaction volumn",
+		example: "desc",
+		required: false,
+		enum: ["desc", "asc"]
+	})
+	@IsEnum(["desc", "asc"])
+	@IsOptional()
+	volumn?: "desc" | "asc"
 }
 
 export class BuyTokenOnchainPayload {

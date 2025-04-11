@@ -35,6 +35,7 @@ export class IndexerGateway
 			client.disconnect()
 		}
 	}
+
 	handleDisconnect(client: Socket) {
 		this.logger.log(
 			`Client disconnected: ${client.nsp.name} - ID: ${client.id}`

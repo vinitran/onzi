@@ -132,7 +132,7 @@ export class SolanaIndexerService implements OnModuleInit {
 			}
 		})
 
-		await this.updateMarketCap(event.mint)
+		await this.updateToken(event.mint)
 
 		this.socket.handleTokenCreation({
 			address: event.mint.toBase58(),
@@ -140,6 +140,16 @@ export class SolanaIndexerService implements OnModuleInit {
 			network: Network.Solana,
 			createdBy: user
 		})
+	}
+
+	private async updateTokenAfterTransaction(
+		mint: web3.PublicKey,
+		event: BuyTokensEvent | SellTokensEvent
+	) {
+		await Promise.all([
+			this.updateToken(mint, event),
+			this.updateBalanceUser(event)
+		])
 	}
 
 	private async handlerBuyToken({
@@ -160,9 +170,7 @@ export class SolanaIndexerService implements OnModuleInit {
 			signature: signature
 		})
 
-		await this.updateMarketCap(event.mint)
-		await this.updateBalanceUser(event)
-		await this.updatePrice(event.mint.toBase58(), event.newPrice)
+		await this.updateTokenAfterTransaction(event.mint, event)
 
 		const tokenBySig = await this.tokenTxRepository.findBySignature(signature)
 		if (tokenBySig) {
@@ -209,9 +217,7 @@ export class SolanaIndexerService implements OnModuleInit {
 			address: event.seller.toBase58()
 		})
 
-		await this.updateMarketCap(event.mint)
-		await this.updateBalanceUser(event)
-		await this.updatePrice(event.mint.toBase58(), event.newPrice)
+		await this.updateTokenAfterTransaction(event.mint, event)
 
 		const tokenBySig = await this.tokenTxRepository.findBySignature(signature)
 
@@ -251,7 +257,10 @@ export class SolanaIndexerService implements OnModuleInit {
 		return DateTime.fromSeconds(transaction.blockTime)
 	}
 
-	private async updateMarketCap(address: web3.PublicKey) {
+	private async updateToken(
+		address: web3.PublicKey,
+		event?: BuyTokensEvent | SellTokensEvent
+	) {
 		const token = await this.tokenRepository.findOneByAddress(
 			address.toBase58()
 		)
@@ -260,45 +269,52 @@ export class SolanaIndexerService implements OnModuleInit {
 		const marketCapacity = await this.ponz.calculateMarketcap(address)
 		if (!marketCapacity) return
 
+		if (event) {
+			const isBuy = "buyer" in event
+			const volumeChange = isBuy ? Number(event.lamports) : Number(event.amount)
+			const newVolume = (token.volumn || 0) + volumeChange
+
+			await this.tokenRepository.update(address.toBase58(), {
+				marketCapacity,
+				volumn: newVolume,
+				price: event.newPrice
+			})
+		} else {
+			await this.tokenRepository.update(address.toBase58(), {
+				marketCapacity
+			})
+		}
+
 		await this.verifyKingOfHill(
 			token.id,
 			marketCapacity,
 			token.bondingCurveTarget
 		)
-
-		await this.tokenRepository.updateMarketCap(
-			address.toBase58(),
-			marketCapacity
-		)
 	}
 
 	private async updateBalanceUser(event: BuyTokensEvent | SellTokensEvent) {
 		const isBuy = "buyer" in event
-
 		const userAddress = (isBuy ? event.buyer : event.seller).toBase58()
+		const tokenAddress = event.mint.toBase58()
 
+		// First ensure both user and token exist
 		await this.userRepository.createIfNotExist({ address: userAddress })
+
+		// Check if token exists
+		const token = await this.tokenRepository.findOneByAddress(tokenAddress)
+		if (!token) {
+			Logger.warn(
+				`Token ${tokenAddress} not found when trying to update balance for user ${userAddress}`
+			)
+			return
+		}
 
 		await this.tokenOwner.saveTokenOwner({
 			userAddress: userAddress,
-			tokenAddress: event.mint.toBase58(),
+			tokenAddress: tokenAddress,
 			amount: event.amount,
 			type: isBuy ? "BUY" : "SELL"
 		})
-	}
-
-	private async updatePrice(address: string, price: number) {
-		try {
-			const token = await this.tokenRepository.findOneByAddress(address)
-
-			if (!token) {
-				return
-			}
-
-			return this.tokenRepository.updatePrice(token.id, price)
-		} catch (err) {
-			Logger.log(err)
-		}
 	}
 
 	private async verifyKingOfHill(

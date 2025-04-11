@@ -12,30 +12,52 @@ export class TokenRepository {
 	async find(query: FindTokenParams) {
 		const skip = (query.page - 1) * query.take
 
+		const include: Prisma.TokenInclude = {
+			...(query.detail && {
+				creator: {
+					select: { address: true, username: true }
+				},
+				tokenOwners: {
+					select: { userAddress: true, amount: true },
+					orderBy: { amount: Prisma.SortOrder.desc }
+				}
+			}),
+			...(query.tx && {
+				_count: { select: { TokenTransaction: true } }
+			})
+		}
+
+		const orderBy: Prisma.TokenOrderByWithRelationInput[] = [
+			...(query.marketCap ? [{ marketCapacity: query.marketCap }] : []),
+			...(query.price ? [{ price: query.price }] : []),
+			...(query.tx ? [{ TokenTransaction: { _count: query.tx } }] : []),
+			...(query.volumn ? [{ volumn: query.volumn }] : []),
+			...(query.latest ? [{ createdAt: query.latest }] : [])
+		]
+
+		// Execute queries in parallel
 		const [tokens, total] = await Promise.all([
 			this.prisma.token.findMany({
 				skip,
 				take: query.take,
-				orderBy: query.latest
-					? {
-							createdAt: "desc"
-						}
-					: undefined,
-				include: {
-					creator: {
-						select: {
-							id: true,
-							address: true,
-							username: true
-						}
-					}
-				}
+				orderBy: orderBy.length ? orderBy : undefined,
+				include: Object.keys(include).length ? include : undefined
 			}),
 			this.prisma.token.count()
 		])
 
+		// Transform response
 		return {
-			tokens,
+			tokens: tokens.map(token => {
+				const { _count, ...rest } = token as Prisma.TokenGetPayload<{
+					include: { _count: { select: { TokenTransaction: true } } }
+				}>
+
+				return {
+					...rest,
+					...(query.tx && { amountTx: _count?.TokenTransaction || 0 })
+				}
+			}),
 			total,
 			maxPage: Math.ceil(total / query.take)
 		}

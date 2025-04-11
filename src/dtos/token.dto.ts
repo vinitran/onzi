@@ -1,4 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger"
+import { Decimal } from "@prisma/client/runtime/library"
+import { TokenOwner } from "@root/dtos/token-owner.dto"
 import { User } from "@root/dtos/user.dto"
 import { Expose } from "class-transformer"
 
@@ -36,7 +38,7 @@ export class Token {
 		example: 1.25
 	})
 	@Expose()
-	price?: number
+	price?: Decimal
 
 	@ApiProperty({
 		description: "Token image URI",
@@ -78,7 +80,7 @@ export class Token {
 		example: 1000000
 	})
 	@Expose()
-	bondingCurveTarget: number
+	bondingCurveTarget: number | Decimal
 
 	@ApiProperty({
 		description: "Has completed bonding curve?",
@@ -89,10 +91,11 @@ export class Token {
 
 	@ApiProperty({
 		description: "Timestamp of bonding curve completion",
-		example: "2024-03-20T12:00:00Z"
+		example: "2024-03-20T12:00:00Z",
+		required: false
 	})
 	@Expose()
-	createdAtBondingCurve?: Date
+	createdAtBondingCurve?: Date | null
 
 	@ApiProperty({
 		description: "Has completed King of the Hill?",
@@ -127,14 +130,22 @@ export class Token {
 		example: 10000000
 	})
 	@Expose()
-	marketCapacity: number
+	marketCapacity: Decimal
 
 	@ApiProperty({
 		description: "Token bump timestamp",
-		example: "2024-03-22T09:45:00Z"
+		example: "2024-03-22T09:45:00Z",
+		required: false
 	})
 	@Expose()
 	bumpAt?: Date
+
+	@ApiProperty({
+		description: "Token volumn",
+		example: 1000000
+	})
+	@Expose()
+	volumn: Decimal
 
 	@ApiProperty({
 		description: "Token creation timestamp",
@@ -157,6 +168,15 @@ export class Token {
 	})
 	@Expose()
 	creator?: User
+
+	@ApiProperty({
+		description: "Token tokenOwners",
+		required: false,
+		isArray: true,
+		type: () => TokenOwner
+	})
+	@Expose()
+	tokenOwners?: TokenOwner[]
 
 	constructor(partial: Partial<Token>) {
 		Object.assign(this, partial)

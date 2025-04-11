@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common"
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
+import { Token, TokenOwner } from "@prisma/client"
 import { Auth } from "@root/_shared/utils/decorators"
 import { Claims } from "@root/auth/auth.service"
 import {
@@ -15,10 +16,10 @@ import {
 import {
 	CreateTokenOnchainResponse,
 	CreateTokenResponse,
+	FindTokenResponse,
 	ListTransactionResponse,
 	SimilarTokenResponse,
-	TokenHolderResponse,
-	TokenResponse
+	TokenHolderResponse
 } from "@root/tokens/dtos/response.dto"
 import { TokensService } from "@root/tokens/tokens.service"
 import { User } from "@root/users/user.decorator"
@@ -49,12 +50,12 @@ export class TokensController {
 	}
 
 	@Get()
-	@ApiPaginatedResponse(TokenResponse)
+	@ApiPaginatedResponse(FindTokenResponse)
 	@ApiOperation({ summary: "Latest token" })
 	@ApiResponse({
 		status: 201,
 		description: "Token created successfully",
-		type: TokenResponse
+		type: FindTokenResponse
 	})
 	async findMany(@Query() query: FindTokenParams) {
 		const {
@@ -62,9 +63,23 @@ export class TokensController {
 			total,
 			maxPage
 		} = await this.tokensService.find(query)
+
+		// Transform decimal values to strings
+		const transformedData = data.map(
+			(token: Token & { tokenOwners?: TokenOwner[] }) => ({
+				...token,
+				marketCapacity: token.marketCapacity?.toString(),
+				price: token.price?.toString(),
+				tokenOwners: token.tokenOwners?.map((owner: TokenOwner) => ({
+					...owner,
+					amount: owner.amount?.toString()
+				}))
+			})
+		)
+
 		return plainToInstance(
-			PaginatedResponse<TokenResponse>,
-			new PaginatedResponse(data, total, maxPage),
+			PaginatedResponse<FindTokenResponse>,
+			new PaginatedResponse(transformedData, total, maxPage),
 			{
 				excludeExtraneousValues: true
 			}
@@ -164,12 +179,12 @@ export class TokensController {
 	@ApiResponse({
 		status: 200,
 		description: "Token details retrieved successfully",
-		type: [TokenResponse]
+		type: [FindTokenResponse]
 	})
 	async find(@Param("address") address: string) {
 		const data = await this.tokensService.getByAddress(address)
 
-		return plainToInstance(TokenResponse, data, {
+		return plainToInstance(FindTokenResponse, data, {
 			excludeExtraneousValues: true
 		})
 	}

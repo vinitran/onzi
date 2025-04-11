@@ -18,10 +18,11 @@ export class User {
 
 	@ApiProperty({
 		description: "User's display name",
-		example: "johndoe"
+		example: "johndoe",
+		required: false
 	})
 	@Expose()
-	username: string
+	username?: string
 
 	@ApiProperty({
 		description: "User's biography",
