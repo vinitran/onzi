@@ -4,10 +4,14 @@ import { ICreateToken } from "@root/_shared/types/token"
 import { FindTokenParams } from "@root/tokens/dtos/payload.dto"
 import { GetCoinCreatedParams } from "@root/users/dtos/payload.dto"
 import { PrismaService } from "../prisma.service"
+import { TokenTransactionRepository } from "./token-transaction.repository"
 
 @Injectable()
 export class TokenRepository {
-	constructor(private prisma: PrismaService) {}
+	constructor(
+		private prisma: PrismaService,
+		private tokenTransaction: TokenTransactionRepository
+	) {}
 
 	async find(query: FindTokenParams) {
 		const skip = (query.page - 1) * query.take
@@ -46,18 +50,56 @@ export class TokenRepository {
 			this.prisma.token.count()
 		])
 
-		// Transform response
-		return {
-			tokens: tokens.map(token => {
-				const { _count, ...rest } = token as Prisma.TokenGetPayload<{
-					include: { _count: { select: { TokenTransaction: true } } }
-				}>
+		// Get price changes for all tokens
+		const priceChanges = await Promise.all(
+			tokens.map(token =>
+				this.tokenTransaction.getPriceChangePercentages(token.address)
+			)
+		)
 
-				return {
-					...rest,
-					...(query.tx && { amountTx: _count?.TokenTransaction || 0 })
+		// Transform response
+		const transformedTokens = tokens.map((token, index) => {
+			const { _count, ...rest } = token as Prisma.TokenGetPayload<{
+				include: { _count: { select: { TokenTransaction: true } } }
+			}>
+
+			return {
+				...rest,
+				...(query.tx && { amountTx: _count?.TokenTransaction || 0 }),
+				priceChange: priceChanges[index]
+			}
+		})
+
+		// Sort by price change if specified
+		if (query.priceChange1h || query.priceChange24h || query.priceChange7d) {
+			transformedTokens.sort((a, b) => {
+				if (query.priceChange1h) {
+					const changeA = a.priceChange["1h"] || 0
+					const changeB = b.priceChange["1h"] || 0
+					return query.priceChange1h === "desc"
+						? changeB - changeA
+						: changeA - changeB
 				}
-			}),
+				if (query.priceChange24h) {
+					const changeA = a.priceChange["24h"] || 0
+					const changeB = b.priceChange["24h"] || 0
+					return query.priceChange24h === "desc"
+						? changeB - changeA
+						: changeA - changeB
+				}
+				if (query.priceChange7d) {
+					const changeA = a.priceChange["7d"] || 0
+					const changeB = b.priceChange["7d"] || 0
+					return query.priceChange7d === "desc"
+						? changeB - changeA
+						: changeA - changeB
+				}
+				return 0
+			})
+		}
+
+		return {
+			tokens: transformedTokens,
 			total,
 			maxPage: Math.ceil(total / query.take)
 		}

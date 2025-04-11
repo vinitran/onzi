@@ -101,6 +101,36 @@ export class FindTokenParams extends PaginatedParams {
 	@IsEnum(["desc", "asc"])
 	@IsOptional()
 	volumn?: "desc" | "asc"
+
+	@ApiProperty({
+		description: "Sort By 1h Price Change",
+		example: "desc",
+		required: false,
+		enum: ["desc", "asc"]
+	})
+	@IsEnum(["desc", "asc"])
+	@IsOptional()
+	priceChange1h?: "desc" | "asc"
+
+	@ApiProperty({
+		description: "Sort By 24h Price Change",
+		example: "desc",
+		required: false,
+		enum: ["desc", "asc"]
+	})
+	@IsEnum(["desc", "asc"])
+	@IsOptional()
+	priceChange24h?: "desc" | "asc"
+
+	@ApiProperty({
+		description: "Sort By 7d Price Change",
+		example: "desc",
+		required: false,
+		enum: ["desc", "asc"]
+	})
+	@IsEnum(["desc", "asc"])
+	@IsOptional()
+	priceChange7d?: "desc" | "asc"
 }
 
 export class BuyTokenOnchainPayload {
