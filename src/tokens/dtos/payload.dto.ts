@@ -141,6 +141,14 @@ export class FindTokenParams extends PaginatedParams {
 	@IsEnum(["desc", "asc"])
 	@IsOptional()
 	holders?: "desc" | "asc"
+
+	@ApiProperty({
+		description: "Text to search",
+		example: "Ponz",
+		required: false
+	})
+	@IsOptional()
+	searchText?: string
 }
 
 export class BuyTokenOnchainPayload {

@@ -15,6 +15,26 @@ export class TokenRepository {
 
 	async find(query: FindTokenParams) {
 		const skip = (query.page - 1) * query.take
+		let where: Prisma.TokenWhereInput = {}
+
+		if (query.searchText) {
+			where = {
+				OR: [
+					{
+						name: {
+							contains: query.searchText,
+							mode: "insensitive"
+						}
+					},
+					{
+						ticker: {
+							contains: query.searchText,
+							mode: "insensitive"
+						}
+					}
+				]
+			}
+		}
 
 		const include: Prisma.TokenInclude = {
 			...(query.detail && {
@@ -49,9 +69,10 @@ export class TokenRepository {
 				skip,
 				take: query.take,
 				orderBy: orderBy.length ? orderBy : undefined,
-				include: Object.keys(include).length ? include : undefined
+				include: Object.keys(include).length ? include : undefined,
+				where
 			}),
-			this.prisma.token.count()
+			this.prisma.token.count({ where })
 		])
 
 		// Get price changes for all tokens
