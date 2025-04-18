@@ -13,6 +13,15 @@ export class TokenRepository {
 		private tokenTransaction: TokenTransactionRepository
 	) {}
 
+	findLatest(take: number) {
+		return this.prisma.token.findMany({
+			orderBy: {
+				createdAt: "desc"
+			},
+			take
+		})
+	}
+
 	async find(userAddress: string | undefined, query: FindTokenParams) {
 		const skip = (query.page - 1) * query.take
 		let where: Prisma.TokenWhereInput = {}
@@ -75,6 +84,16 @@ export class TokenRepository {
 			}),
 			this.prisma.token.count({ where })
 		])
+
+		let favoriteTokens: string[] = []
+		if (userAddress) {
+			const favorites = await this.prisma.tokenFavorite.findMany({
+				where: { userAddress }
+			})
+			favoriteTokens = favorites.map(
+				(fav: { tokenAddress: string }) => fav.tokenAddress
+			)
+		}
 
 		const priceChanges = await Promise.all(
 			tokens.map(token =>
