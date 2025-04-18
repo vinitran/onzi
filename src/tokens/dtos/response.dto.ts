@@ -27,11 +27,7 @@ export class CreateTokenOnchainResponse {
 	transaction: string
 }
 
-export class SimilarTokenResponse {
-	@ApiProperty({ description: "Token information", type: TokenDto })
-	@Expose()
-	token: TokenDto
-
+export class SimilarTokenResponse extends TokenDto {
 	@ApiProperty({
 		description: "Total number of replies for the token",
 		example: 5

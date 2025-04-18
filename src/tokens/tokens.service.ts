@@ -219,7 +219,7 @@ export class TokensService {
 					where: { tokenId: token.id }
 				})
 				return {
-					token,
+					...token,
 					totalReplies
 				}
 			})

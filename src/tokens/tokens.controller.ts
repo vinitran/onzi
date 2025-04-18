@@ -54,11 +54,6 @@ export class TokensController {
 	@Get()
 	@ApiPaginatedResponse(FindTokenResponse)
 	@ApiOperation({ summary: "Latest token" })
-	@ApiResponse({
-		status: 201,
-		description: "Token created successfully",
-		type: FindTokenResponse
-	})
 	async findMany(@Query() query: FindTokenParams) {
 		const {
 			tokens: data,
@@ -76,14 +71,9 @@ export class TokensController {
 	}
 
 	@Auth()
-	@ApiPaginatedResponse(FindTokenResponse)
+	@ApiPaginatedResponse(FindFavoriteTokenResponse)
 	@Get("favorite")
 	@ApiOperation({ summary: "Paginate list favorite token" })
-	@ApiResponse({
-		status: 200,
-		description: "Paginate favorite token successfully",
-		type: [FindFavoriteTokenResponse]
-	})
 	async paginateFavouriteToken(
 		@Query() query: FindListTokenFavoriteParams,
 		@User() user: Claims
@@ -166,11 +156,6 @@ export class TokensController {
 	@Get(":address/list-transaction")
 	@ApiPaginatedResponse(ListTransactionResponse)
 	@ApiOperation({ summary: "Get paginated list of token transactions" })
-	@ApiResponse({
-		status: 200,
-		description: "List of transactions retrieved successfully",
-		type: [ListTransactionResponse]
-	})
 	async getListTransaction(
 		@Param("address") address: string,
 		@Query() query: ListTransactionParams,
