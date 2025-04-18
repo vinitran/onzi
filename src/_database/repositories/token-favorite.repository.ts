@@ -17,26 +17,28 @@ export class TokenFavoriteRepository {
 			userAddress
 		}
 
+		const include: Prisma.TokenFavoriteInclude = {
+			token: {
+				include: {
+					creator: {
+						select: {
+							id: true,
+							address: true,
+							avatarUrl: true,
+							username: true
+						}
+					}
+				}
+			}
+		}
+
 		const [data, total] = await Promise.all([
 			this.prisma.tokenFavorite.findMany({
 				where,
 				take,
 				skip,
 				orderBy: { createdAt: "desc" },
-				include: {
-					token: {
-						include: {
-							creator: {
-								select: {
-									id: true,
-									address: true,
-									avatarUrl: true,
-									username: true
-								}
-							}
-						}
-					}
-				}
+				include
 			}),
 			this.prisma.tokenFavorite.count({ where })
 		])

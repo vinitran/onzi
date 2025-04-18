@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger"
 import { S3Upload } from "@root/dtos/file.dto"
+import { TokenFavorite } from "@root/dtos/token-favorite.dto"
 import { TokenTransaction } from "@root/dtos/token-transaction.dto"
 import { Token as TokenDto } from "@root/dtos/token.dto"
 import { User } from "@root/dtos/user.dto"
@@ -108,12 +109,4 @@ export class ToggleFavoriteTokenResponse {
 	message: string
 }
 
-export class FindFavoriteTokenResponse {
-	@ApiProperty({ description: "Created at" })
-	@Expose()
-	createdAt: Date
-
-	@ApiProperty({ description: "Detail token" })
-	@Expose()
-	token: TokenDto
-}
+export class FindFavoriteTokenResponse extends TokenFavorite {}
