@@ -147,6 +147,41 @@ export class Token {
 	volumn: number
 
 	@ApiProperty({
+		description: "Token tax percentage",
+		example: 5
+	})
+	@Expose()
+	tax: number
+
+	@ApiProperty({
+		description: "Token reward tax percentage",
+		example: 2
+	})
+	@Expose()
+	rewardTax: number
+
+	@ApiProperty({
+		description: "Token jackpot tax percentage",
+		example: 1
+	})
+	@Expose()
+	jackpotTax: number
+
+	@ApiProperty({
+		description: "Token jackpot amount",
+		example: 1000
+	})
+	@Expose()
+	jackpotAmount: number
+
+	@ApiProperty({
+		description: "Token burn tax percentage",
+		example: 2
+	})
+	@Expose()
+	burnTax: number
+
+	@ApiProperty({
 		description: "Token creation timestamp",
 		example: "2024-03-19T10:15:00Z"
 	})
