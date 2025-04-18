@@ -336,4 +336,29 @@ export class TokensService {
 			})
 		}
 	}
+
+	async getTrendingTopics() {
+		const listToken = await this.token.findLatest(100)
+		const wordCount: Record<string, number> = {}
+
+		for (const token of listToken) {
+			const content = `${token.name} ${token.ticker} ${token.description}`
+			const words = content
+				.toLowerCase()
+				.replace(/[^a-z0-9\s]/g, "") // loại bỏ ký tự đặc biệt
+				.split(/\s+/)
+				.filter(word => word.length > 2) // bỏ qua từ ngắn
+
+			for (const word of words) {
+				wordCount[word] = (wordCount[word] || 0) + 1
+			}
+		}
+
+		// Sắp xếp theo số lần xuất hiện giảm dần
+		const sorted = Object.entries(wordCount)
+			.sort((a, b) => b[1] - a[1])
+			.map(([word, count]) => ({ word, count }))
+
+		return sorted.slice(0, 5).map(item => item.word)
+	}
 }

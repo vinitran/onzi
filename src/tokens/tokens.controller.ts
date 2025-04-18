@@ -79,6 +79,17 @@ export class TokensController {
 		)
 	}
 
+	@Get("trending-topics")
+	@ApiResponse({
+		status: 200,
+		description: "Get trending topics successfully",
+		type: [String]
+	})
+	@ApiOperation({ summary: "Get trending topics" })
+	async getTrendingTopics() {
+		return this.tokensService.getTrendingTopics()
+	}
+
 	@Auth()
 	@ApiPaginatedResponse(FindFavoriteTokenResponse)
 	@Get("favorite")
