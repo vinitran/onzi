@@ -3,6 +3,7 @@ import { UserConnectionRepository } from "@root/_database/repositories/user-conn
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { PrismaService } from "./prisma.service"
 import { CommentRepository } from "./repositories/comment.repository"
+import { TokenFavoriteRepository } from "./repositories/token-favorite.repository"
 import { TokenKeyRepository } from "./repositories/token-key.repository"
 import { TokenOwnerRepository } from "./repositories/token-owner.repository"
 import { TokenTransactionRepository } from "./repositories/token-transaction.repository"
@@ -15,7 +16,8 @@ const repositories = [
 	TokenRepository,
 	TokenKeyRepository,
 	TokenOwnerRepository,
-	TokenTransactionRepository
+	TokenTransactionRepository,
+	TokenFavoriteRepository
 ]
 
 @Global()

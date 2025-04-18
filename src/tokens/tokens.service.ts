@@ -14,6 +14,7 @@ import { TOKEN_TOTAL_SUPPLY_DEFAULT } from "@root/_shared/constants/token"
 import { ICreateTokenOnchainPayload } from "@root/_shared/types/token"
 
 import { BN, web3 } from "@coral-xyz/anchor"
+import { TokenFavoriteRepository } from "@root/_database/repositories/token-favorite.repository"
 import {
 	encodeTransaction,
 	keypairFromPrivateKey
@@ -24,10 +25,14 @@ import { Ponz } from "@root/programs/ponz/program"
 import { InjectConnection } from "@root/programs/programs.module"
 import {
 	CreateTokenPayload,
+	FindListTokenFavoriteParams,
 	FindTokenParams,
 	ListTransactionParams
 } from "@root/tokens/dtos/payload.dto"
-import { FindTokenResponse } from "@root/tokens/dtos/response.dto"
+import {
+	FindFavoriteTokenResponse,
+	FindTokenResponse
+} from "@root/tokens/dtos/response.dto"
 import { PublicKey } from "@solana/web3.js"
 import { plainToInstance } from "class-transformer"
 
@@ -37,6 +42,7 @@ export class TokensService {
 		private token: TokenRepository,
 		private tokenKey: TokenKeyRepository,
 		private tokenOwner: TokenOwnerRepository,
+		private tokenFavorite: TokenFavoriteRepository,
 		private comment: CommentRepository,
 		private user: UserRepository,
 		private s3Service: S3Service,
@@ -277,6 +283,44 @@ export class TokensService {
 			data: listTransaction,
 			total,
 			maxPage: Math.ceil(total / take)
+		}
+	}
+
+	//   Toggle (add or remove favourite token of user)
+	async toggleFavorite(tokenAddress: string, userAddress: string) {
+		const token = await this.token.findByAddress(tokenAddress)
+		if (!token) throw new NotFoundException("Not found token")
+
+		const favoriteToken = await this.tokenFavorite.findOne({
+			tokenAddress,
+			userAddress
+		})
+
+		if (favoriteToken) {
+			await this.tokenFavorite.delete({ tokenAddress, userAddress })
+			return { message: "Delete favorite token succesfully" }
+		}
+		await this.tokenFavorite.create({
+			token: { connect: { address: tokenAddress } },
+			user: { connect: { address: userAddress } }
+		})
+
+		return { message: "Add  favorite token succesfully" }
+	}
+
+	//   Paginate favorite tokens
+	async getListFavorite(
+		userAddress: string,
+		query: FindListTokenFavoriteParams
+	) {
+		const result = await this.tokenFavorite.find({ ...query, userAddress })
+		return {
+			total: result.total,
+			maxPage: result.maxPage,
+			tokens: plainToInstance(FindFavoriteTokenResponse, result.tokens, {
+				excludeExtraneousValues: true,
+				enableImplicitConversion: true
+			})
 		}
 	}
 }

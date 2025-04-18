@@ -1,0 +1,68 @@
+import { Injectable } from "@nestjs/common"
+import { Prisma } from "@prisma/client"
+import { FindListTokenFavoriteParams } from "@root/tokens/dtos/payload.dto"
+import { PrismaService } from "../prisma.service"
+
+@Injectable()
+export class TokenFavoriteRepository {
+	constructor(private prisma: PrismaService) {}
+
+	async find({
+		page,
+		take,
+		userAddress
+	}: FindListTokenFavoriteParams & { userAddress: string }) {
+		const skip = (page - 1) * take
+		const where: Prisma.TokenFavoriteWhereInput = {
+			userAddress
+		}
+
+		const [data, total] = await Promise.all([
+			this.prisma.tokenFavorite.findMany({
+				where,
+				take,
+				skip,
+				orderBy: { createdAt: "desc" },
+				include: {
+					token: {
+						include: {
+							creator: {
+								select: {
+									id: true,
+									address: true,
+									avatarUrl: true,
+									username: true
+								}
+							}
+						}
+					}
+				}
+			}),
+			this.prisma.tokenFavorite.count({ where })
+		])
+
+		return {
+			total,
+			maxPage: Math.ceil(total / take),
+			tokens: data
+		}
+	}
+
+	findOne(data: { userAddress: string; tokenAddress: string }) {
+		return this.prisma.tokenFavorite.findUnique({
+			where: { tokenAddress_userAddress: data }
+		})
+	}
+
+	create(data: Prisma.TokenFavoriteCreateInput) {
+		return this.prisma.tokenFavorite.create({ data })
+	}
+
+	delete(data: { userAddress: string; tokenAddress: string }) {
+		return this.prisma.tokenFavorite.delete({
+			where: {
+				tokenAddress_userAddress: data
+			}
+		})
+	}
+}

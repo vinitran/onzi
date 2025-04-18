@@ -105,3 +105,19 @@ export class TokenHolderResponse extends User {
 	@Expose()
 	percentOfKeeper: string
 }
+
+export class ToggleFavoriteTokenResponse {
+	@ApiProperty({ type: "string", description: "Message" })
+	@Expose()
+	message: string
+}
+
+export class FindFavoriteTokenResponse {
+	@ApiProperty({ description: "Created at" })
+	@Expose()
+	createdAt: Date
+
+	@ApiProperty({ description: "Detail token" })
+	@Expose()
+	token: TokenDto
+}

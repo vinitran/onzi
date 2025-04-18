@@ -9,15 +9,18 @@ import {
 import {
 	CreateTokenOnchainPayload,
 	CreateTokenPayload,
+	FindListTokenFavoriteParams,
 	FindTokenParams,
 	ListTransactionParams
 } from "@root/tokens/dtos/payload.dto"
 import {
 	CreateTokenOnchainResponse,
 	CreateTokenResponse,
+	FindFavoriteTokenResponse,
 	FindTokenResponse,
 	ListTransactionResponse,
 	SimilarTokenResponse,
+	ToggleFavoriteTokenResponse,
 	TokenHolderResponse
 } from "@root/tokens/dtos/response.dto"
 import { TokensService } from "@root/tokens/tokens.service"
@@ -70,6 +73,34 @@ export class TokensController {
 				excludeExtraneousValues: true
 			}
 		)
+	}
+
+	@Auth()
+	@ApiPaginatedResponse(FindTokenResponse)
+	@Get("favorite")
+	@ApiOperation({ summary: "Paginate list favorite token" })
+	@ApiResponse({
+		status: 200,
+		description: "Paginate favorite token successfully",
+		type: [FindFavoriteTokenResponse]
+	})
+	async paginateFavouriteToken(
+		@Query() query: FindListTokenFavoriteParams,
+		@User() user: Claims
+	) {
+		const { maxPage, tokens, total } = await this.tokensService.getListFavorite(
+			user.address,
+			query
+		)
+		const res = plainToInstance(
+			PaginatedResponse<FindFavoriteTokenResponse>,
+			new PaginatedResponse(tokens, total, maxPage),
+			{
+				excludeExtraneousValues: true
+			}
+		)
+
+		return res
 	}
 
 	@Post(":id")
@@ -158,6 +189,24 @@ export class TokensController {
 				excludeExtraneousValues: true
 			}
 		)
+	}
+
+	@Auth()
+	@Post(":address/favorite")
+	@ApiOperation({ summary: "Toggle favorite token" })
+	@ApiResponse({
+		status: 200,
+		description: "Toggle favorite token successfully",
+		type: ToggleFavoriteTokenResponse
+	})
+	async toggleFavoriteToken(
+		@Param("address") address: string,
+		@User() user: Claims
+	) {
+		const data = await this.tokensService.toggleFavorite(address, user.address)
+		return plainToInstance(ToggleFavoriteTokenResponse, data, {
+			excludeExtraneousValues: true
+		})
 	}
 
 	@Get(":address")

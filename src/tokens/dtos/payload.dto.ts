@@ -193,3 +193,5 @@ export class ListTransactionParams extends PaginatedParams {
 	@IsEnum(["following", "own"])
 	filterBy?: "following" | "own"
 }
+
+export class FindListTokenFavoriteParams extends PaginatedParams {}

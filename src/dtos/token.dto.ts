@@ -37,7 +37,7 @@ export class Token {
 		example: 1.25
 	})
 	@Expose()
-	price: number
+	price?: number
 
 	@ApiProperty({
 		description: "Token image URI",
