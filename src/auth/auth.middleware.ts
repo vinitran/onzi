@@ -1,7 +1,7 @@
 import { Injectable, NestMiddleware } from "@nestjs/common"
 import { JwtService } from "@nestjs/jwt"
 import { Env, InjectEnv } from "@root/_env/env.module"
-import { NextFunction, Request, Response } from "express"
+import { NextFunction, Request } from "express"
 import { Claims } from "./auth.service"
 
 interface RequestWithUser extends Request {
@@ -15,7 +15,7 @@ export class AuthMiddleware implements NestMiddleware {
 		@InjectEnv() private env: Env
 	) {}
 
-	async use(req: RequestWithUser, res: Response, next: NextFunction) {
+	async use(req: RequestWithUser, next: NextFunction) {
 		const token = this.extractTokenFromHeader(req)
 
 		if (token) {
@@ -25,7 +25,7 @@ export class AuthMiddleware implements NestMiddleware {
 				})
 				req.user = payload
 			} catch (error) {
-				// Ignore invalid token
+				console.log(error)
 			}
 		}
 
