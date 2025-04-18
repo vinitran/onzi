@@ -1,5 +1,10 @@
 import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common"
-import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
+import {
+	ApiBearerAuth,
+	ApiOperation,
+	ApiResponse,
+	ApiTags
+} from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
 import { Claims } from "@root/auth/auth.service"
 import {
@@ -52,14 +57,18 @@ export class TokensController {
 	}
 
 	@Get()
+	@ApiBearerAuth()
 	@ApiPaginatedResponse(FindTokenResponse)
 	@ApiOperation({ summary: "Latest token" })
-	async findMany(@Query() query: FindTokenParams) {
+	async findMany(
+		@User() user: Claims | undefined,
+		@Query() query: FindTokenParams
+	) {
 		const {
 			tokens: data,
 			total,
 			maxPage
-		} = await this.tokensService.find(query)
+		} = await this.tokensService.find(user?.address, query)
 
 		return plainToInstance(
 			PaginatedResponse<FindTokenResponse>,

@@ -39,6 +39,38 @@ export class CreateTokenPayload {
 	@Prop()
 	@IsString()
 	description: string
+
+	@ApiProperty({
+		description: "Token reward tax percentage",
+		example: 2
+	})
+	@Prop()
+	@IsNumber()
+	rewardTax: number
+
+	@ApiProperty({
+		description: "Token jackpot tax percentage",
+		example: 1
+	})
+	@Prop()
+	@IsNumber()
+	jackpotTax: number
+
+	@ApiProperty({
+		description: "Token jackpot amount",
+		example: 1000
+	})
+	@Prop()
+	@IsNumber()
+	jackpotAmount: number
+
+	@ApiProperty({
+		description: "Token burn tax percentage",
+		example: 2
+	})
+	@Prop()
+	@IsNumber()
+	burnTax: number
 }
 
 export class FindTokenParams extends PaginatedParams {
@@ -149,6 +181,16 @@ export class FindTokenParams extends PaginatedParams {
 	})
 	@IsOptional()
 	searchText?: string
+
+	@ApiProperty({
+		description: "Sort By last trade time",
+		example: "desc",
+		required: false,
+		enum: ["desc", "asc"]
+	})
+	@IsEnum(["desc", "asc"])
+	@IsOptional()
+	lastTrade?: "desc" | "asc"
 }
 
 export class BuyTokenOnchainPayload {

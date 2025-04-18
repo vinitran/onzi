@@ -182,6 +182,13 @@ export class Token {
 	burnTax: number
 
 	@ApiProperty({
+		description: "Token favorite",
+		example: false
+	})
+	@Expose()
+	isFavorite?: boolean
+
+	@ApiProperty({
 		description: "Token creation timestamp",
 		example: "2024-03-19T10:15:00Z"
 	})

@@ -53,7 +53,15 @@ export class TokensService {
 
 	// Create token
 	async createToken(creatorAddress: string, payload: CreateTokenPayload) {
-		const { description, name, ticker } = payload
+		const {
+			description,
+			name,
+			ticker,
+			rewardTax,
+			burnTax,
+			jackpotTax,
+			jackpotAmount
+		} = payload
 
 		const [tokenKey, user] = await Promise.all([
 			this.tokenKey.findOneUnPicked(),
@@ -79,6 +87,10 @@ export class TokensService {
 			ticker,
 			metadata,
 			uri: "",
+			rewardTax,
+			burnTax,
+			jackpotTax,
+			jackpotAmount,
 			tokenKey: { connect: { publicKey: tokenKey.publicKey } },
 			creator: { connect: { address: creatorAddress } }
 		}
@@ -129,9 +141,10 @@ export class TokensService {
 	}
 
 	find(
+		userAddress: string | undefined,
 		params: FindTokenParams
 	): Promise<{ tokens: FindTokenResponse[]; total: number; maxPage: number }> {
-		return this.token.find(params).then(result => ({
+		return this.token.find(userAddress, params).then(result => ({
 			tokens: plainToInstance(FindTokenResponse, result.tokens, {
 				excludeExtraneousValues: true,
 				enableImplicitConversion: true
