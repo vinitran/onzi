@@ -13,7 +13,16 @@ export class TokenRepository {
 		private tokenTransaction: TokenTransactionRepository
 	) {}
 
-	async find(userAddress: string | undefined, query: FindTokenParams) {
+	findLatest(take: number) {
+		return this.prisma.token.findMany({
+			orderBy: {
+				createdAt: "desc"
+			},
+			take
+		})
+	}
+
+	async find(query: FindTokenParams) {
 		const skip = (query.page - 1) * query.take
 		let where: Prisma.TokenWhereInput = {}
 
@@ -61,7 +70,6 @@ export class TokenRepository {
 			...(query.tx ? [{ TokenTransaction: { _count: query.tx } }] : []),
 			...(query.volumn ? [{ volumn: query.volumn }] : []),
 			...(query.holders ? [{ tokenOwners: { _count: query.holders } }] : []),
-			...(query.lastTrade ? [{ updatedAt: query.lastTrade }] : []),
 			...(query.latest ? [{ createdAt: query.latest }] : [])
 		]
 
@@ -82,16 +90,6 @@ export class TokenRepository {
 			)
 		)
 
-		let favoriteTokens: string[] = []
-		if (userAddress) {
-			const favorites = await this.prisma.tokenFavorite.findMany({
-				where: { userAddress }
-			})
-			favoriteTokens = favorites.map(
-				(fav: { tokenAddress: string }) => fav.tokenAddress
-			)
-		}
-
 		const transformedTokens = tokens.map((token, index) => {
 			const { _count, ...rest } = token as Prisma.TokenGetPayload<{
 				include: {
@@ -103,8 +101,7 @@ export class TokenRepository {
 				...rest,
 				...(query.tx && { amountTx: _count?.TokenTransaction || 0 }),
 				amountHolders: _count?.tokenOwners || 0,
-				priceChange: priceChanges[index],
-				isFavorite: userAddress ? favoriteTokens.includes(token.address) : false
+				priceChange: priceChanges[index]
 			}
 		})
 
