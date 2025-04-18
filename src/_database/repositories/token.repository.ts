@@ -101,16 +101,6 @@ export class TokenRepository {
 			)
 		)
 
-		let favoriteTokens: string[] = []
-		if (userAddress) {
-			const favorites = await this.prisma.tokenFavorite.findMany({
-				where: { userAddress }
-			})
-			favoriteTokens = favorites.map(
-				(fav: { tokenAddress: string }) => fav.tokenAddress
-			)
-		}
-
 		const transformedTokens = tokens.map((token, index) => {
 			const { _count, ...rest } = token as Prisma.TokenGetPayload<{
 				include: {

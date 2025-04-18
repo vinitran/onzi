@@ -91,10 +91,6 @@ export class TokensService {
 			jackpotTax,
 			jackpotAmount,
 			uri: "",
-			rewardTax,
-			burnTax,
-			jackpotTax,
-			jackpotAmount,
 			tokenKey: { connect: { publicKey: tokenKey.publicKey } },
 			creator: { connect: { address: creatorAddress } }
 		}
