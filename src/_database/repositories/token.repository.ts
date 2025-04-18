@@ -39,11 +39,12 @@ export class TokenRepository {
 		const include: Prisma.TokenInclude = {
 			...(query.detail && {
 				creator: {
-					select: { address: true, username: true }
+					select: { address: true, username: true, avatarUrl: true }
 				},
 				tokenOwners: {
 					select: { userAddress: true, amount: true },
-					orderBy: { amount: Prisma.SortOrder.desc }
+					orderBy: { amount: Prisma.SortOrder.desc },
+					take: 10
 				}
 			}),
 			...(query.tx && {
@@ -63,7 +64,6 @@ export class TokenRepository {
 			...(query.latest ? [{ createdAt: query.latest }] : [])
 		]
 
-		// Execute queries in parallel
 		const [tokens, total] = await Promise.all([
 			this.prisma.token.findMany({
 				skip,
@@ -75,14 +75,12 @@ export class TokenRepository {
 			this.prisma.token.count({ where })
 		])
 
-		// Get price changes for all tokens
 		const priceChanges = await Promise.all(
 			tokens.map(token =>
 				this.tokenTransaction.getPriceChangePercentages(token.address)
 			)
 		)
 
-		// Transform response
 		const transformedTokens = tokens.map((token, index) => {
 			const { _count, ...rest } = token as Prisma.TokenGetPayload<{
 				include: {
@@ -98,31 +96,19 @@ export class TokenRepository {
 			}
 		})
 
-		// Sort by price change if specified
 		if (query.priceChange1h || query.priceChange24h || query.priceChange7d) {
+			const sortKey = query.priceChange1h
+				? "1h"
+				: query.priceChange24h
+					? "24h"
+					: "7d"
+			const sortOrder =
+				query.priceChange1h || query.priceChange24h || query.priceChange7d
+
 			transformedTokens.sort((a, b) => {
-				if (query.priceChange1h) {
-					const changeA = a.priceChange["1h"] || 0
-					const changeB = b.priceChange["1h"] || 0
-					return query.priceChange1h === "desc"
-						? changeB - changeA
-						: changeA - changeB
-				}
-				if (query.priceChange24h) {
-					const changeA = a.priceChange["24h"] || 0
-					const changeB = b.priceChange["24h"] || 0
-					return query.priceChange24h === "desc"
-						? changeB - changeA
-						: changeA - changeB
-				}
-				if (query.priceChange7d) {
-					const changeA = a.priceChange["7d"] || 0
-					const changeB = b.priceChange["7d"] || 0
-					return query.priceChange7d === "desc"
-						? changeB - changeA
-						: changeA - changeB
-				}
-				return 0
+				const changeA = a.priceChange[sortKey] || 0
+				const changeB = b.priceChange[sortKey] || 0
+				return sortOrder === "desc" ? changeB - changeA : changeA - changeB
 			})
 		}
 
@@ -176,7 +162,8 @@ export class TokenRepository {
 					},
 					orderBy: {
 						amount: "desc"
-					}
+					},
+					take: 20
 				}
 			}
 		})
@@ -208,25 +195,25 @@ export class TokenRepository {
 
 	async getCoinCreated(address: string, params: GetCoinCreatedParams) {
 		const { page, take } = params
+		const skip = (page - 1) * take
 
-		const getTotal = this.prisma.token.count({
-			where: {
-				address
-			}
-		})
-
-		const getCoins = this.prisma.token.findMany({
-			where: {
-				address
-			},
-			orderBy: {
-				updatedAt: "desc"
-			},
-			skip: (page - 1) * take,
-			take
-		})
-
-		const [total, coinCreated] = await Promise.all([getTotal, getCoins])
+		const [total, coinCreated] = await Promise.all([
+			this.prisma.token.count({
+				where: {
+					address
+				}
+			}),
+			this.prisma.token.findMany({
+				where: {
+					address
+				},
+				orderBy: {
+					updatedAt: "desc"
+				},
+				skip,
+				take
+			})
+		])
 
 		return {
 			total,
