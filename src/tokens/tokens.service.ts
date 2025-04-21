@@ -93,6 +93,7 @@ export class TokensService {
 			description,
 			name,
 			ticker,
+			tax: rewardTax + jackpotTax + burnTax,
 			metadata,
 			rewardTax,
 			burnTax,
