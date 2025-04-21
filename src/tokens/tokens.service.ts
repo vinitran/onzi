@@ -378,6 +378,6 @@ export class TokensService {
 			.sort((a, b) => b[1] - a[1])
 			.map(([word, count]) => ({ word, count }))
 
-		return sorted.slice(0, 5).map(item => item.word)
+		return { data: sorted.slice(0, 5).map(item => item.word) }
 	}
 }

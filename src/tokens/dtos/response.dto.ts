@@ -5,6 +5,7 @@ import { TokenTransaction } from "@root/dtos/token-transaction.dto"
 import { Token as TokenDto } from "@root/dtos/token.dto"
 import { User } from "@root/dtos/user.dto"
 import { Expose, Type } from "class-transformer"
+import { IsArray } from "class-validator"
 
 export class CreateTokenResponse {
 	@ApiProperty({ description: "Token information", type: TokenDto })
@@ -110,3 +111,10 @@ export class ToggleFavoriteTokenResponse {
 }
 
 export class FindFavoriteTokenResponse extends TokenFavorite {}
+
+export class TrendingTopicResponse {
+	@ApiProperty({ type: "string", description: "Data", isArray: true })
+	@Expose()
+	@IsArray()
+	data: string[]
+}

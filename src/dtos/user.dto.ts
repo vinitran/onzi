@@ -39,6 +39,13 @@ export class User {
 	avatarUrl: string
 
 	@ApiProperty({
+		description: "URL of the user's background image",
+		example: "https://example.com/background/user123.jpg"
+	})
+	@Expose()
+	backgroundUrl: string
+
+	@ApiProperty({
 		description: "User's network",
 		example: "mainnet"
 	})

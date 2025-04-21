@@ -177,6 +177,15 @@ export class CreateTokenPayload extends Social {
 
 export class FindTokenParams extends PaginatedParams {
 	@ApiProperty({
+		description: "Text to search in token name, ticker, and description",
+		example: "Ponz",
+		required: false
+	})
+	@IsOptional()
+	@IsString()
+	searchText?: string
+
+	@ApiProperty({
 		description: "Sort by latest creation date",
 		example: "desc",
 		required: false,
@@ -275,14 +284,6 @@ export class FindTokenParams extends PaginatedParams {
 	@IsEnum(["desc", "asc"])
 	@IsOptional()
 	holders?: "desc" | "asc"
-
-	@ApiProperty({
-		description: "Text to search",
-		example: "Ponz",
-		required: false
-	})
-	@IsOptional()
-	searchText?: string
 
 	@ApiProperty({
 		description: "Sort By last trade time",

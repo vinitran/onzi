@@ -29,18 +29,9 @@ export class TokenRepository {
 		if (query.searchText) {
 			where = {
 				OR: [
-					{
-						name: {
-							contains: query.searchText,
-							mode: "insensitive"
-						}
-					},
-					{
-						ticker: {
-							contains: query.searchText,
-							mode: "insensitive"
-						}
-					}
+					{ name: { contains: query.searchText, mode: "insensitive" } },
+					{ ticker: { contains: query.searchText, mode: "insensitive" } },
+					{ description: { contains: query.searchText, mode: "insensitive" } }
 				]
 			}
 		}

@@ -26,7 +26,8 @@ import {
 	ListTransactionResponse,
 	SimilarTokenResponse,
 	ToggleFavoriteTokenResponse,
-	TokenHolderResponse
+	TokenHolderResponse,
+	TrendingTopicResponse
 } from "@root/tokens/dtos/response.dto"
 import { TokensService } from "@root/tokens/tokens.service"
 import { User } from "@root/users/user.decorator"
@@ -83,11 +84,14 @@ export class TokensController {
 	@ApiResponse({
 		status: 200,
 		description: "Get trending topics successfully",
-		type: [String]
+		type: TrendingTopicResponse
 	})
 	@ApiOperation({ summary: "Get trending topics" })
 	async getTrendingTopics() {
-		return this.tokensService.getTrendingTopics()
+		const data = await this.tokensService.getTrendingTopics()
+		return plainToInstance(TrendingTopicResponse, data, {
+			excludeExtraneousValues: true
+		})
 	}
 
 	@Auth()
