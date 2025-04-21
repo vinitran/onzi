@@ -325,12 +325,21 @@ export class TokenRepository {
 			const { imageUri, fields, url } = await getImagePresignedUrl(token.id)
 
 			// Update new metadata & uri (image url)
-			const newMetadata = {
+			const newMetadata: Record<string, string> = {
 				ticker: token.ticker,
 				name: token.name,
 				description: token.description,
 				image: imageUri
 			}
+
+			// Only add social media links if they have values
+			if (token.telegramLink) newMetadata.telegramLink = token.telegramLink
+			if (token.twitterLink) newMetadata.twitterLink = token.twitterLink
+			if (token.websiteLink) newMetadata.websiteLink = token.websiteLink
+			if (token.instagramLink) newMetadata.instagramLink = token.instagramLink
+			if (token.youtubeLink) newMetadata.youtubeLink = token.youtubeLink
+			if (token.tiktokLink) newMetadata.tiktokLink = token.tiktokLink
+			if (token.onlyFansLink) newMetadata.onlyFansLink = token.onlyFansLink
 
 			const uploadMetadata = await postMetadataToS3(token.id, newMetadata)
 			if (!uploadMetadata) {

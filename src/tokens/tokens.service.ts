@@ -60,7 +60,14 @@ export class TokensService {
 			rewardTax,
 			burnTax,
 			jackpotTax,
-			jackpotAmount
+			jackpotAmount,
+			telegramLink,
+			twitterLink,
+			websiteLink,
+			instagramLink,
+			youtubeLink,
+			tiktokLink,
+			onlyFansLink
 		} = payload
 
 		const [tokenKey, user] = await Promise.all([
@@ -90,6 +97,13 @@ export class TokensService {
 			burnTax,
 			jackpotTax,
 			jackpotAmount,
+			telegramLink,
+			twitterLink,
+			websiteLink,
+			instagramLink,
+			youtubeLink,
+			tiktokLink,
+			onlyFansLink,
 			uri: "",
 			tokenKey: { connect: { publicKey: tokenKey.publicKey } },
 			creator: { connect: { address: creatorAddress } }

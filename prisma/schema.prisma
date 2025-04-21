@@ -112,6 +112,14 @@ model Token {
   jackpotAmount Float @default(0) @map("jackpot_amount")
   burnTax       Float @default(0) @map("burn_tax")
 
+  telegramLink  String? @map("telegram_link") @db.VarChar
+  twitterLink   String? @map("twitter_link") @db.VarChar
+  websiteLink   String? @map("website_link") @db.VarChar
+  instagramLink String? @map("instagram_link") @db.VarChar
+  youtubeLink   String? @map("youtube_link") @db.VarChar
+  tiktokLink    String? @map("tiktok_link") @db.VarChar
+  onlyFansLink  String? @map("only_fans_link") @db.VarChar
+
   bumpAt    DateTime? @map("pump_at") @db.Timestamptz(3) // Time on chain
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -120,7 +128,7 @@ model Token {
   tokenOwners      TokenOwner[]
   comments         Comment[]
   TokenTransaction TokenTransaction[]
-  tokenKey         TokenKey           @relation(fields: address, references: publicKey)
+  tokenKey         TokenKey           @relation(fields: [address], references: publicKey)
   tokenFavorite    TokenFavorite[]
 
   @@index([creatorAddress, createdAt(sort: Desc)])

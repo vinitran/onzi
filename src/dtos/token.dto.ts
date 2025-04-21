@@ -3,7 +3,65 @@ import { TokenOwner } from "@root/dtos/token-owner.dto"
 import { User } from "@root/dtos/user.dto"
 import { Expose, Type } from "class-transformer"
 
-export class Token {
+class SocialToken {
+	@ApiProperty({
+		description: "Telegram group/channel link",
+		example: "https://t.me/yourgroup",
+		required: false
+	})
+	@Expose()
+	telegramLink?: string
+
+	@ApiProperty({
+		description: "Twitter profile link",
+		example: "https://twitter.com/yourprofile",
+		required: false
+	})
+	@Expose()
+	twitterLink?: string
+
+	@ApiProperty({
+		description: "Website URL",
+		example: "https://yourwebsite.com",
+		required: false
+	})
+	@Expose()
+	websiteLink?: string
+
+	@ApiProperty({
+		description: "Instagram profile link",
+		example: "https://instagram.com/yourprofile",
+		required: false
+	})
+	@Expose()
+	instagramLink?: string
+
+	@ApiProperty({
+		description: "YouTube channel link",
+		example: "https://youtube.com/yourchannel",
+		required: false
+	})
+	@Expose()
+	youtubeLink?: string
+
+	@ApiProperty({
+		description: "TikTok profile link",
+		example: "https://tiktok.com/@yourprofile",
+		required: false
+	})
+	@Expose()
+	tiktokLink?: string
+
+	@ApiProperty({
+		description: "OnlyFans profile link",
+		example: "https://onlyfans.com/yourprofile",
+		required: false
+	})
+	@Expose()
+	onlyFansLink?: string
+}
+
+export class Token extends SocialToken {
 	@ApiProperty({
 		description: "Token id",
 		example: "123e4567-e89b-12d3-a456-426614174000"
@@ -221,6 +279,7 @@ export class Token {
 	tokenOwners?: TokenOwner[]
 
 	constructor(partial: Partial<Token>) {
+		super()
 		Object.assign(this, partial)
 	}
 }

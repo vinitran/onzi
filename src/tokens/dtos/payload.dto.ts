@@ -8,11 +8,91 @@ import {
 	IsNumber,
 	IsOptional,
 	IsString,
+	IsUrl,
 	Length,
 	Min
 } from "class-validator"
 
-export class CreateTokenPayload {
+class Social {
+	@ApiProperty({
+		description: "Telegram group/channel link",
+		example: "https://t.me/yourgroup",
+		required: false
+	})
+	@OptionalProp()
+	@IsString()
+	@IsUrl()
+	@IsOptional()
+	telegramLink?: string
+
+	@ApiProperty({
+		description: "Twitter profile link",
+		example: "https://twitter.com/yourprofile",
+		required: false
+	})
+	@OptionalProp()
+	@IsString()
+	@IsUrl()
+	@IsOptional()
+	twitterLink?: string
+
+	@ApiProperty({
+		description: "Website URL",
+		example: "https://yourwebsite.com",
+		required: false
+	})
+	@OptionalProp()
+	@IsString()
+	@IsUrl()
+	@IsOptional()
+	websiteLink?: string
+
+	@ApiProperty({
+		description: "Instagram profile link",
+		example: "https://instagram.com/yourprofile",
+		required: false
+	})
+	@OptionalProp()
+	@IsString()
+	@IsUrl()
+	@IsOptional()
+	instagramLink?: string
+
+	@ApiProperty({
+		description: "YouTube channel link",
+		example: "https://youtube.com/yourchannel",
+		required: false
+	})
+	@OptionalProp()
+	@IsString()
+	@IsUrl()
+	@IsOptional()
+	youtubeLink?: string
+
+	@ApiProperty({
+		description: "TikTok profile link",
+		example: "https://tiktok.com/@yourprofile",
+		required: false
+	})
+	@OptionalProp()
+	@IsString()
+	@IsUrl()
+	@IsOptional()
+	tiktokLink?: string
+
+	@ApiProperty({
+		description: "OnlyFans profile link",
+		example: "https://onlyfans.com/yourprofile",
+		required: false
+	})
+	@OptionalProp()
+	@IsString()
+	@IsUrl()
+	@IsOptional()
+	onlyFansLink?: string
+}
+
+export class CreateTokenPayload extends Social {
 	@ApiProperty({
 		description: "Name of the token",
 		example: "My Token",
