@@ -27,7 +27,8 @@ export class CommentService {
 	async createComment(
 		payload: ICreateComment
 	): Promise<ICreateCommentResponse> {
-		const { content, tokenId, userId, isContainAttachment } = payload
+		const { content, tokenId, userId, contentType, isContainAttachment } =
+			payload
 		const token = await this.token.findById(payload.tokenId)
 
 		if (!token) {
@@ -41,9 +42,13 @@ export class CommentService {
 		})
 
 		// Comment has attachment (image)
-		if (isContainAttachment) {
+		if (isContainAttachment && contentType) {
 			const { attachmentUrl, fields, url } =
-				await this.getAttachmentPresignedUrl({ commentId: comment.id, userId })
+				await this.getAttachmentPresignedUrl({
+					commentId: comment.id,
+					userId,
+					contentType
+				})
 			comment = await this.comment.update(comment.id, {
 				attachmentUrl: attachmentUrl
 			})
@@ -74,7 +79,8 @@ export class CommentService {
 
 	// Reply comment
 	async replyComment(payload: IReplyComment & { commentId: string }) {
-		const { commentId, content, userId, isContainAttachment } = payload
+		const { commentId, content, userId, contentType, isContainAttachment } =
+			payload
 		const parentComment = await this.comment.findById(commentId)
 		if (!parentComment) {
 			throw new NotFoundException("Comment not found")
@@ -87,9 +93,13 @@ export class CommentService {
 			content
 		})
 
-		if (isContainAttachment) {
+		if (isContainAttachment && contentType) {
 			const { attachmentUrl, fields, url } =
-				await this.getAttachmentPresignedUrl({ commentId: comment.id, userId })
+				await this.getAttachmentPresignedUrl({
+					commentId: comment.id,
+					userId,
+					contentType
+				})
 			comment = await this.comment.update(comment.id, {
 				attachmentUrl: attachmentUrl
 			})
@@ -197,10 +207,14 @@ export class CommentService {
 	async getAttachmentPresignedUrl(payload: {
 		userId: string
 		commentId: string
+		contentType: string
 	}) {
-		const { commentId, userId } = payload
+		const { commentId, userId, contentType } = payload
 		const key = `comment-${commentId}-${userId}`
-		const { fields, url } = await this.s3Service.postPresignedSignedUrl(key)
+		const { fields, url } = await this.s3Service.postPresignedSignedUrl(
+			key,
+			contentType
+		)
 		if (!url || !fields)
 			throw new InternalServerErrorException("Can not post presigned url")
 		const attachmentUrl = `${url}${key}`

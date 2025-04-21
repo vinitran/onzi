@@ -9,6 +9,7 @@ import {
 export type ICreateComment = CreateCommentPayload & {
 	tokenId: string
 	userId: string
+	contentType?: string
 }
 
 export type ICreateCommentResponse = {

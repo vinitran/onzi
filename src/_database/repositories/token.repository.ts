@@ -305,8 +305,13 @@ export class TokenRepository {
 	 * - Update status (picked) for selected tokenKey
 	 */
 	create(data: ICreateToken) {
-		const { dataCreate, tokenKeyId, getImagePresignedUrl, postMetadataToS3 } =
-			data
+		const {
+			dataCreate,
+			tokenKeyId,
+			contentType,
+			getTickerPresignedUrl,
+			postMetadataToS3
+		} = data
 		return this.prisma.$transaction(async tx => {
 			let token = await tx.token.create({
 				data: { ...dataCreate },
@@ -322,7 +327,10 @@ export class TokenRepository {
 			})
 
 			// Get image uri
-			const { imageUri, fields, url } = await getImagePresignedUrl(token.id)
+			const { imageUri, fields, url } = await getTickerPresignedUrl(
+				token.id,
+				contentType
+			)
 
 			// Update new metadata & uri (image url)
 			const newMetadata: Record<string, string> = {

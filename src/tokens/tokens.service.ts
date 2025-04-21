@@ -54,6 +54,7 @@ export class TokensService {
 	// Create token
 	async createToken(creatorAddress: string, payload: CreateTokenPayload) {
 		const {
+			contentType,
 			description,
 			name,
 			ticker,
@@ -113,8 +114,9 @@ export class TokensService {
 		return this.token.create({
 			dataCreate: data,
 			tokenKeyId: tokenKey.id,
-			getImagePresignedUrl: this.getImagePresignedUrl.bind(this),
-			postMetadataToS3: this.postMetadateToS3.bind(this)
+			contentType,
+			getTickerPresignedUrl: this.getTickerPresignedUrl.bind(this),
+			postMetadataToS3: this.postMetadataToS3.bind(this)
 		})
 	}
 
@@ -169,9 +171,12 @@ export class TokensService {
 	}
 
 	//   Get image url & authorize data to push image Aws3
-	async getImagePresignedUrl(tokenId: string) {
+	async getTickerPresignedUrl(tokenId: string, contentType: string) {
 		const key = `token-image-${tokenId}`
-		const { fields, url } = await this.s3Service.postPresignedSignedUrl(key)
+		const { fields, url } = await this.s3Service.postPresignedSignedUrl(
+			key,
+			contentType
+		)
 		if (!url || !fields)
 			throw new InternalServerErrorException("Can not post presigned url")
 		const imageUri = `${url}${key}`
@@ -183,8 +188,8 @@ export class TokensService {
 	}
 
 	//   Get image url & authorize data to push image Aws3
-	async postMetadateToS3(tokenId: string, metadata: Object) {
-		const key = `token-metadata-${tokenId}`
+	async postMetadataToS3(tokenId: string, metadata: Object) {
+		const key = `token-metadata-${tokenId}.json`
 		const { success } = await this.s3Service.uploadJsonFile(key, metadata)
 		if (!success)
 			throw new InternalServerErrorException("Can not post metadata")

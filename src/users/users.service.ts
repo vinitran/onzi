@@ -121,9 +121,12 @@ export class UsersService {
 		return user
 	}
 
-	async setAvatarPresignedUrl(id: string) {
+	async setAvatarPresignedUrl(id: string, contentType: string) {
 		const key = `avatar-${id}`
-		const { url, fields } = await this.s3Service.postPresignedSignedUrl(key)
+		const { url, fields } = await this.s3Service.postPresignedSignedUrl(
+			key,
+			contentType
+		)
 		if (!url || !fields)
 			throw new InternalServerErrorException("can not get presigned url")
 

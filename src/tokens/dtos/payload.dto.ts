@@ -13,6 +13,18 @@ import {
 	Min
 } from "class-validator"
 
+export enum ContentType {
+	JPEG = "image/jpeg",
+	PNG = "image/png",
+	GIF = "image/gif",
+	WEBP = "image/webp",
+	MP4 = "video/mp4",
+	MOV = "video/quicktime",
+	AVI = "video/x-msvideo",
+	PDF = "application/pdf",
+	JSON = "application/json"
+}
+
 class Social {
 	@ApiProperty({
 		description: "Telegram group/channel link",
@@ -93,6 +105,16 @@ class Social {
 }
 
 export class CreateTokenPayload extends Social {
+	@ApiProperty({
+		description: "Content type of the token",
+		example: ContentType.PNG,
+		enum: ContentType,
+		required: true
+	})
+	@Prop()
+	@IsEnum(ContentType)
+	contentType: ContentType
+
 	@ApiProperty({
 		description: "Name of the token",
 		example: "My Token",

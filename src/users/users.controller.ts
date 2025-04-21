@@ -159,7 +159,7 @@ export class UsersController {
 		type: SetAvatarResponse
 	})
 	async setAvatarPresignedUrl(@User() { id }: Claims) {
-		const presignedUrl = await this.userService.setAvatarPresignedUrl(id)
+		const presignedUrl = await this.userService.setAvatarPresignedUrl(id, "")
 		return plainToInstance(SetAvatarResponse, presignedUrl, {
 			excludeExtraneousValues: true
 		})

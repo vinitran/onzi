@@ -10,8 +10,10 @@ export type ICreateTokenPayload = CreateTokenPayload & {
 export type ICreateToken = {
 	dataCreate: Prisma.TokenCreateInput
 	tokenKeyId: string
-	getImagePresignedUrl: (
-		tokenId: string
+	contentType: string
+	getTickerPresignedUrl: (
+		tokenId: string,
+		contentType: string
 	) => Promise<{ imageUri: string } & PresignedPost>
 	postMetadataToS3: (tokenId: string, metadata: Object) => Promise<boolean>
 }

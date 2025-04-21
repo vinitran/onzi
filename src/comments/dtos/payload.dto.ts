@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger"
 import { IsBool, OptionalProp, Prop } from "@root/_shared/utils/decorators"
 import { PaginatedParams } from "@root/dtos/common.dto"
+import { ContentType } from "@root/tokens/dtos/payload.dto"
 import { IsEnum, IsOptional, IsString } from "class-validator"
 
 export class CreateCommentPayload {
@@ -21,6 +22,17 @@ export class CreateCommentPayload {
 	@OptionalProp({ default: false })
 	@IsBool
 	isContainAttachment: boolean
+
+	@ApiProperty({
+		description: "Content type of the token",
+		example: ContentType.PNG,
+		enum: ContentType,
+		required: false
+	})
+	@OptionalProp()
+	@IsEnum(ContentType)
+	@IsOptional()
+	contentType?: ContentType
 }
 
 export class GetCommentsParams extends PaginatedParams {
