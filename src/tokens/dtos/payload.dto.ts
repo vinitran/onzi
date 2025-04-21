@@ -198,12 +198,22 @@ export class FindTokenParams extends PaginatedParams {
 	@ApiProperty({
 		description: "Show detail token",
 		example: false,
-		required: true
+		required: false
 	})
 	@IsBoolean()
 	@IsOptional()
 	@Transform(({ value }) => value === "true")
 	detail?: boolean
+
+	@ApiProperty({
+		description: "Search hall of fame",
+		example: false,
+		required: false
+	})
+	@IsBoolean()
+	@IsOptional()
+	@Transform(({ value }) => value === "true")
+	hallOfFame?: boolean
 
 	@ApiProperty({
 		description: "Sort By MarketCap",

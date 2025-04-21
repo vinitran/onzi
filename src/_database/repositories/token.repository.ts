@@ -24,16 +24,17 @@ export class TokenRepository {
 
 	async find(userAddress: string | undefined, query: FindTokenParams) {
 		const skip = (query.page - 1) * query.take
-		let where: Prisma.TokenWhereInput = {}
-
-		if (query.searchText) {
-			where = {
+		const where: Prisma.TokenWhereInput = {
+			...(query.searchText && {
 				OR: [
 					{ name: { contains: query.searchText, mode: "insensitive" } },
 					{ ticker: { contains: query.searchText, mode: "insensitive" } },
 					{ description: { contains: query.searchText, mode: "insensitive" } }
 				]
-			}
+			}),
+			...(query.hallOfFame && {
+				hallOfFame: true
+			})
 		}
 
 		const include: Prisma.TokenInclude = {

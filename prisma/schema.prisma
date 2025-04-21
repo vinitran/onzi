@@ -107,6 +107,7 @@ model Token {
   marketCapacity          Float     @default(28000000000) @map("market_capacity") @db.DoublePrecision
   volumn                  Float     @default(0)
   // totalSupply             Decimal? // 1.000.000
+  hallOfFame              Boolean   @default(false) @map("hall_of_fame")
 
   tax           Float @default(0)
   rewardTax     Float @default(0) @map("reward_tax")

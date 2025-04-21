@@ -269,6 +269,7 @@ export class SolanaIndexerService implements OnModuleInit {
 		const marketCapacity = await this.ponz.calculateMarketcap(address)
 		if (!marketCapacity) return
 
+		const hallOfFame = marketCapacity > 1000000000 // 1000000000 is in test
 		if (event) {
 			const isBuy = "buyer" in event
 			const volumeChange = isBuy ? Number(event.lamports) : Number(event.amount)
@@ -277,11 +278,13 @@ export class SolanaIndexerService implements OnModuleInit {
 			await this.tokenRepository.update(address.toBase58(), {
 				marketCapacity,
 				volumn: newVolume,
-				price: event.newPrice
+				price: event.newPrice,
+				hallOfFame
 			})
 		} else {
 			await this.tokenRepository.update(address.toBase58(), {
-				marketCapacity
+				marketCapacity,
+				hallOfFame
 			})
 		}
 

@@ -133,6 +133,13 @@ export class Token extends SocialToken {
 	isHighlight: boolean
 
 	@ApiProperty({
+		description: "Is token hall of fame?",
+		example: false
+	})
+	@Expose()
+	hallOfFame: boolean
+
+	@ApiProperty({
 		description: "Token network",
 		example: "mainnet"
 	})
