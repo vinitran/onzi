@@ -90,7 +90,8 @@ model Token {
   address                 String    @unique @db.VarChar
   name                    String    @db.VarChar
   price                   Float?
-  uri                     String    @db.VarChar // image url
+  uri                     String    @db.VarChar
+  imageUri                String    @db.VarChar
   ticker                  String    @db.VarChar
   metadata                Json
   description             String    @db.Text

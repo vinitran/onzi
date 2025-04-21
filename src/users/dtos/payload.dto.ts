@@ -1,7 +1,8 @@
 import { ApiProperty } from "@nestjs/swagger"
 import { Prop } from "@root/_shared/utils/decorators"
 import { PaginatedParams } from "@root/dtos/common.dto"
-import { IsOptional, MaxLength } from "class-validator"
+import { Transform } from "class-transformer"
+import { IsBoolean, IsOptional, MaxLength } from "class-validator"
 
 export class GetCoinCreatedParams extends PaginatedParams {}
 
@@ -27,6 +28,26 @@ export class SetInformationPayload {
 	@IsOptional()
 	@MaxLength(50, { message: "Maximum length allowed is 20 characters." })
 	bio?: string
+
+	@ApiProperty({
+		description: "Update Avatar",
+		example: false,
+		required: true
+	})
+	@IsBoolean()
+	@IsOptional()
+	@Transform(({ value }) => value === "true")
+	updateAvatar?: boolean
+
+	@ApiProperty({
+		description: "Update backround",
+		example: false,
+		required: true
+	})
+	@IsBoolean()
+	@IsOptional()
+	@Transform(({ value }) => value === "true")
+	updateBackground?: boolean
 }
 
 export class FollowingPayload {

@@ -94,6 +94,23 @@ export class UsersService {
 		return replies
 	}
 
+	private extractStringFields(payload: SetInformationPayload): {
+		username?: string
+		bio?: string
+	} {
+		const result: { username?: string; bio?: string } = {}
+
+		if (payload.username) {
+			result.username = payload.username
+		}
+
+		if (payload.bio) {
+			result.bio = payload.bio
+		}
+
+		return result
+	}
+
 	async setInformation(id: string, payload: SetInformationPayload) {
 		if (payload.username) {
 			const userWithUsername = await this.userRepository.findByUsername(
@@ -106,11 +123,13 @@ export class UsersService {
 				)
 		}
 
-		const updatedPayload = Object.fromEntries(
-			Object.entries(payload).filter(([_, value]) => value)
-		)
+		const updatedPayload = this.extractStringFields(payload)
 
-		if (Object.keys(updatedPayload).length === 0) {
+		if (
+			Object.keys(updatedPayload).length === 0 &&
+			!payload.updateAvatar &&
+			!payload.updateBackground
+		) {
 			throw new BadRequestException("No valid fields to update.")
 		}
 

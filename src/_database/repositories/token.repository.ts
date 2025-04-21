@@ -352,7 +352,8 @@ export class TokenRepository {
 				tx.token.update({
 					where: { id: token.id },
 					data: {
-						uri: `${url}token-metadata-${token.id}`,
+						uri: `${url}token-metadata-${token.id}.json`,
+						imageUri,
 						metadata: newMetadata
 					},
 					include: {

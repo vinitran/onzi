@@ -106,6 +106,7 @@ export class TokensService {
 			tiktokLink,
 			onlyFansLink,
 			uri: "",
+			imageUri: "",
 			tokenKey: { connect: { publicKey: tokenKey.publicKey } },
 			creator: { connect: { address: creatorAddress } }
 		}
@@ -179,7 +180,7 @@ export class TokensService {
 		)
 		if (!url || !fields)
 			throw new InternalServerErrorException("Can not post presigned url")
-		const imageUri = `${url}${key}`
+		const imageUri = `${url}${fields.key}`
 		return {
 			imageUri,
 			url,

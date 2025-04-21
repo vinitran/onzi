@@ -98,11 +98,18 @@ export class Token extends SocialToken {
 	price?: number
 
 	@ApiProperty({
+		description: "Token metadata URI",
+		example: "https://example.com/metadata/ponz.json"
+	})
+	@Expose()
+	uri: string
+
+	@ApiProperty({
 		description: "Token image URI",
 		example: "https://example.com/tokens/ponz.jpg"
 	})
 	@Expose()
-	uri: string
+	imageUri: string
 
 	@ApiProperty({
 		description: "Token metadata",
