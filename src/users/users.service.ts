@@ -97,8 +97,15 @@ export class UsersService {
 	private extractStringFields(payload: SetInformationPayload): {
 		username?: string
 		bio?: string
+		avatarUrl?: string
+		backgroundUrl?: string
 	} {
-		const result: { username?: string; bio?: string } = {}
+		const result: {
+			username?: string
+			bio?: string
+			avatarUrl?: string
+			backgrounfUrl?: string
+		} = {}
 
 		if (payload.username) {
 			result.username = payload.username
@@ -133,11 +140,35 @@ export class UsersService {
 			throw new BadRequestException("No valid fields to update.")
 		}
 
+		let avatarAttachment:
+			| { url: string; fields: Record<string, string> }
+			| undefined
+		let backgroundAttachment:
+			| { url: string; fields: Record<string, string> }
+			| undefined
+		if (payload.updateAvatar) {
+			const { avatarUrl, url, fields } = await this.setAvatarPresignedUrl(
+				id,
+				"image/*"
+			)
+			updatedPayload.avatarUrl = avatarUrl
+			avatarAttachment = { url, fields }
+		}
+
+		if (payload.updateBackground) {
+			const { avatarUrl, url, fields } = await this.setBackgroundPresignedUrl(
+				id,
+				"image/*"
+			)
+			updatedPayload.backgroundUrl = avatarUrl
+			backgroundAttachment = { url, fields }
+		}
+
 		const user = await this.userRepository.update(id, updatedPayload)
 
 		if (!user) throw new InternalServerErrorException("can not update")
 
-		return user
+		return { user, avatarAttachment, backgroundAttachment }
 	}
 
 	async setAvatarPresignedUrl(id: string, contentType: string) {
@@ -149,12 +180,19 @@ export class UsersService {
 		if (!url || !fields)
 			throw new InternalServerErrorException("can not get presigned url")
 
-		const user = await this.userRepository.update(id, {
-			avatarUrl: `${url}${key}`
-		})
-		if (!user) throw new InternalServerErrorException("can not update")
+		return { avatarUrl: `${url}${key}`, url, fields }
+	}
 
-		return { url, fields }
+	async setBackgroundPresignedUrl(id: string, contentType: string) {
+		const key = `background-${id}`
+		const { url, fields } = await this.s3Service.postPresignedSignedUrl(
+			key,
+			contentType
+		)
+		if (!url || !fields)
+			throw new InternalServerErrorException("can not get presigned url")
+
+		return { avatarUrl: `${url}${key}`, url, fields }
 	}
 
 	async following(id: string, followingId: string) {

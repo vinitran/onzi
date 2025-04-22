@@ -161,8 +161,8 @@ export class TokensService {
 				new PublicKey(token.address),
 				new PublicKey(payload.creatorAddress),
 				tokenKeypair,
-				payload.minSol,
-				payload.maxSol
+				payload.amountSol,
+				payload.minTokenOut
 			)
 		} catch (error) {
 			console.log("err: ", error)

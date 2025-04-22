@@ -38,6 +38,6 @@ export type ICreateTokenResponse = {
 export type ICreateTokenOnchainPayload = {
 	tokenID: string
 	creatorAddress: string
-	minSol: string
-	maxSol: string
+	amountSol: string
+	minTokenOut: string
 }

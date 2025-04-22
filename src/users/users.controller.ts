@@ -16,7 +16,8 @@ import {
 } from "@root/users/dtos/payload.dto"
 import {
 	CoinHeldsResponse,
-	SetAvatarResponse
+	SetAvatarResponse,
+	SetInformationUser
 } from "@root/users/dtos/response.dto"
 import { User } from "@root/users/user.decorator"
 import { plainToInstance } from "class-transformer"
@@ -214,7 +215,7 @@ export class UsersController {
 	@ApiResponse({
 		status: 200,
 		description: "Successfully updated user information",
-		type: UserResponse
+		type: SetInformationUser
 	})
 	@ApiResponse({
 		status: 400,
@@ -225,7 +226,7 @@ export class UsersController {
 		@Body() payload: SetInformationPayload
 	) {
 		const user = await this.userService.setInformation(id, payload)
-		return plainToInstance(UserResponse, user, {
+		return plainToInstance(SetInformationUser, user, {
 			excludeExtraneousValues: true
 		})
 	}

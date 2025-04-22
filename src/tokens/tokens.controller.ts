@@ -155,8 +155,8 @@ export class TokensController {
 		const data = await this.tokensService.broadcastCreateOnChain({
 			creatorAddress: user.address,
 			tokenID: tokenId,
-			minSol: body.minSol,
-			maxSol: body.maxSol
+			amountSol: body.amountSol,
+			minTokenOut: body.minTokenOut
 		})
 
 		return plainToInstance(CreateTokenOnchainResponse, data, {

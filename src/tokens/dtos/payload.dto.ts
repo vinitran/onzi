@@ -308,20 +308,20 @@ export class FindTokenParams extends PaginatedParams {
 
 export class BuyTokenOnchainPayload {
 	@ApiProperty({
-		description: "Minimum SOL amount for buying token",
-		example: "1"
-	})
-	@Prop()
-	@IsString()
-	minSol: string
-
-	@ApiProperty({
-		description: "Maximum SOL amount for buying token",
+		description: "SOL amount for buying token",
 		example: "1000000000"
 	})
 	@Prop()
 	@IsString()
-	maxSol: string
+	amountSol: string
+
+	@ApiProperty({
+		description: "Minimun Token out",
+		example: "1000000000"
+	})
+	@Prop()
+	@IsString()
+	minTokenOut: string
 }
 
 export class CreateTokenOnchainPayload extends BuyTokenOnchainPayload {}

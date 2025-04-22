@@ -63,8 +63,8 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		mint: web3.PublicKey,
 		user: web3.PublicKey,
 		tokenKeypair: web3.Keypair,
-		minSol: string,
-		maxSol: string
+		amountSol: string,
+		minTokenOut: string
 	): Promise<web3.Transaction> {
 		const createTokenIx = await this.program.methods
 			.createToken(tokenMetadata)
@@ -84,7 +84,7 @@ export class Ponz extends SolanaProgram<PonzSc> {
 			.instruction()
 
 		const buyIx = await this.program.methods
-			.buy(new BN(maxSol), new BN(minSol))
+			.buy(new BN(amountSol), new BN(minTokenOut))
 			.accountsStrict({
 				globalConfiguration: this.globalConfiguration,
 				mint,
