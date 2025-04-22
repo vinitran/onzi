@@ -52,7 +52,10 @@ export class TokensService {
 	) {}
 
 	// Create token
-	async createToken(creatorAddress: string, payload: CreateTokenPayload) {
+	async createTokenInCache(
+		creatorAddress: string,
+		payload: CreateTokenPayload
+	) {
 		const {
 			contentType,
 			description,
@@ -84,17 +87,12 @@ export class TokensService {
 			throw new NotFoundException("Not found user")
 		}
 
-		const metadata = {
-			ticker,
-			name
-		}
-
 		const data = {
 			description,
 			name,
 			ticker,
 			tax: rewardTax + jackpotTax + burnTax,
-			metadata,
+			metadata: {},
 			rewardTax,
 			burnTax,
 			jackpotTax,
@@ -113,13 +111,29 @@ export class TokensService {
 		}
 
 		// Create token
-		return this.token.create({
+		return this.token.createInCache({
 			dataCreate: data,
 			tokenKeyId: tokenKey.id,
 			contentType,
-			getTickerPresignedUrl: this.getTickerPresignedUrl.bind(this),
-			postMetadataToS3: this.postMetadataToS3.bind(this)
+			getTickerPresignedUrl: this.getTickerPresignedUrl.bind(this)
 		})
+	}
+
+	async createTokenOffchain(id: string) {
+		return this.token.createOffchain({
+			id,
+			postMetadataToS3: this.postMetadataToS3.bind(this),
+			checkFileExist: this.checkFileExist.bind(this)
+		})
+	}
+
+	async checkFileExist(uri: string): Promise<boolean> {
+		try {
+			const response = await fetch(uri, { method: "HEAD" })
+			return response.ok
+		} catch (error) {
+			throw new InternalServerErrorException(error)
+		}
 	}
 
 	async broadcastCreateOnChain(payload: ICreateTokenOnchainPayload) {
@@ -190,7 +204,7 @@ export class TokensService {
 	}
 
 	//   Get image url & authorize data to push image Aws3
-	async postMetadataToS3(tokenId: string, metadata: Object) {
+	async postMetadataToS3(tokenId: string, metadata: Object): Promise<boolean> {
 		const key = `token-metadata-${tokenId}.json`
 		const { success } = await this.s3Service.uploadJsonFile(key, metadata)
 		if (!success)

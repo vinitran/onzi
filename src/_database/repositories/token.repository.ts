@@ -1,8 +1,13 @@
-import { Injectable } from "@nestjs/common"
+import { Injectable, NotFoundException } from "@nestjs/common"
 import { Prisma } from "@prisma/client"
-import { ICreateToken } from "@root/_shared/types/token"
+import { RedisService } from "@root/_redis/redis.service"
+import {
+	ICreateTokenInCache,
+	ICreateTokenOffchain
+} from "@root/_shared/types/token"
 import { FindTokenParams } from "@root/tokens/dtos/payload.dto"
 import { GetCoinCreatedParams } from "@root/users/dtos/payload.dto"
+import { v4 as uuidv4 } from "uuid"
 import { PrismaService } from "../prisma.service"
 import { TokenTransactionRepository } from "./token-transaction.repository"
 
@@ -10,8 +15,13 @@ import { TokenTransactionRepository } from "./token-transaction.repository"
 export class TokenRepository {
 	constructor(
 		private prisma: PrismaService,
-		private tokenTransaction: TokenTransactionRepository
+		private tokenTransaction: TokenTransactionRepository,
+		private redis: RedisService
 	) {}
+
+	private cacheCreateToken(id: string): string {
+		return `token-create-${id}`
+	}
 
 	findLatest(take: number) {
 		return this.prisma.token.findMany({
@@ -290,110 +300,105 @@ export class TokenRepository {
 		})
 	}
 
+	async createOffchain(data: ICreateTokenOffchain) {
+		const tokenCache = await this.redis.get(this.cacheCreateToken(data.id))
+		if (!tokenCache)
+			throw new NotFoundException("Dont have token data in cache")
+
+		const tokenData = JSON.parse(tokenCache) as Prisma.TokenCreateInput
+
+		const fileExist = await data.checkFileExist(tokenData.imageUri)
+		if (!fileExist) throw new NotFoundException("File doesn't exist")
+
+		const uploadMetadata = await data.postMetadataToS3(
+			data.id,
+			tokenData.metadata
+		)
+		if (!uploadMetadata) {
+			throw new NotFoundException(
+				"Failed to upload metadata to S3. Token creation aborted."
+			)
+		}
+
+		tokenData.uri = `${tokenData.uri}token-metadata-${tokenData.id}.json`
+
+		const token = await this.prisma.token.create({
+			data: tokenData,
+			include: {
+				creator: {
+					select: {
+						id: true,
+						address: true,
+						username: true
+					}
+				}
+			}
+		})
+
+		await this.redis.del(this.cacheCreateToken(data.id))
+		return token
+	}
+
 	/**  Create token
 	 * - Create token
 	 * - Get image uri from Aws3
 	 * - Update metadata & uri
 	 * - Update status (picked) for selected tokenKey
 	 */
-	create(data: ICreateToken) {
-		const {
-			dataCreate,
-			tokenKeyId,
-			contentType,
-			getTickerPresignedUrl,
-			postMetadataToS3
-		} = data
-		return this.prisma.$transaction(async tx => {
-			let token = await tx.token.create({
-				data: { ...dataCreate },
-				include: {
-					creator: {
-						select: {
-							id: true,
-							address: true,
-							username: true
-						}
-					}
-				}
-			})
+	async createInCache(data: ICreateTokenInCache) {
+		const { dataCreate, tokenKeyId, contentType, getTickerPresignedUrl } = data
+		const tokenId = uuidv4()
 
-			// Get image uri
-			const { imageUri, fields, url } = await getTickerPresignedUrl(
-				token.id,
-				contentType
-			)
+		const { imageUri, fields, url } = await getTickerPresignedUrl(
+			tokenId,
+			contentType
+		)
 
-			// Update new metadata & uri (image url)
-			const newMetadata: Record<string, string> = {
-				ticker: token.ticker,
-				name: token.name,
-				description: token.description,
-				image: imageUri
-			}
+		const newMetadata: Record<string, string> = {
+			ticker: dataCreate.ticker,
+			name: dataCreate.name,
+			description: dataCreate.description,
+			image: imageUri
+		}
 
-			// Only add social media links if they have values
-			if (token.telegramLink) newMetadata.telegramLink = token.telegramLink
-			if (token.twitterLink) newMetadata.twitterLink = token.twitterLink
-			if (token.websiteLink) newMetadata.websiteLink = token.websiteLink
-			if (token.instagramLink) newMetadata.instagramLink = token.instagramLink
-			if (token.youtubeLink) newMetadata.youtubeLink = token.youtubeLink
-			if (token.tiktokLink) newMetadata.tiktokLink = token.tiktokLink
-			if (token.onlyFansLink) newMetadata.onlyFansLink = token.onlyFansLink
+		if (dataCreate.telegramLink)
+			newMetadata.telegramLink = dataCreate.telegramLink
+		if (dataCreate.twitterLink) newMetadata.twitterLink = dataCreate.twitterLink
+		if (dataCreate.websiteLink) newMetadata.websiteLink = dataCreate.websiteLink
+		if (dataCreate.instagramLink)
+			newMetadata.instagramLink = dataCreate.instagramLink
+		if (dataCreate.youtubeLink) newMetadata.youtubeLink = dataCreate.youtubeLink
+		if (dataCreate.tiktokLink) newMetadata.tiktokLink = dataCreate.tiktokLink
+		if (dataCreate.onlyFansLink)
+			newMetadata.onlyFansLink = dataCreate.onlyFansLink
 
-			const uploadMetadata = await postMetadataToS3(token.id, newMetadata)
-			if (!uploadMetadata) {
-				throw new Error(
-					"Failed to upload metadata to S3. Token creation aborted."
-				)
-			}
+		const token: Prisma.TokenCreateInput = {
+			...dataCreate,
+			metadata: newMetadata,
+			id: tokenId,
+			imageUri,
+			uri: url
+		}
 
-			//   Update token & status picked of token key
-			const [updatedToken] = await Promise.all([
-				tx.token.update({
-					where: { id: token.id },
-					data: {
-						uri: `${url}token-metadata-${token.id}.json`,
-						imageUri,
-						metadata: newMetadata
-					},
-					include: {
-						creator: {
-							select: {
-								id: true,
-								address: true,
-								username: true
-							}
-						}
-					}
-				}),
-				tx.tokenKey.update({
-					where: { id: tokenKeyId },
-					data: { isPicked: true }
-				})
-			])
-
-			token = updatedToken
-
-			return {
-				token,
-				attachment: {
-					fields,
-					url
-				}
-			}
+		await this.prisma.tokenKey.update({
+			where: { id: tokenKeyId },
+			data: { isPicked: true }
 		})
-	}
 
-	updateMarketCap(address: string, marketCapacity: number) {
-		return this.prisma.token.update({
-			where: {
-				address
-			},
-			data: {
-				marketCapacity
+		//save 300s in cache redis
+		await this.redis.set(
+			this.cacheCreateToken(tokenId),
+			JSON.stringify(token),
+			300
+		)
+
+		return {
+			token,
+			attachment: {
+				fields,
+				url
 			}
-		})
+		}
 	}
 
 	//   Find token is King of hill (not ever bonding curve & highest marketcap)
@@ -431,17 +436,6 @@ export class TokenRepository {
 				address: true,
 				uri: true,
 				creator: true
-			}
-		})
-	}
-
-	async updatePrice(id: string, price: number) {
-		return this.prisma.token.update({
-			where: {
-				id
-			},
-			data: {
-				price
 			}
 		})
 	}

@@ -7,7 +7,7 @@ export type ICreateTokenPayload = CreateTokenPayload & {
 	creatorAddress: string
 }
 
-export type ICreateToken = {
+export type ICreateTokenInCache = {
 	dataCreate: Prisma.TokenCreateInput
 	tokenKeyId: string
 	contentType: string
@@ -15,7 +15,12 @@ export type ICreateToken = {
 		tokenId: string,
 		contentType: string
 	) => Promise<{ imageUri: string } & PresignedPost>
+}
+
+export type ICreateTokenOffchain = {
+	id: string
 	postMetadataToS3: (tokenId: string, metadata: Object) => Promise<boolean>
+	checkFileExist: (uri: string) => Promise<boolean>
 }
 
 export type ICreateTokenResponse = {

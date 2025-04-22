@@ -19,8 +19,9 @@ import {
 	ListTransactionParams
 } from "@root/tokens/dtos/payload.dto"
 import {
+	CreateTokenInCacheResponse,
+	CreateTokenOffchainResponse,
 	CreateTokenOnchainResponse,
-	CreateTokenResponse,
 	FindFavoriteTokenResponse,
 	FindTokenResponse,
 	ListTransactionResponse,
@@ -43,16 +44,37 @@ export class TokensController {
 
 	@Post()
 	@Auth()
+	@ApiOperation({ summary: "Create a new token in cache" })
+	@ApiResponse({
+		status: 201,
+		description: "Token created successfully in cache",
+		type: CreateTokenInCacheResponse
+	})
+	async createInCache(@User() user: Claims, @Body() body: CreateTokenPayload) {
+		const result = await this.tokensService.createTokenInCache(
+			user.address,
+			body
+		)
+
+		return plainToInstance(CreateTokenInCacheResponse, result, {
+			excludeExtraneousValues: true
+		})
+	}
+
+	// get token in cache
+	// check
+	@Post(":id/offchain")
+	@Auth()
 	@ApiOperation({ summary: "Create a new token" })
 	@ApiResponse({
 		status: 201,
 		description: "Token created successfully",
-		type: CreateTokenResponse
+		type: CreateTokenOffchainResponse
 	})
-	async create(@User() user: Claims, @Body() body: CreateTokenPayload) {
-		const result = await this.tokensService.createToken(user.address, body)
+	async createOffchain(@Param("id") tokenId: string) {
+		const result = await this.tokensService.createTokenOffchain(tokenId)
 
-		return plainToInstance(CreateTokenResponse, result, {
+		return plainToInstance(CreateTokenOffchainResponse, result, {
 			excludeExtraneousValues: true
 		})
 	}
@@ -117,7 +139,7 @@ export class TokensController {
 		return res
 	}
 
-	@Post(":id")
+	@Post(":id/onchain")
 	@Auth()
 	@ApiOperation({ summary: "Create token on blockchain" })
 	@ApiResponse({

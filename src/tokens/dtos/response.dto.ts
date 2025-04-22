@@ -7,7 +7,7 @@ import { User } from "@root/dtos/user.dto"
 import { Expose, Type } from "class-transformer"
 import { IsArray } from "class-validator"
 
-export class CreateTokenResponse {
+export class CreateTokenInCacheResponse {
 	@ApiProperty({ description: "Token information", type: TokenDto })
 	@Expose()
 	token: TokenDto
@@ -20,6 +20,8 @@ export class CreateTokenResponse {
 	@Expose()
 	attachment?: S3Upload
 }
+
+export class CreateTokenOffchainResponse extends TokenDto {}
 
 export class CreateTokenOnchainResponse {
 	@ApiProperty({
