@@ -146,6 +146,7 @@ export class UsersService {
 		let backgroundAttachment:
 			| { url: string; fields: Record<string, string> }
 			| undefined
+
 		if (payload.updateAvatar) {
 			const { avatarUrl, url, fields } = await this.setAvatarPresignedUrl(
 				id,
@@ -156,11 +157,9 @@ export class UsersService {
 		}
 
 		if (payload.updateBackground) {
-			const { avatarUrl, url, fields } = await this.setBackgroundPresignedUrl(
-				id,
-				"image/*"
-			)
-			updatedPayload.backgroundUrl = avatarUrl
+			const { backgroundUrl, url, fields } =
+				await this.setBackgroundPresignedUrl(id, "image/*")
+			updatedPayload.backgroundUrl = backgroundUrl
 			backgroundAttachment = { url, fields }
 		}
 
@@ -192,7 +191,7 @@ export class UsersService {
 		if (!url || !fields)
 			throw new InternalServerErrorException("can not get presigned url")
 
-		return { avatarUrl: `${url}${key}`, url, fields }
+		return { backgroundUrl: `${url}${key}`, url, fields }
 	}
 
 	async following(id: string, followingId: string) {

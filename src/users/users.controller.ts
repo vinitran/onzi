@@ -16,7 +16,6 @@ import {
 } from "@root/users/dtos/payload.dto"
 import {
 	CoinHeldsResponse,
-	SetAvatarResponse,
 	SetInformationUser
 } from "@root/users/dtos/response.dto"
 import { User } from "@root/users/user.decorator"
@@ -149,21 +148,6 @@ export class UsersController {
 				excludeExtraneousValues: true
 			}
 		)
-	}
-
-	@Get("avatar/presignedUrl")
-	@Auth()
-	@ApiOperation({ summary: "Get presigned URL for uploading user avatar" })
-	@ApiResponse({
-		status: 200,
-		description: "Successfully generated presigned URL",
-		type: SetAvatarResponse
-	})
-	async setAvatarPresignedUrl(@User() { id }: Claims) {
-		const presignedUrl = await this.userService.setAvatarPresignedUrl(id, "")
-		return plainToInstance(SetAvatarResponse, presignedUrl, {
-			excludeExtraneousValues: true
-		})
 	}
 
 	@Get("replies")
