@@ -27,11 +27,13 @@ import {
 	CreateTokenPayload,
 	FindListTokenFavoriteParams,
 	FindTokenParams,
-	ListTransactionParams
+	ListTransactionParams,
+	SickoModeParams
 } from "@root/tokens/dtos/payload.dto"
 import {
 	FindFavoriteTokenResponse,
-	FindTokenResponse
+	FindTokenResponse,
+	SickoModeResponse
 } from "@root/tokens/dtos/response.dto"
 import { PublicKey } from "@solana/web3.js"
 import { plainToInstance } from "class-transformer"
@@ -165,7 +167,6 @@ export class TokensService {
 				payload.minTokenOut
 			)
 		} catch (error) {
-			console.log("err: ", error)
 			throw new InternalServerErrorException("Failed to create transaction")
 		}
 
@@ -178,6 +179,20 @@ export class TokensService {
 	): Promise<{ tokens: FindTokenResponse[]; total: number; maxPage: number }> {
 		return this.token.find(userAddress, params).then(result => ({
 			tokens: plainToInstance(FindTokenResponse, result.tokens, {
+				excludeExtraneousValues: true,
+				enableImplicitConversion: true
+			}),
+			total: result.total,
+			maxPage: result.maxPage
+		}))
+	}
+
+	findSickoMode(
+		userAddress: string | undefined,
+		params: SickoModeParams
+	): Promise<{ tokens: SickoModeResponse[]; total: number; maxPage: number }> {
+		return this.token.findSickoMode(userAddress, params).then(result => ({
+			tokens: plainToInstance(SickoModeResponse, result.tokens, {
 				excludeExtraneousValues: true,
 				enableImplicitConversion: true
 			}),

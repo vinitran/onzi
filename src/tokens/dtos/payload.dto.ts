@@ -25,6 +25,13 @@ export enum ContentType {
 	JSON = "application/json"
 }
 
+export enum SickoModeType {
+	NEWEST = "newest",
+	GRADUATING = "graduating",
+	SUGGESTED = "suggested",
+	FAVORITE = "favorite"
+}
+
 class Social {
 	@ApiProperty({
 		description: "Telegram group/channel link",
@@ -173,6 +180,78 @@ export class CreateTokenPayload extends Social {
 	@Prop()
 	@IsNumber()
 	burnTax: number
+}
+
+export class SickoModeParams extends PaginatedParams {
+	@ApiProperty({
+		description: "Sort by param",
+		example: SickoModeType.NEWEST,
+		required: true,
+		enum: SickoModeType
+	})
+	@Prop()
+	@IsEnum(SickoModeType)
+	sort: SickoModeType
+
+	@ApiProperty({
+		description: "Minimum market cap filter",
+		example: 1000,
+		required: false
+	})
+	@IsOptional()
+	@Type(() => Number)
+	@IsNumber({ allowNaN: false })
+	marketCapFrom?: number
+
+	@ApiProperty({
+		description: "Maximum market cap filter",
+		example: 10000,
+		required: false
+	})
+	@IsOptional()
+	@Type(() => Number)
+	@IsNumber({ allowNaN: false })
+	marketCapTo?: number
+
+	@ApiProperty({
+		description: "Minimum volume filter",
+		example: 100,
+		required: false
+	})
+	@IsOptional()
+	@Type(() => Number)
+	@IsNumber({ allowNaN: false })
+	volumnFrom?: number
+
+	@ApiProperty({
+		description: "Maximum volume filter",
+		example: 1000,
+		required: false
+	})
+	@IsOptional()
+	@Type(() => Number)
+	@IsNumber({ allowNaN: false })
+	volumnTo?: number
+
+	@ApiProperty({
+		description: "Minimum holders filter",
+		example: 10,
+		required: false
+	})
+	@IsOptional()
+	@Type(() => Number)
+	@IsNumber({ allowNaN: false })
+	holderFrom?: number
+
+	@ApiProperty({
+		description: "Maximum holders filter",
+		example: 100,
+		required: false
+	})
+	@IsOptional()
+	@Type(() => Number)
+	@IsNumber({ allowNaN: false })
+	holderTo?: number
 }
 
 export class FindTokenParams extends PaginatedParams {

@@ -97,6 +97,31 @@ export class FindTokenResponse extends TokenDto {
 	amountHolders?: number
 }
 
+class SickoModeCountResponse {
+	@ApiProperty({
+		description: "Token transaction",
+		required: false
+	})
+	@Expose()
+	tokenTransaction: number
+
+	@ApiProperty({
+		description: "Token Owners",
+		required: false
+	})
+	@Expose()
+	tokenOwners: number
+}
+
+export class SickoModeResponse extends TokenDto {
+	@ApiProperty({
+		description: "Count information",
+		required: false
+	})
+	@Expose()
+	_count: SickoModeCountResponse
+}
+
 export class TokenHolderResponse extends User {
 	@ApiProperty({
 		description: "Percentage of total supply held by this holder",

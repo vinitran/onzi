@@ -16,7 +16,8 @@ import {
 	CreateTokenPayload,
 	FindListTokenFavoriteParams,
 	FindTokenParams,
-	ListTransactionParams
+	ListTransactionParams,
+	SickoModeParams
 } from "@root/tokens/dtos/payload.dto"
 import {
 	CreateTokenInCacheResponse,
@@ -25,6 +26,7 @@ import {
 	FindFavoriteTokenResponse,
 	FindTokenResponse,
 	ListTransactionResponse,
+	SickoModeResponse,
 	SimilarTokenResponse,
 	ToggleFavoriteTokenResponse,
 	TokenHolderResponse,
@@ -82,7 +84,7 @@ export class TokensController {
 	@Get()
 	@ApiBearerAuth()
 	@ApiPaginatedResponse(FindTokenResponse)
-	@ApiOperation({ summary: "Latest token" })
+	@ApiOperation({ summary: "List token" })
 	async findMany(
 		@User() user: Claims | undefined,
 		@Query() query: FindTokenParams
@@ -95,6 +97,28 @@ export class TokensController {
 
 		return plainToInstance(
 			PaginatedResponse<FindTokenResponse>,
+			new PaginatedResponse(data, total, maxPage),
+			{
+				excludeExtraneousValues: true
+			}
+		)
+	}
+
+	@Get("/sicko-mode")
+	@ApiBearerAuth()
+	@ApiPaginatedResponse(SickoModeResponse)
+	@ApiOperation({ summary: "Latest token in Sicko mode" })
+	async findManySickoMode(
+		@User() user: Claims | undefined,
+		@Query() query: SickoModeParams
+	) {
+		const {
+			tokens: data,
+			total,
+			maxPage
+		} = await this.tokensService.findSickoMode(user?.address, query)
+		return plainToInstance(
+			PaginatedResponse<SickoModeResponse>,
 			new PaginatedResponse(data, total, maxPage),
 			{
 				excludeExtraneousValues: true

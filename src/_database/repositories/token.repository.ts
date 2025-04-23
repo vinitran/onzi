@@ -1,11 +1,19 @@
-import { Injectable, NotFoundException } from "@nestjs/common"
+import {
+	Injectable,
+	InternalServerErrorException,
+	NotFoundException
+} from "@nestjs/common"
 import { Prisma } from "@prisma/client"
 import { RedisService } from "@root/_redis/redis.service"
 import {
 	ICreateTokenInCache,
 	ICreateTokenOffchain
 } from "@root/_shared/types/token"
-import { FindTokenParams } from "@root/tokens/dtos/payload.dto"
+import {
+	FindTokenParams,
+	SickoModeParams,
+	SickoModeType
+} from "@root/tokens/dtos/payload.dto"
 import { GetCoinCreatedParams } from "@root/users/dtos/payload.dto"
 import { v4 as uuidv4 } from "uuid"
 import { PrismaService } from "../prisma.service"
@@ -30,6 +38,102 @@ export class TokenRepository {
 			},
 			take
 		})
+	}
+
+	async findSickoMode(userAddress: string | undefined, query: SickoModeParams) {
+		const skip = (query.page - 1) * query.take
+		let orderBy: Prisma.TokenOrderByWithRelationInput[] = []
+		let where: Prisma.TokenWhereInput = {}
+		where = {
+			AND: [
+				...(query.volumnFrom ? [{ volumn: { gte: query.volumnFrom } }] : []),
+				...(query.volumnTo ? [{ volumn: { lte: query.volumnFrom } }] : []),
+				...(query.marketCapFrom
+					? [{ marketCapacity: { gte: query.marketCapFrom } }]
+					: []),
+				...(query.marketCapTo
+					? [{ marketCapacity: { lte: query.marketCapTo } }]
+					: [])
+			]
+		}
+		switch (query.sort) {
+			case SickoModeType.NEWEST:
+				orderBy = [...[{ createdAt: Prisma.SortOrder.desc }]]
+				break
+
+			case SickoModeType.SUGGESTED:
+				orderBy = [...[{ marketCapacity: Prisma.SortOrder.desc }]]
+				break
+
+			case SickoModeType.GRADUATING:
+				orderBy = [...[{ marketCapacity: Prisma.SortOrder.desc }]]
+				where.isCompletedBondingCurve = false
+				break
+
+			case SickoModeType.FAVORITE:
+				if (!userAddress)
+					throw new InternalServerErrorException(
+						"Need login to search by favorite"
+					)
+				where.tokenFavorite = {
+					some: {
+						userAddress: userAddress
+					}
+				}
+				orderBy = [...[{ createdAt: Prisma.SortOrder.desc }]]
+				break
+			default:
+				throw new InternalServerErrorException("Sort can not be empty")
+		}
+
+		const [tokens, total] = await Promise.all([
+			this.prisma.token.findMany({
+				skip,
+				take: query.take,
+				where,
+				orderBy,
+				select: {
+					id: true,
+					name: true,
+					address: true,
+					price: true,
+					imageUri: true,
+					ticker: true,
+					network: true,
+					bondingCurveTarget: true,
+					isCompletedBondingCurve: true,
+					isCompletedKingOfHill: true,
+					createdAtKingOfHill: true,
+					bump: true,
+					creatorAddress: true,
+					marketCapacity: true,
+					volumn: true,
+					hallOfFame: true,
+					tax: true,
+					rewardTax: true,
+					jackpotTax: true,
+					jackpotAmount: true,
+					burnTax: true,
+					jackpotPending: true,
+					taxPending: true,
+					createdAt: true,
+					updatedAt: true,
+					_count: {
+						select: {
+							tokenTransaction: true,
+							tokenOwners: true
+						}
+					}
+				}
+			}),
+			this.prisma.token.count({ where })
+		])
+
+		return {
+			tokens,
+			total,
+			maxPage: Math.ceil(total / query.take)
+		}
 	}
 
 	async find(userAddress: string | undefined, query: FindTokenParams) {
@@ -59,7 +163,7 @@ export class TokenRepository {
 				}
 			}),
 			...(query.tx && {
-				_count: { select: { TokenTransaction: true } }
+				_count: { select: { tokenTransaction: true } }
 			}),
 			...(query.holders && {
 				_count: { select: { tokenOwners: true } }
@@ -69,7 +173,7 @@ export class TokenRepository {
 		const orderBy: Prisma.TokenOrderByWithRelationInput[] = [
 			...(query.marketCap ? [{ marketCapacity: query.marketCap }] : []),
 			...(query.price ? [{ price: query.price }] : []),
-			...(query.tx ? [{ TokenTransaction: { _count: query.tx } }] : []),
+			...(query.tx ? [{ tokenTransaction: { _count: query.tx } }] : []),
 			...(query.volumn ? [{ volumn: query.volumn }] : []),
 			...(query.holders ? [{ tokenOwners: { _count: query.holders } }] : []),
 			...(query.lastTrade ? [{ updatedAt: query.lastTrade }] : []),

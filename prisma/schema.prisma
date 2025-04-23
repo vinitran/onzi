@@ -133,7 +133,7 @@ model Token {
   creator          User               @relation(fields: [creatorAddress], references: [address], onDelete: Cascade)
   tokenOwners      TokenOwner[]
   comments         Comment[]
-  TokenTransaction TokenTransaction[]
+  tokenTransaction TokenTransaction[]
   tokenKey         TokenKey           @relation(fields: [address], references: publicKey)
   tokenFavorite    TokenFavorite[]
 
