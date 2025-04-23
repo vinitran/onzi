@@ -254,6 +254,20 @@ export class Token extends SocialToken {
 	burnTax: number
 
 	@ApiProperty({
+		description: "Token jackpot amount pending",
+		example: 100000000
+	})
+	@Expose()
+	jackpotPending: number
+
+	@ApiProperty({
+		description: "Token tax amount pending",
+		example: 1000000000
+	})
+	@Expose()
+	taxPending: number
+
+	@ApiProperty({
 		description: "Token favorite",
 		example: false
 	})

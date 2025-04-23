@@ -304,6 +304,16 @@ export class FindTokenParams extends PaginatedParams {
 	@IsEnum(["desc", "asc"])
 	@IsOptional()
 	lastTrade?: "desc" | "asc"
+
+	@ApiProperty({
+		description: "Sort By approaching jackpot",
+		example: "desc",
+		required: false,
+		enum: ["desc", "asc"]
+	})
+	@IsEnum(["desc", "asc"])
+	@IsOptional()
+	approachingJackpot?: "desc" | "asc"
 }
 
 export class BuyTokenOnchainPayload {

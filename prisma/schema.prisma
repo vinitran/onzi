@@ -115,6 +115,9 @@ model Token {
   jackpotAmount Float @default(0) @map("jackpot_amount")
   burnTax       Float @default(0) @map("burn_tax")
 
+  jackpotPending Float @default(0) @map("jackpot_pending")
+  taxPending     Float @default(0) @map("tax_pending")
+
   telegramLink  String? @map("telegram_link") @db.VarChar
   twitterLink   String? @map("twitter_link") @db.VarChar
   websiteLink   String? @map("website_link") @db.VarChar

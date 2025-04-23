@@ -73,6 +73,9 @@ export class TokenRepository {
 			...(query.volumn ? [{ volumn: query.volumn }] : []),
 			...(query.holders ? [{ tokenOwners: { _count: query.holders } }] : []),
 			...(query.lastTrade ? [{ updatedAt: query.lastTrade }] : []),
+			...(query.approachingJackpot
+				? [{ jackpotPending: query.approachingJackpot }]
+				: []),
 			...(query.latest ? [{ createdAt: query.latest }] : [])
 		]
 
