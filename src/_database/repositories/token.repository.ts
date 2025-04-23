@@ -53,6 +53,58 @@ export class TokenRepository {
 					: []),
 				...(query.marketCapTo
 					? [{ marketCapacity: { lte: query.marketCapTo } }]
+					: []),
+				...(query.holderFrom
+					? [{ tokenOwners: { some: { amount: { gte: query.holderFrom } } } }]
+					: []),
+				...(query.holderTo
+					? [{ tokenOwners: { some: { amount: { lte: query.holderTo } } } }]
+					: []),
+				...(query.excludeKeywords && query.excludeKeywords.length > 0
+					? [
+							{
+								AND: query.excludeKeywords.map(keyword => ({
+									NOT: {
+										OR: [
+											{
+												name: {
+													contains: keyword,
+													mode: Prisma.QueryMode.insensitive
+												}
+											},
+											{
+												ticker: {
+													contains: keyword,
+													mode: Prisma.QueryMode.insensitive
+												}
+											}
+										]
+									}
+								}))
+							}
+						]
+					: []),
+				...(query.includeKeywords && query.includeKeywords.length > 0
+					? [
+							{
+								OR: query.includeKeywords.map(keyword => ({
+									OR: [
+										{
+											name: {
+												contains: keyword,
+												mode: Prisma.QueryMode.insensitive
+											}
+										},
+										{
+											ticker: {
+												contains: keyword,
+												mode: Prisma.QueryMode.insensitive
+											}
+										}
+									]
+								}))
+							}
+						]
 					: [])
 			]
 		}

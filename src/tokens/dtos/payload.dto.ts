@@ -3,6 +3,7 @@ import { OptionalProp, Prop } from "@root/_shared/utils/decorators"
 import { PaginatedParams } from "@root/dtos/common.dto"
 import { Transform, Type } from "class-transformer"
 import {
+	IsArray,
 	IsBoolean,
 	IsEnum,
 	IsNumber,
@@ -10,7 +11,8 @@ import {
 	IsString,
 	IsUrl,
 	Length,
-	Min
+	Min,
+	MinLength
 } from "class-validator"
 
 export enum ContentType {
@@ -192,6 +194,32 @@ export class SickoModeParams extends PaginatedParams {
 	@Prop()
 	@IsEnum(SickoModeType)
 	sort: SickoModeType
+
+	@ApiProperty({
+		description: "Keywords to exclude from token name/ticker",
+		example: ["scam", "fake"],
+		isArray: true,
+		required: false
+	})
+	@IsOptional()
+	@Transform(({ value }) => (typeof value === "string" ? [value] : value))
+	@IsArray()
+	@IsString({ each: true })
+	@MinLength(1, { each: true })
+	excludeKeywords?: string[]
+
+	@ApiProperty({
+		description: "Keywords to include in token name/ticker",
+		example: ["ponz", "coin"],
+		isArray: true,
+		required: false
+	})
+	@IsOptional()
+	@Transform(({ value }) => (typeof value === "string" ? [value] : value))
+	@IsArray()
+	@IsString({ each: true })
+	@MinLength(1, { each: true })
+	includeKeywords?: string[]
 
 	@ApiProperty({
 		description: "Minimum market cap filter",
