@@ -11,7 +11,6 @@ import {
 	IsString,
 	IsUrl,
 	Length,
-	Min,
 	MinLength
 } from "class-validator"
 
@@ -445,25 +444,73 @@ export class CreateTokenOnchainPayload extends BuyTokenOnchainPayload {}
 
 export class ListTransactionParams extends PaginatedParams {
 	@ApiProperty({
-		description: "Minimum lamports filter for transactions",
-		example: 1000,
+		description: "Show detail token",
+		example: false,
 		required: false
 	})
-	@OptionalProp()
-	@IsNumber()
-	@Min(0)
-	@Type(() => Number)
-	minimumLamports?: number
+	@IsBoolean()
+	@IsOptional()
+	@Transform(({ value }) => value === "true")
+	detail?: boolean
 
 	@ApiProperty({
-		description: "Filter transactions by following or own",
-		enum: ["following", "own"],
-		example: "following",
+		description: "Sort By type transaction",
+		example: "desc",
+		required: false,
+		enum: ["buy", "sell"]
+	})
+	@IsEnum(["buy", "sell"])
+	@IsOptional()
+	type?: "buy" | "sell"
+
+	@ApiProperty({
+		description: "Sort By transaction amount token",
+		example: "desc",
+		required: false,
+		enum: ["desc", "asc"]
+	})
+	@IsEnum(["desc", "asc"])
+	@IsOptional()
+	amount?: "desc" | "asc"
+
+	@ApiProperty({
+		description: "Sort By transaction amount lamports",
+		example: "desc",
+		required: false,
+		enum: ["desc", "asc"]
+	})
+	@IsEnum(["desc", "asc"])
+	@IsOptional()
+	lamports?: "desc" | "asc"
+
+	@ApiProperty({
+		description: "Sort By token price",
+		example: "desc",
+		required: false,
+		enum: ["desc", "asc"]
+	})
+	@IsEnum(["desc", "asc"])
+	@IsOptional()
+	price?: "desc" | "asc"
+
+	@ApiProperty({
+		description: "Sort By creation time",
+		example: "desc",
+		required: false,
+		enum: ["desc", "asc"]
+	})
+	@IsEnum(["desc", "asc"])
+	@IsOptional()
+	createTime?: "desc" | "asc"
+
+	@ApiProperty({
+		description: "Filter by token name",
+		example: "Ponz",
 		required: false
 	})
-	@OptionalProp({ enum: ["following", "own"] })
-	@IsEnum(["following", "own"])
-	filterBy?: "following" | "own"
+	@IsString()
+	@IsOptional()
+	name?: string
 }
 
 export class FindListTokenFavoriteParams extends PaginatedParams {}

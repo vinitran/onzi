@@ -19,7 +19,6 @@ import {
 	encodeTransaction,
 	keypairFromPrivateKey
 } from "@root/_shared/helpers/encode-decode-tx"
-import { Claims } from "@root/auth/auth.service"
 import { S3Service } from "@root/file/file.service"
 import { Ponz } from "@root/programs/ponz/program"
 import { InjectConnection } from "@root/programs/programs.module"
@@ -33,6 +32,7 @@ import {
 import {
 	FindFavoriteTokenResponse,
 	FindTokenResponse,
+	ListTransactionResponse,
 	SickoModeResponse
 } from "@root/tokens/dtos/response.dto"
 import { PublicKey } from "@solana/web3.js"
@@ -167,7 +167,9 @@ export class TokensService {
 				payload.minTokenOut
 			)
 		} catch (error) {
-			throw new InternalServerErrorException("Failed to create transaction")
+			throw new InternalServerErrorException(
+				`Failed to create transaction, ${error}`
+			)
 		}
 
 		return encodeTransaction(tx)
@@ -312,41 +314,15 @@ export class TokensService {
 	}
 
 	// Get list transaction
-	async getTransactions(
-		address: string,
-		query: ListTransactionParams,
-		user: Claims
-	) {
-		const { filterBy, minimumLamports, page, take } = query
-		const token = await this.token.findByAddress(address)
-		if (!token) throw new NotFoundException("Not found token")
-
-		const getListTransaction = this.tokenTransaction.paginate({
-			tokenAddress: address,
-			filterBy,
-			minimumLamports,
-			page,
-			take,
-			user
-		})
-
-		const getTotal = this.tokenTransaction.count({
-			tokenAddress: address,
-			filterBy,
-			minimumLamports,
-			user
-		})
-
-		const [listTransaction, total] = await Promise.all([
-			getListTransaction,
-			getTotal
-		])
-
-		return {
-			data: listTransaction,
-			total,
-			maxPage: Math.ceil(total / take)
-		}
+	async getTransactions(id: string, query: ListTransactionParams) {
+		return this.tokenTransaction.paginate(id, query).then(result => ({
+			data: plainToInstance(ListTransactionResponse, result.data, {
+				excludeExtraneousValues: true,
+				enableImplicitConversion: true
+			}),
+			total: result.total,
+			maxPage: result.maxPage
+		}))
 	}
 
 	//   Toggle (add or remove favourite token of user)

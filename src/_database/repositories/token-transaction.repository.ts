@@ -1,7 +1,7 @@
 import { BN, web3 } from "@coral-xyz/anchor"
 import { Injectable } from "@nestjs/common"
 import { Network, Prisma, TransactionType } from "@prisma/client"
-import { Claims } from "@root/auth/auth.service"
+import { ListTransactionParams } from "@root/tokens/dtos/payload.dto"
 import { DateTime } from "luxon"
 import { PrismaService } from "../prisma.service"
 
@@ -61,39 +61,14 @@ export class TokenTransactionRepository {
 		})
 	}
 
-	async paginate(payload: {
-		tokenAddress: string
-		filterBy?: "following" | "own"
-		minimumLamports?: number
-		page: number
-		take: number
-		user: Claims
-	}) {
+	async paginate(id: string, query: ListTransactionParams) {
+		const skip = (query.page - 1) * query.take
 		const where: Prisma.TokenTransactionWhereInput = {
-			tokenAddress: payload.tokenAddress,
-			lamports: {
-				gt: payload.minimumLamports
-			}
+			id
 		}
 
-		if (payload.filterBy === "own") {
-			where.signer = payload.user.address
-		} else if (payload.filterBy === "following") {
-			where.createdBy = {
-				following: {
-					some: {
-						followerId: payload.user.id
-					}
-				}
-			}
-		}
-
-		return this.prisma.tokenTransaction.findMany({
-			where,
-			orderBy: { createdAt: "desc" },
-			skip: (payload.page - 1) * payload.take,
-			take: payload.take,
-			include: {
+		const include: Prisma.TokenTransactionInclude = {
+			...(query.detail && {
 				token: {
 					select: {
 						address: true,
@@ -105,36 +80,59 @@ export class TokenTransactionRepository {
 				createdBy: {
 					select: { username: true, address: true, avatarUrl: true }
 				}
-			}
-		})
-	}
-
-	count(payload: {
-		tokenAddress: string
-		filterBy?: "following" | "own"
-		minimumLamports?: number
-		user: Claims
-	}) {
-		const where: Prisma.TokenTransactionWhereInput = {
-			tokenAddress: payload.tokenAddress,
-			lamports: {
-				gt: payload.minimumLamports
-			}
+			})
 		}
 
-		if (payload.filterBy === "own") {
-			where.signer = payload.user.address
-		} else if (payload.filterBy === "following") {
-			where.createdBy = {
-				following: {
-					some: {
-						followerId: payload.user.id
+		const orderBy: Prisma.TokenTransactionOrderByWithRelationInput[] = [
+			...(query.price ? [{ price: query.price }] : []),
+			...(query.amount ? [{ amount: query.amount }] : []),
+			...(query.lamports ? [{ amount: query.lamports }] : []),
+			...(query.createTime
+				? [{ createdAt: query.createTime }]
+				: [{ createdAt: Prisma.SortOrder.desc }])
+		]
+
+		where.AND = {
+			...(query.type ? [{ amount: query.type }] : [])
+		}
+
+		if (query.name) {
+			where.OR = [
+				{
+					token: {
+						name: {
+							contains: query.name,
+							mode: "insensitive"
+						}
+					}
+				},
+				{
+					token: {
+						ticker: {
+							contains: query.name,
+							mode: "insensitive"
+						}
 					}
 				}
-			}
+			]
 		}
 
-		return this.prisma.tokenTransaction.count({ where })
+		const [transactions, total] = await Promise.all([
+			this.prisma.tokenTransaction.findMany({
+				where,
+				orderBy,
+				skip,
+				take: query.take,
+				include
+			}),
+			this.prisma.tokenTransaction.count({ where })
+		])
+
+		return {
+			data: transactions,
+			total,
+			maxPage: Math.ceil(total / query.take)
+		}
 	}
 
 	async getPriceChangePercentageByTime(params: {

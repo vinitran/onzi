@@ -176,16 +176,20 @@ export class TokensController {
 		@Body() body: CreateTokenOnchainPayload,
 		@User() user: Claims
 	) {
-		const data = await this.tokensService.broadcastCreateOnChain({
+		const transaction = await this.tokensService.broadcastCreateOnChain({
 			creatorAddress: user.address,
 			tokenID: tokenId,
 			amountSol: body.amountSol,
 			minTokenOut: body.minTokenOut
 		})
 
-		return plainToInstance(CreateTokenOnchainResponse, data, {
-			excludeExtraneousValues: true
-		})
+		return plainToInstance(
+			CreateTokenOnchainResponse,
+			{ transaction },
+			{
+				excludeExtraneousValues: true
+			}
+		)
 	}
 
 	@Get(":address/similar")
@@ -223,18 +227,16 @@ export class TokensController {
 		)
 	}
 
-	@Get(":address/list-transaction")
+	@Get(":id/transactions")
 	@ApiPaginatedResponse(ListTransactionResponse)
 	@ApiOperation({ summary: "Get paginated list of token transactions" })
 	async getListTransaction(
-		@Param("address") address: string,
-		@Query() query: ListTransactionParams,
-		@User() user: Claims
+		@Param("id") id: string,
+		@Query() query: ListTransactionParams
 	) {
 		const { data, total, maxPage } = await this.tokensService.getTransactions(
-			address,
-			query,
-			user
+			id,
+			query
 		)
 
 		return plainToInstance(
