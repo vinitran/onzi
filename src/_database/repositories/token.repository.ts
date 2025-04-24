@@ -41,7 +41,11 @@ export class TokenRepository {
 	}
 
 	async findSickoMode(userAddress: string | undefined, query: SickoModeParams) {
-		const skip = (query.page - 1) * query.take
+		// Validate pagination parameters
+		const page = Math.max(1, query.page)
+		const take = Math.min(100, Math.max(1, query.take))
+
+		const skip = (page - 1) * take
 		let orderBy: Prisma.TokenOrderByWithRelationInput[] = []
 		let where: Prisma.TokenWhereInput = {}
 		where = {
@@ -119,7 +123,7 @@ export class TokenRepository {
 
 			case SickoModeType.GRADUATING:
 				orderBy = [...[{ marketCapacity: Prisma.SortOrder.desc }]]
-				where.isCompletedBondingCurve = false
+				where.AND = [...[{ isCompletedBondingCurve: false }]]
 				break
 
 			case SickoModeType.FAVORITE:
@@ -170,6 +174,16 @@ export class TokenRepository {
 					taxPending: true,
 					createdAt: true,
 					updatedAt: true,
+					tokenOwners: {
+						select: {
+							userAddress: true,
+							amount: true
+						},
+						take: 10,
+						orderBy: {
+							amount: Prisma.SortOrder.desc
+						}
+					},
 					_count: {
 						select: {
 							tokenTransaction: true,
@@ -181,8 +195,25 @@ export class TokenRepository {
 			this.prisma.token.count({ where })
 		])
 
+		const tokenData = tokens.map(token => {
+			const top10Total = token.tokenOwners.reduce(
+				(sum, owner) => sum + Number(owner.amount),
+				0
+			)
+			const top10Percentage =
+				token.marketCapacity > 0
+					? (top10Total / Number(token.marketCapacity)) * 100
+					: 0
+
+			return {
+				...token,
+				tokenOwners: undefined,
+				top10HoldersPercentage: top10Percentage
+			}
+		})
+
 		return {
-			tokens,
+			tokens: tokenData,
 			total,
 			maxPage: Math.ceil(total / query.take)
 		}
