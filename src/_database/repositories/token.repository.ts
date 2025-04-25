@@ -604,7 +604,10 @@ export class TokenRepository {
 
 	//   Find token by address
 	findByAddress(address: string) {
-		return this.prisma.token.findUnique({ where: { address } })
+		return this.prisma.token.findUnique({
+			where: { address },
+			include: { creator: true }
+		})
 	}
 
 	//   Get 20 silimar market cap tokens

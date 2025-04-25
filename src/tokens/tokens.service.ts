@@ -233,13 +233,16 @@ export class TokensService {
     - percent of King of Hill: its marketCap / highest marketcap of token (is not bonding curve)
     - percent of Bonding Curve: its marketCap / bondingCurve
   */
-	async getByAddress(address: string) {
+	async getByAddress(address: string, userAddress?: string) {
 		const token = await this.token.findByAddress(address)
 		if (!token) throw new NotFoundException("Not found token")
 
-		const [tokenKingOfHill, totalReplies] = await Promise.all([
+		const [tokenKingOfHill, totalReplies, favoriteToken] = await Promise.all([
 			this.token.findKingOfHill(),
-			this.comment.countByTokenId({ where: { tokenId: token.id } })
+			this.comment.countByTokenId({ where: { tokenId: token.id } }),
+			userAddress
+				? this.tokenFavorite.findOne({ tokenAddress: address, userAddress })
+				: Promise.resolve(null)
 		])
 
 		const VIRTUAL_DEFAULT_VALUE_OF_MARKETCAP = 28
@@ -267,7 +270,8 @@ export class TokensService {
 			...token,
 			totalReplies,
 			percentOfBondingCurve,
-			percentOfKingOfHill
+			percentOfKingOfHill,
+			isFavorite: !!favoriteToken
 		}
 	}
 
