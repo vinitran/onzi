@@ -1,4 +1,5 @@
 import {
+	DeleteObjectCommand,
 	GetObjectCommand,
 	PutObjectCommand,
 	S3Client
@@ -104,6 +105,19 @@ export class S3Service {
 
 			await this.client.send(command)
 			return { success: true }
+		} catch (error) {
+			throw new InternalServerErrorException(error)
+		}
+	}
+
+	async deleteFile(key: string): Promise<void> {
+		try {
+			const command = new DeleteObjectCommand({
+				Bucket: this.env.S3_BUCKET_NAME,
+				Key: key
+			})
+
+			await this.client.send(command)
 		} catch (error) {
 			throw new InternalServerErrorException(error)
 		}
