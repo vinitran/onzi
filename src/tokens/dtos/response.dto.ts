@@ -127,6 +127,13 @@ export class SickoModeResponse extends TokenDto {
 	})
 	@Expose()
 	top10HoldersPercentage: number
+
+	@ApiProperty({
+		description: "Dev Hold Percentage",
+		required: false
+	})
+	@Expose()
+	devHoldPersent: number
 }
 
 export class TokenHolderResponse extends User {

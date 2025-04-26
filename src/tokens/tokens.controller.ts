@@ -173,14 +173,13 @@ export class TokensController {
 	})
 	async createTokenOnchain(
 		@Param("id") tokenId: string,
-		@Body() body: CreateTokenOnchainPayload,
+		@Body() payload: CreateTokenOnchainPayload,
 		@User() user: Claims
 	) {
 		const transaction = await this.tokensService.broadcastCreateOnChain({
 			creatorAddress: user.address,
 			tokenID: tokenId,
-			amountSol: body.amountSol,
-			minTokenOut: body.minTokenOut
+			data: payload
 		})
 
 		return plainToInstance(

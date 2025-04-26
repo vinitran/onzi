@@ -8,7 +8,8 @@ import {
 	Wallet,
 	web3
 } from "@coral-xyz/anchor"
-import { Injectable } from "@nestjs/common"
+import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system"
+import { Injectable, InternalServerErrorException } from "@nestjs/common"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { TokenMetadataArgs } from "@root/programs/ponz/events"
 import idl from "@root/programs/ponz/ponz_sc.json"
@@ -16,7 +17,7 @@ import {
 	ASSOCIATED_TOKEN_PROGRAM_ID,
 	TOKEN_2022_PROGRAM_ID
 } from "@solana/spl-token"
-import { PublicKey } from "@solana/web3.js"
+import { PublicKey, SYSVAR_RENT_PUBKEY } from "@solana/web3.js"
 import { InjectConnection } from "../programs.module"
 import { PonzSc } from "./idl"
 
@@ -25,6 +26,13 @@ const _MARKETCAP_SEEDS = Buffer.from("marketcap")
 const _MASTER_SEEDS = Buffer.from("king_meme_master")
 
 const _TICKET_SEEDS = Buffer.from("king_meme_ticket")
+
+export type BuyTokenType = {
+	amountSol: string
+	minTokenOut: string
+	lockPercent?: number
+	lockTime?: number
+}
 
 @Injectable()
 export class Ponz extends SolanaProgram<PonzSc> {
@@ -58,50 +66,129 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		)[0]
 	}
 
-	public async createTokenAndBuyTx(
+	public async lauchToken(
 		tokenMetadata: TokenMetadataArgs,
 		mint: web3.PublicKey,
 		user: web3.PublicKey,
 		tokenKeypair: web3.Keypair,
-		amountSol: string,
-		minTokenOut: string
+		data: BuyTokenType
+	) {
+		if (data.lockTime && data.lockPercent) {
+			return this.launchTokenLock(tokenMetadata, mint, user, tokenKeypair, data)
+		}
+		return this.launchTokenBuy(tokenMetadata, mint, user, tokenKeypair, data)
+	}
+
+	public async launchTokenBuy(
+		tokenMetadata: TokenMetadataArgs,
+		mint: web3.PublicKey,
+		user: web3.PublicKey,
+		tokenKeypair: web3.Keypair,
+		data: BuyTokenType
 	): Promise<web3.Transaction> {
 		const createTokenIx = await this.program.methods
-			.createToken(tokenMetadata)
-			.accountsStrict({
+			.createToken({
+				name: tokenMetadata.name,
+				symbol: tokenMetadata.symbol,
+				uri: tokenMetadata.uri,
+				transferFeeBasisPoints: tokenMetadata.transferFeeBasisPoints,
+				maximumFee: tokenMetadata.maximumFee
+			})
+			.accountsPartial({
 				globalConfiguration: this.globalConfiguration,
-				mint,
+				mint: mint,
 				bondingCurve: this.getBondingCurve(mint),
-				psrvTokenPool: this.getRewardVaultTokenPool(mint),
 				tokenPool: this.getTokenPool(mint),
-				payer: user,
+				psrvTokenPool: this.getRewardVaultTokenPool(mint),
 				ponzScRewardVault: this.rewardVault,
-				tokenProgram: TOKEN_2022_PROGRAM_ID,
-				rent: web3.SYSVAR_RENT_PUBKEY,
-				systemProgram: web3.SystemProgram.programId,
-				associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID
+				payer: user
 			})
 			.instruction()
 
-		const buyIx = await this.program.methods
-			.buy(new BN(amountSol), new BN(minTokenOut))
-			.accountsStrict({
+		const buyTokenIx = await this.program.methods
+			.buy(new BN(data.amountSol), new BN(data.minTokenOut))
+			.accountsPartial({
 				globalConfiguration: this.globalConfiguration,
 				mint,
 				bondingCurve: this.getBondingCurve(mint),
-				payerAta: this.getOwnerAta(user, mint),
 				tokenPool: this.getTokenPool(mint),
-				payer: user,
-				associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-				tokenProgram: TOKEN_2022_PROGRAM_ID,
-				systemProgram: web3.SystemProgram.programId,
-				feePool: this.feePool
+				feePool: this.feePool,
+				payerAta: this.getOwnerAta(user, mint),
+				payer: user
 			})
 			.instruction()
 
 		const tx = new web3.Transaction()
 		tx.add(createTokenIx)
-		tx.add(buyIx)
+		tx.add(buyTokenIx)
+		tx.feePayer = user
+		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
+		tx.partialSign(tokenKeypair)
+
+		return tx
+	}
+
+	public async launchTokenLock(
+		tokenMetadata: TokenMetadataArgs,
+		mint: web3.PublicKey,
+		user: web3.PublicKey,
+		tokenKeypair: web3.Keypair,
+		data: BuyTokenType
+	): Promise<web3.Transaction> {
+		if (!data.lockPercent || !data.lockTime)
+			throw new InternalServerErrorException("lock data can not be null")
+
+		const createTokenIx = await this.program.methods
+			.createToken({
+				name: tokenMetadata.name,
+				symbol: tokenMetadata.symbol,
+				uri: tokenMetadata.uri,
+				transferFeeBasisPoints: tokenMetadata.transferFeeBasisPoints,
+				maximumFee: tokenMetadata.maximumFee
+			})
+			.accountsPartial({
+				globalConfiguration: this.globalConfiguration,
+				mint: mint,
+				bondingCurve: this.getBondingCurve(mint),
+				tokenPool: this.getTokenPool(mint),
+				psrvTokenPool: this.getRewardVaultTokenPool(mint),
+				ponzScRewardVault: this.rewardVault,
+				ponzTokenMintAuthorityWallet: new PublicKey(
+					"FMQGZ4KUHYt2uhvCDfm8NEoouvcWAzXfb8nT3sHafXEj"
+				),
+				payer: user,
+				tokenProgram: TOKEN_2022_PROGRAM_ID,
+				rent: SYSVAR_RENT_PUBKEY,
+				systemProgram: SYSTEM_PROGRAM_ID,
+				associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID
+			})
+			.instruction()
+
+		const buyTokenIx = await this.program.methods
+			.buyLock(
+				new BN(data.amountSol),
+				new BN(data.minTokenOut),
+				data.lockPercent,
+				new BN(data.lockTime)
+			)
+			.accountsPartial({
+				globalConfiguration: this.globalConfiguration,
+				mint: mint,
+				bondingCurve: this.getBondingCurve(mint),
+				tokenPool: this.getTokenPool(mint),
+				tokenPoolLock: this.getTokenPoolLockPDA(mint),
+				feePool: this.feePool,
+				payerAta: this.getOwnerAta(user, mint),
+				payer: user,
+				tokenProgram: TOKEN_2022_PROGRAM_ID,
+				systemProgram: SYSTEM_PROGRAM_ID,
+				associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID
+			})
+			.instruction()
+
+		const tx = new web3.Transaction()
+		tx.add(createTokenIx)
+		tx.add(buyTokenIx)
 		tx.feePayer = user
 		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
 		tx.partialSign(tokenKeypair)
@@ -119,16 +206,40 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		try {
 			const marketcapAccount =
 				await this.account.bondingCurve.fetch(bondingCurve)
-
 			return marketcapAccount.initVirtualSol * marketcapAccount.solReserves
-		} catch {
-			return 0
+		} catch (error) {
+			throw new InternalServerErrorException(`can not get marketCap: ${error}`)
+		}
+	}
+
+	public async getLockData(mint: PublicKey) {
+		const poolLock = this.getTokenPoolLockPDA(mint)
+
+		try {
+			const [timeUnlock, lockAmount] = await Promise.all([
+				this.account.bondingCurve.fetch(this.getBondingCurve(mint)),
+				this.connection.getTokenAccountBalance(poolLock)
+			])
+
+			return {
+				unlockAt: timeUnlock.unlockTime,
+				lockAmount: Number(lockAmount.value.amount)
+			}
+		} catch (error) {
+			throw new InternalServerErrorException(`can not get lock data: ${error}`)
 		}
 	}
 
 	private getBondingCurve(mint: PublicKey) {
 		return web3.PublicKey.findProgramAddressSync(
 			[mint.toBuffer(), Buffer.from("bonding_curve")],
+			this.programId
+		)[0]
+	}
+
+	private getTokenPoolLockPDA(mint: PublicKey): PublicKey {
+		return web3.PublicKey.findProgramAddressSync(
+			[mint.toBytes(), Buffer.from("token_pool_lock")],
 			this.programId
 		)[0]
 	}

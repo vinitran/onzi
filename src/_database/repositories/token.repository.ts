@@ -123,7 +123,7 @@ export class TokenRepository {
 
 			case SickoModeType.GRADUATING:
 				orderBy = [...[{ marketCapacity: Prisma.SortOrder.desc }]]
-				where.AND = [...[{ isCompletedBondingCurve: false }]]
+				where.isCompletedBondingCurve = false
 				break
 
 			case SickoModeType.FAVORITE:
@@ -171,6 +171,8 @@ export class TokenRepository {
 					jackpotAmount: true,
 					burnTax: true,
 					jackpotPending: true,
+					lockAmount: true,
+					unlockAt: true,
 					taxPending: true,
 					createdAt: true,
 					updatedAt: true,
@@ -195,22 +197,64 @@ export class TokenRepository {
 			this.prisma.token.count({ where })
 		])
 
-		const tokenData = tokens.map(token => {
-			const top10Total = token.tokenOwners.reduce(
-				(sum, owner) => sum + Number(owner.amount),
-				0
-			)
-			const top10Percentage =
-				token.marketCapacity > 0
-					? (top10Total / Number(token.marketCapacity)) * 100
-					: 0
+		const tokenData = await Promise.all(
+			tokens.map(async token => {
+				const top10Total = token.tokenOwners.reduce(
+					(sum, owner) => sum + Number(owner.amount),
+					0
+				)
+				const top10Percentage =
+					token.marketCapacity > 0
+						? (top10Total / Number(token.marketCapacity)) * 100
+						: 0
 
-			return {
-				...token,
-				tokenOwners: undefined,
-				top10HoldersPercentage: top10Percentage
-			}
-		})
+				const isFavorite = query.sort === SickoModeType.FAVORITE
+
+				if (token.tokenOwners.length === 0) {
+					return {
+						...token,
+						tokenOwners: undefined,
+						top10HoldersPercentage: top10Percentage,
+						isFavorite,
+						devHoldPersent: 0
+					}
+				}
+
+				let creatorAmount: Prisma.Decimal = new Prisma.Decimal(0)
+				const creatorInTop10 = token.tokenOwners.find(
+					owner => owner.userAddress === token.creatorAddress
+				)
+
+				if (creatorInTop10) {
+					creatorAmount = creatorInTop10.amount
+				} else {
+					const creator = await this.prisma.tokenOwner.findFirst({
+						where: {
+							userAddress: token.creatorAddress,
+							tokenAddress: token.address
+						},
+						select: {
+							userAddress: true,
+							amount: true
+						}
+					})
+					if (!creator)
+						throw new InternalServerErrorException("can not get creator")
+					creatorAmount = creator.amount
+				}
+
+				const devHoldPersent =
+					Number(creatorAmount) / Number(token.marketCapacity)
+
+				return {
+					...token,
+					tokenOwners: undefined,
+					top10HoldersPercentage: top10Percentage,
+					isFavorite,
+					devHoldPersent
+				}
+			})
+		)
 
 		return {
 			tokens: tokenData,

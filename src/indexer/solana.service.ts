@@ -53,7 +53,7 @@ export class SolanaIndexerService implements OnModuleInit {
 							mentions: [contractAddress]
 						},
 						{
-							commitment: "confirmed"
+							commitment: "finalized"
 						}
 					]
 				})
@@ -65,7 +65,15 @@ export class SolanaIndexerService implements OnModuleInit {
 			const parsedData = JSON.parse(data)
 			if (parsedData?.params?.result?.value?.logs) {
 				const logData = this.ponz.parseLogs(parsedData.params.result.value.logs)
-				for (const log of logData) {
+				const i = 0
+				// for await (const log of logData) {
+				// 	console.log("log.name",i, log.name)
+				// 	i = i +1
+				// }
+				//
+				// console.log("sasdasdasdas")
+
+				for await (const log of logData) {
 					const signature: string = parsedData.params.result.value.signature
 					switch (log.name) {
 						case "createTokenEvent": {
@@ -73,6 +81,7 @@ export class SolanaIndexerService implements OnModuleInit {
 							await this.handlerCreateToken({ event, signature })
 							break
 						}
+
 						case "buyEvent": {
 							const event = log.data as BuyTokensEvent
 							await this.handlerBuyToken({ event, signature })
@@ -86,7 +95,7 @@ export class SolanaIndexerService implements OnModuleInit {
 						}
 
 						default: {
-							return
+							break
 						}
 					}
 				}
@@ -94,7 +103,7 @@ export class SolanaIndexerService implements OnModuleInit {
 		})
 
 		this.wsSolana.on("close", () => {
-			// console.log("WebSocket connection closed. Reconnecting...");
+			console.log("WebSocket connection closed. Reconnecting...")
 			this.connectToWebSocketSolana()
 		})
 	}
@@ -282,9 +291,13 @@ export class SolanaIndexerService implements OnModuleInit {
 				hallOfFame
 			})
 		} else {
+			const lockData = await this.ponz.getLockData(address)
+
 			await this.tokenRepository.update(address.toBase58(), {
 				marketCapacity,
-				hallOfFame
+				hallOfFame,
+				lockAmount: lockData.lockAmount,
+				unlockAt: new Date(lockData.unlockAt * 1000)
 			})
 		}
 

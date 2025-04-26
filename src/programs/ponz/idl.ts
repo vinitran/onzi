@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/ponz_sc.json`.
  */
 export type PonzSc = {
-	address: "7j6Jrjx1qZ4VTwRAQg8nosr9iGwqKRsLbpJDcu2UuZjc"
+	address: "ponzri7KiVKYv1NdUgUVC2VDxW43SSeKSRJwBiEKLtA"
 	metadata: {
 		name: "ponzSc"
 		version: "0.1.0"
@@ -92,6 +92,44 @@ export type PonzSc = {
 		{
 			name: "acceptUpdatePonzSystemWallet"
 			discriminator: [33, 179, 65, 71, 77, 99, 44, 19]
+			accounts: [
+				{
+					name: "globalConfiguration"
+					writable: true
+					pda: {
+						seeds: [
+							{
+								kind: "const"
+								value: [
+									103,
+									108,
+									111,
+									98,
+									97,
+									108,
+									95,
+									99,
+									111,
+									110,
+									102,
+									105,
+									103
+								]
+							}
+						]
+					}
+				},
+				{
+					name: "signer"
+					writable: true
+					signer: true
+				}
+			]
+			args: []
+		},
+		{
+			name: "acceptUpdatePonzTokenMintAuthorityWallet"
+			discriminator: [123, 126, 95, 10, 16, 33, 164, 64]
 			accounts: [
 				{
 					name: "globalConfiguration"
@@ -307,6 +345,11 @@ export type PonzSc = {
 			discriminator: [112, 223, 72, 179, 160, 80, 43, 53]
 			accounts: [
 				{
+					name: "payer"
+					writable: true
+					signer: true
+				},
+				{
 					name: "globalConfiguration"
 					pda: {
 						seeds: [
@@ -413,6 +456,10 @@ export type PonzSc = {
 					}
 				},
 				{
+					name: "payerAta"
+					writable: true
+				},
+				{
 					name: "feePool"
 					writable: true
 					pda: {
@@ -423,11 +470,6 @@ export type PonzSc = {
 							}
 						]
 					}
-				},
-				{
-					name: "payer"
-					writable: true
-					signer: true
 				},
 				{
 					name: "associatedTokenProgram"
@@ -449,6 +491,10 @@ export type PonzSc = {
 				{
 					name: "expectedTokenAmt"
 					type: "u64"
+				},
+				{
+					name: "lockPercent"
+					type: "f64"
 				},
 				{
 					name: "lockTime"
@@ -563,8 +609,11 @@ export type PonzSc = {
 					}
 				},
 				{
+					name: "ponzTokenMintAuthorityWallet"
+				},
+				{
 					name: "ponzScRewardVault"
-					address: "2wVeAGMs4Q2ve57XxAmpJC7qVs8Doegwq9AzE6zbSVE5"
+					address: "ponzck6ebvetjDHZW9rXQ6SNdYqBbbEes812LHGALuV"
 				},
 				{
 					name: "tokenProgram"
@@ -893,6 +942,49 @@ export type PonzSc = {
 			args: [
 				{
 					name: "newPonzSystemWallet"
+					type: "pubkey"
+				}
+			]
+		},
+		{
+			name: "initUpdatePonzTokenMintAuthorityWallet"
+			discriminator: [197, 159, 135, 65, 255, 237, 193, 27]
+			accounts: [
+				{
+					name: "globalConfiguration"
+					writable: true
+					pda: {
+						seeds: [
+							{
+								kind: "const"
+								value: [
+									103,
+									108,
+									111,
+									98,
+									97,
+									108,
+									95,
+									99,
+									111,
+									110,
+									102,
+									105,
+									103
+								]
+							}
+						]
+					}
+				},
+				{
+					name: "signer"
+					writable: true
+					signer: true
+				}
+			]
+			args: [
+				{
+					name: "newPonzTokenMintAuthorityWallet"
 					type: "pubkey"
 				}
 			]
@@ -1684,66 +1776,81 @@ export type PonzSc = {
 	errors: [
 		{
 			code: 6000
+			name: "invalidPonzProgramData"
+			msg: "Invalid Ponz program data"
+		},
+		{
+			code: 6001
 			name: "missMatchingValue"
 			msg: "Mismatching Values"
 		},
 		{
-			code: 6001
+			code: 6002
 			name: "slippageExcceded"
 			msg: "Slippage Error"
 		},
 		{
-			code: 6002
+			code: 6003
 			name: "insufficientPremiumFeeToWithdraw"
 			msg: "No premium fee to withdraw"
 		},
 		{
-			code: 6003
+			code: 6004
 			name: "insufficientPoolFeeToWithdraw"
 			msg: "No pool fee to withdraw"
 		},
 		{
-			code: 6004
-			name: "notOwnerWallet"
-			msg: "You are not the Owner Wallet"
-		},
-		{
 			code: 6005
-			name: "notPonzSystemWallet"
-			msg: "You are not the Ponz System Wallet"
+			name: "notOwnerWallet"
+			msg: "Not the Owner Wallet"
 		},
 		{
 			code: 6006
-			name: "notPonzRewardSystemWallet"
-			msg: "You are not the Ponz Reward System Wallet"
+			name: "notPonzSystemWallet"
+			msg: "Not the Ponz System Wallet"
 		},
 		{
 			code: 6007
-			name: "notPendingOwnerWallet"
-			msg: "You are not the Pending Owner Wallet"
+			name: "notPonzRewardSystemWallet"
+			msg: "Not the Ponz Reward System Wallet"
 		},
 		{
 			code: 6008
-			name: "notPendingPonzSystemWallet"
-			msg: "You are not the Pending Ponz System Wallet"
+			name: "notPonzTokenMintAuthorityWallet"
+			msg: "Not the Ponz Token Mint Authority Wallet"
 		},
 		{
 			code: 6009
-			name: "notPendingPonzRewardSystemWallet"
-			msg: "You are not the Pending Ponz Reward System Wallet"
+			name: "notPendingOwnerWallet"
+			msg: "Not the Pending Owner Wallet"
 		},
 		{
 			code: 6010
+			name: "notPendingPonzSystemWallet"
+			msg: "Not the Pending Ponz System Wallet"
+		},
+		{
+			code: 6011
+			name: "notPendingPonzRewardSystemWallet"
+			msg: "Not the Pending Ponz Reward System Wallet"
+		},
+		{
+			code: 6012
+			name: "notPendingPonzTokenMintAuthorityWallet"
+			msg: "Not the Pending Ponz Mint Authority Wallet"
+		},
+		{
+			code: 6013
 			name: "emptyWallet"
 			msg: "Empty wallet"
 		},
 		{
-			code: 6011
+			code: 6014
 			name: "invalidSwapFee"
 			msg: "Invalid swap fee"
 		},
 		{
-			code: 6012
+			code: 6015
 			name: "tokenPoolLockNotExpired"
 			msg: "Token pool lock not expired"
 		}
@@ -1934,6 +2041,10 @@ export type PonzSc = {
 						type: "pubkey"
 					},
 					{
+						name: "ponzTokenMintAuthorityWallet"
+						type: "pubkey"
+					},
+					{
 						name: "pendingOwner"
 						type: {
 							option: "pubkey"
@@ -1947,6 +2058,18 @@ export type PonzSc = {
 					},
 					{
 						name: "pendingPonzRewardSystemWallet"
+						type: {
+							option: "pubkey"
+						}
+					},
+					{
+						name: "pendingPonzScTokenMintAuthorityWallet"
+						type: {
+							option: "pubkey"
+						}
+					},
+					{
+						name: "pendingPonzTokenMintAuthorityWallet"
 						type: {
 							option: "pubkey"
 						}
@@ -1993,6 +2116,10 @@ export type PonzSc = {
 					},
 					{
 						name: "ponzRewardSystemWallet"
+						type: "pubkey"
+					},
+					{
+						name: "ponzTokenMintAuthorityWallet"
 						type: "pubkey"
 					},
 					{

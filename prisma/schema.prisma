@@ -118,6 +118,9 @@ model Token {
   jackpotPending Float @default(0) @map("jackpot_pending")
   taxPending     Float @default(0) @map("tax_pending")
 
+  lockAmount Float?    @map("lock_amount")
+  unlockAt   DateTime? @map("unlock_at") @db.Timestamptz(3)
+
   telegramLink  String? @map("telegram_link") @db.VarChar
   twitterLink   String? @map("twitter_link") @db.VarChar
   websiteLink   String? @map("website_link") @db.VarChar

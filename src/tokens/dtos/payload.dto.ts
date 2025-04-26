@@ -440,7 +440,40 @@ export class BuyTokenOnchainPayload {
 	minTokenOut: string
 }
 
-export class CreateTokenOnchainPayload extends BuyTokenOnchainPayload {}
+export class CreateTokenOnchainPayload extends BuyTokenOnchainPayload {
+	@ApiProperty({
+		description: "lock persent",
+		example: 0.4,
+		required: false
+	})
+	@Prop()
+	@IsNumber()
+	@IsOptional()
+	lockPercent?: number
+
+	@ApiProperty({
+		description: "lock time",
+		example: 3600,
+		required: false
+	})
+	@Prop()
+	@IsNumber()
+	@IsOptional()
+	lockTime?: number
+
+	constructor(partial: Partial<CreateTokenOnchainPayload>) {
+		super()
+		Object.assign(this, partial)
+		if (
+			(this.lockPercent !== undefined && this.lockTime === undefined) ||
+			(this.lockPercent === undefined && this.lockTime !== undefined)
+		) {
+			throw new Error(
+				"lockPercent and lockTime must be both provided or both omitted"
+			)
+		}
+	}
+}
 
 export class ListTransactionParams extends PaginatedParams {
 	@ApiProperty({

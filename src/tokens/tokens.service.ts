@@ -158,13 +158,12 @@ export class TokensService {
 
 		let tx: web3.Transaction
 		try {
-			tx = await this.ponz.createTokenAndBuyTx(
+			tx = await this.ponz.lauchToken(
 				tokenMetadata,
 				new PublicKey(token.address),
 				new PublicKey(payload.creatorAddress),
 				tokenKeypair,
-				payload.amountSol,
-				payload.minTokenOut
+				payload.data
 			)
 		} catch (error) {
 			throw new InternalServerErrorException(

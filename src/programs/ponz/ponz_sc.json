@@ -1,5 +1,5 @@
 {
-	"address": "7j6Jrjx1qZ4VTwRAQg8nosr9iGwqKRsLbpJDcu2UuZjc",
+	"address": "ponzri7KiVKYv1NdUgUVC2VDxW43SSeKSRJwBiEKLtA",
 	"metadata": {
 		"name": "ponz_sc",
 		"version": "0.1.0",
@@ -62,6 +62,32 @@
 		{
 			"name": "accept_update_ponz_system_wallet",
 			"discriminator": [33, 179, 65, 71, 77, 99, 44, 19],
+			"accounts": [
+				{
+					"name": "global_configuration",
+					"writable": true,
+					"pda": {
+						"seeds": [
+							{
+								"kind": "const",
+								"value": [
+									103, 108, 111, 98, 97, 108, 95, 99, 111, 110, 102, 105, 103
+								]
+							}
+						]
+					}
+				},
+				{
+					"name": "signer",
+					"writable": true,
+					"signer": true
+				}
+			],
+			"args": []
+		},
+		{
+			"name": "accept_update_ponz_token_mint_authority_wallet",
+			"discriminator": [123, 126, 95, 10, 16, 33, 164, 64],
 			"accounts": [
 				{
 					"name": "global_configuration",
@@ -212,6 +238,11 @@
 			"discriminator": [112, 223, 72, 179, 160, 80, 43, 53],
 			"accounts": [
 				{
+					"name": "payer",
+					"writable": true,
+					"signer": true
+				},
+				{
 					"name": "global_configuration",
 					"pda": {
 						"seeds": [
@@ -281,6 +312,10 @@
 					}
 				},
 				{
+					"name": "payer_ata",
+					"writable": true
+				},
+				{
 					"name": "fee_pool",
 					"writable": true,
 					"pda": {
@@ -291,11 +326,6 @@
 							}
 						]
 					}
-				},
-				{
-					"name": "payer",
-					"writable": true,
-					"signer": true
 				},
 				{
 					"name": "associated_token_program",
@@ -317,6 +347,10 @@
 				{
 					"name": "expected_token_amt",
 					"type": "u64"
+				},
+				{
+					"name": "lock_percent",
+					"type": "f64"
 				},
 				{
 					"name": "lock_time",
@@ -407,8 +441,11 @@
 					}
 				},
 				{
+					"name": "ponz_token_mint_authority_wallet"
+				},
+				{
 					"name": "ponz_sc_reward_vault",
-					"address": "2wVeAGMs4Q2ve57XxAmpJC7qVs8Doegwq9AzE6zbSVE5"
+					"address": "ponzck6ebvetjDHZW9rXQ6SNdYqBbbEes812LHGALuV"
 				},
 				{
 					"name": "token_program",
@@ -651,6 +688,37 @@
 			"args": [
 				{
 					"name": "new_ponz_system_wallet",
+					"type": "pubkey"
+				}
+			]
+		},
+		{
+			"name": "init_update_ponz_token_mint_authority_wallet",
+			"discriminator": [197, 159, 135, 65, 255, 237, 193, 27],
+			"accounts": [
+				{
+					"name": "global_configuration",
+					"writable": true,
+					"pda": {
+						"seeds": [
+							{
+								"kind": "const",
+								"value": [
+									103, 108, 111, 98, 97, 108, 95, 99, 111, 110, 102, 105, 103
+								]
+							}
+						]
+					}
+				},
+				{
+					"name": "signer",
+					"writable": true,
+					"signer": true
+				}
+			],
+			"args": [
+				{
+					"name": "new_ponz_token_mint_authority_wallet",
 					"type": "pubkey"
 				}
 			]
@@ -1206,66 +1274,81 @@
 	"errors": [
 		{
 			"code": 6000,
+			"name": "InvalidPonzProgramData",
+			"msg": "Invalid Ponz program data"
+		},
+		{
+			"code": 6001,
 			"name": "MissMatchingValue",
 			"msg": "Mismatching Values"
 		},
 		{
-			"code": 6001,
+			"code": 6002,
 			"name": "SlippageExcceded",
 			"msg": "Slippage Error"
 		},
 		{
-			"code": 6002,
+			"code": 6003,
 			"name": "InsufficientPremiumFeeToWithdraw",
 			"msg": "No premium fee to withdraw"
 		},
 		{
-			"code": 6003,
+			"code": 6004,
 			"name": "InsufficientPoolFeeToWithdraw",
 			"msg": "No pool fee to withdraw"
 		},
 		{
-			"code": 6004,
-			"name": "NotOwnerWallet",
-			"msg": "You are not the Owner Wallet"
-		},
-		{
 			"code": 6005,
-			"name": "NotPonzSystemWallet",
-			"msg": "You are not the Ponz System Wallet"
+			"name": "NotOwnerWallet",
+			"msg": "Not the Owner Wallet"
 		},
 		{
 			"code": 6006,
-			"name": "NotPonzRewardSystemWallet",
-			"msg": "You are not the Ponz Reward System Wallet"
+			"name": "NotPonzSystemWallet",
+			"msg": "Not the Ponz System Wallet"
 		},
 		{
 			"code": 6007,
-			"name": "NotPendingOwnerWallet",
-			"msg": "You are not the Pending Owner Wallet"
+			"name": "NotPonzRewardSystemWallet",
+			"msg": "Not the Ponz Reward System Wallet"
 		},
 		{
 			"code": 6008,
-			"name": "NotPendingPonzSystemWallet",
-			"msg": "You are not the Pending Ponz System Wallet"
+			"name": "NotPonzTokenMintAuthorityWallet",
+			"msg": "Not the Ponz Token Mint Authority Wallet"
 		},
 		{
 			"code": 6009,
-			"name": "NotPendingPonzRewardSystemWallet",
-			"msg": "You are not the Pending Ponz Reward System Wallet"
+			"name": "NotPendingOwnerWallet",
+			"msg": "Not the Pending Owner Wallet"
 		},
 		{
 			"code": 6010,
+			"name": "NotPendingPonzSystemWallet",
+			"msg": "Not the Pending Ponz System Wallet"
+		},
+		{
+			"code": 6011,
+			"name": "NotPendingPonzRewardSystemWallet",
+			"msg": "Not the Pending Ponz Reward System Wallet"
+		},
+		{
+			"code": 6012,
+			"name": "NotPendingPonzTokenMintAuthorityWallet",
+			"msg": "Not the Pending Ponz Mint Authority Wallet"
+		},
+		{
+			"code": 6013,
 			"name": "EmptyWallet",
 			"msg": "Empty wallet"
 		},
 		{
-			"code": 6011,
+			"code": 6014,
 			"name": "InvalidSwapFee",
 			"msg": "Invalid swap fee"
 		},
 		{
-			"code": 6012,
+			"code": 6015,
 			"name": "TokenPoolLockNotExpired",
 			"msg": "Token pool lock not expired"
 		}
@@ -1456,6 +1539,10 @@
 						"type": "pubkey"
 					},
 					{
+						"name": "ponz_token_mint_authority_wallet",
+						"type": "pubkey"
+					},
+					{
 						"name": "pending_owner",
 						"type": {
 							"option": "pubkey"
@@ -1469,6 +1556,18 @@
 					},
 					{
 						"name": "pending_ponz_reward_system_wallet",
+						"type": {
+							"option": "pubkey"
+						}
+					},
+					{
+						"name": "pending_ponz_sc_token_mint_authority_wallet",
+						"type": {
+							"option": "pubkey"
+						}
+					},
+					{
+						"name": "pending_ponz_token_mint_authority_wallet",
 						"type": {
 							"option": "pubkey"
 						}
@@ -1515,6 +1614,10 @@
 					},
 					{
 						"name": "ponz_reward_system_wallet",
+						"type": "pubkey"
+					},
+					{
+						"name": "ponz_token_mint_authority_wallet",
 						"type": "pubkey"
 					},
 					{

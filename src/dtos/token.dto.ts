@@ -268,6 +268,20 @@ export class Token extends SocialToken {
 	taxPending: number
 
 	@ApiProperty({
+		description: "Token lock amount",
+		example: 1000000000
+	})
+	@Expose()
+	lockAmount: number
+
+	@ApiProperty({
+		description: "Token lock time",
+		example: "2024-03-19T10:15:00Z"
+	})
+	@Expose()
+	unlockAt: Date
+
+	@ApiProperty({
 		description: "Token favorite",
 		example: false
 	})
