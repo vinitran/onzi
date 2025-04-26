@@ -65,13 +65,6 @@ export class SolanaIndexerService implements OnModuleInit {
 			const parsedData = JSON.parse(data)
 			if (parsedData?.params?.result?.value?.logs) {
 				const logData = this.ponz.parseLogs(parsedData.params.result.value.logs)
-				const i = 0
-				// for await (const log of logData) {
-				// 	console.log("log.name",i, log.name)
-				// 	i = i +1
-				// }
-				//
-				// console.log("sasdasdasdas")
 
 				for await (const log of logData) {
 					const signature: string = parsedData.params.result.value.signature

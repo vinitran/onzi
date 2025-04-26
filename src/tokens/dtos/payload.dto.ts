@@ -488,7 +488,7 @@ export class ListTransactionParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Sort By type transaction",
-		example: "desc",
+		example: "buy",
 		required: false,
 		enum: ["buy", "sell"]
 	})
@@ -544,6 +544,66 @@ export class ListTransactionParams extends PaginatedParams {
 	@IsString()
 	@IsOptional()
 	name?: string
+
+	@ApiProperty({
+		description: "Minimum amount token filter",
+		example: 0,
+		required: false
+	})
+	@IsOptional()
+	@Type(() => Number)
+	@IsNumber({ allowNaN: false })
+	amountTokenFrom?: number
+
+	@ApiProperty({
+		description: "Maximum amount token filter",
+		example: 1000000,
+		required: false
+	})
+	@IsOptional()
+	@Type(() => Number)
+	@IsNumber({ allowNaN: false })
+	amountTokenTo?: number
+
+	@ApiProperty({
+		description: "Minimum amount solana filter",
+		example: 0,
+		required: false
+	})
+	@IsOptional()
+	@Type(() => Number)
+	@IsNumber({ allowNaN: false })
+	amountSolFrom?: number
+
+	@ApiProperty({
+		description: "Maximum amount solana filter",
+		example: 1000000000,
+		required: false
+	})
+	@IsOptional()
+	@Type(() => Number)
+	@IsNumber({ allowNaN: false })
+	amountSolTo?: number
+
+	@ApiProperty({
+		description: "Minimum create at filter",
+		example: "2024-03-20T00:00:00.000Z",
+		required: false
+	})
+	@IsOptional()
+	@Transform(({ value }) => (value ? new Date(value) : undefined))
+	@Type(() => Date)
+	createAtFrom?: Date
+
+	@ApiProperty({
+		description: "Maximum create at filter",
+		example: "2024-03-21T00:00:00.000Z",
+		required: false
+	})
+	@IsOptional()
+	@Transform(({ value }) => (value ? new Date(value) : undefined))
+	@Type(() => Date)
+	createAtTo?: Date
 }
 
 export class FindListTokenFavoriteParams extends PaginatedParams {}

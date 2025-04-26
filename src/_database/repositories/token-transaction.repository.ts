@@ -64,7 +64,9 @@ export class TokenTransactionRepository {
 	async paginate(id: string, query: ListTransactionParams) {
 		const skip = (query.page - 1) * query.take
 		const where: Prisma.TokenTransactionWhereInput = {
-			id
+			token: {
+				id
+			}
 		}
 
 		const include: Prisma.TokenTransactionInclude = {
@@ -86,29 +88,54 @@ export class TokenTransactionRepository {
 		const orderBy: Prisma.TokenTransactionOrderByWithRelationInput[] = [
 			...(query.price ? [{ price: query.price }] : []),
 			...(query.amount ? [{ amount: query.amount }] : []),
-			...(query.lamports ? [{ amount: query.lamports }] : []),
+			...(query.lamports ? [{ lamports: query.lamports }] : []),
 			...(query.createTime
 				? [{ createdAt: query.createTime }]
 				: [{ createdAt: Prisma.SortOrder.desc }])
 		]
 
-		where.AND = {
-			...(query.type ? [{ amount: query.type }] : [])
-		}
+		where.AND = [
+			...(query.type
+				? [
+						{
+							type:
+								query.type === "buy"
+									? TransactionType.Buy
+									: TransactionType.Sell
+						}
+					]
+				: []),
+			...(query.amountTokenFrom
+				? [{ amount: { gte: query.amountTokenFrom } }]
+				: []),
+			...(query.amountTokenTo
+				? [{ amount: { lte: query.amountTokenTo } }]
+				: []),
+			...(query.amountSolFrom
+				? [{ lamports: { gte: query.amountSolFrom } }]
+				: []),
+			...(query.amountSolTo
+				? [{ lamports: { lte: query.amountTokenTo } }]
+				: []),
+			...(query.createAtFrom
+				? [{ createdAt: { gte: query.createAtFrom } }]
+				: []),
+			...(query.createAtTo ? [{ createdAt: { lte: query.createAtTo } }] : [])
+		]
 
 		if (query.name) {
 			where.OR = [
 				{
-					token: {
-						name: {
+					createdBy: {
+						username: {
 							contains: query.name,
 							mode: "insensitive"
 						}
 					}
 				},
 				{
-					token: {
-						ticker: {
+					createdBy: {
+						address: {
 							contains: query.name,
 							mode: "insensitive"
 						}
