@@ -114,9 +114,7 @@ export class TokenTransactionRepository {
 			...(query.amountSolFrom
 				? [{ lamports: { gte: query.amountSolFrom } }]
 				: []),
-			...(query.amountSolTo
-				? [{ lamports: { lte: query.amountTokenTo } }]
-				: []),
+			...(query.amountSolTo ? [{ lamports: { lte: query.amountSolTo } }] : []),
 			...(query.createAtFrom
 				? [{ createdAt: { gte: query.createAtFrom } }]
 				: []),
