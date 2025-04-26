@@ -108,7 +108,7 @@ export class TokenOwnerRepository {
 		const dbAmountBN = new BN(tokenOwner.amount.toString())
 
 		const newAmount =
-			type === "SELL" ? dbAmountBN.sub(amount) : dbAmountBN.add(amount)
+			type === "Sell" ? dbAmountBN.sub(amount) : dbAmountBN.add(amount)
 
 		return this.updateTokenOwner(userAddress, tokenAddress, newAmount)
 	}

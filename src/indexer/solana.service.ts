@@ -322,7 +322,7 @@ export class SolanaIndexerService implements OnModuleInit {
 			userAddress: userAddress,
 			tokenAddress: tokenAddress,
 			amount: event.amount,
-			type: isBuy ? "BUY" : "SELL"
+			type: isBuy ? "Buy" : "Sell"
 		})
 	}
 

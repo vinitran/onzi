@@ -488,13 +488,13 @@ export class ListTransactionParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Sort By type transaction",
-		example: "buy",
+		example: "Buy",
 		required: false,
-		enum: ["buy", "sell"]
+		enum: ["Buy", "Sell"]
 	})
-	@IsEnum(["buy", "sell"])
+	@IsEnum(["Buy", "Sell"])
 	@IsOptional()
-	type?: "buy" | "sell"
+	type?: "Buy" | "Sell"
 
 	@ApiProperty({
 		description: "Sort By transaction amount token",

@@ -99,7 +99,7 @@ export class TokenTransactionRepository {
 				? [
 						{
 							type:
-								query.type === "buy"
+								query.type === "Buy"
 									? TransactionType.Buy
 									: TransactionType.Sell
 						}

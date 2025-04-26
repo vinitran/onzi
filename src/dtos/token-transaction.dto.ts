@@ -4,8 +4,8 @@ import { User } from "@root/dtos/user.dto"
 import { Expose } from "class-transformer"
 
 export enum TransactionType {
-	BUY = "BUY",
-	SELL = "SELL"
+	BUY = "Buy",
+	SELL = "Sell"
 }
 
 export enum Network {
