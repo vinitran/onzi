@@ -23,6 +23,7 @@ import { S3Service } from "@root/file/file.service"
 import { Ponz } from "@root/programs/ponz/program"
 import { InjectConnection } from "@root/programs/programs.module"
 import {
+	ChartParams,
 	CreateTokenPayload,
 	FindListTokenFavoriteParams,
 	FindTokenParams,
@@ -326,6 +327,20 @@ export class TokensService {
 			total: result.total,
 			maxPage: result.maxPage
 		}))
+	}
+
+	async getChart(id: string, params: ChartParams) {
+		const token = await this.token.findById(id)
+		if (!token) throw new NotFoundException("not found token")
+
+		const chartData = await this.tokenTransaction.getChart({
+			pubkey: token.address,
+			from: params.from,
+			to: params.to,
+			step: params.step
+		})
+
+		return chartData
 	}
 
 	//   Toggle (add or remove favourite token of user)

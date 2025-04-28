@@ -6,6 +6,7 @@ import {
 	IsArray,
 	IsBoolean,
 	IsEnum,
+	IsIn,
 	IsNumber,
 	IsOptional,
 	IsString,
@@ -604,6 +605,52 @@ export class ListTransactionParams extends PaginatedParams {
 	@Transform(({ value }) => (value ? new Date(value) : undefined))
 	@Type(() => Date)
 	createAtTo?: Date
+}
+
+export class ChartParams {
+	@ApiProperty({
+		description: "Start timestamp in milliseconds",
+		example: 1711008000000,
+		required: true
+	})
+	@Prop()
+	@IsNumber()
+	from: number
+
+	@ApiProperty({
+		description: "End timestamp in milliseconds",
+		example: 1711094400000,
+		required: true
+	})
+	@Prop()
+	@IsNumber()
+	to: number
+
+	@ApiProperty({
+		description:
+			"Step size in milliseconds. Allowed values: 60000 (1m), 300000 (5m), 1800000 (30m), 3600000 (1h), 21600000 (6h), 86400000 (24h), 259200000 (3d), 604800000 (7d), 2592000000 (30d)",
+		example: 3600000,
+		required: true
+	})
+	@Prop()
+	@IsNumber()
+	@IsIn(
+		[
+			60000, // 1 minute
+			300000, // 5 minutes
+			1800000, // 30 minutes
+			3600000, // 1 hour
+			21600000, // 6 hours
+			86400000, // 24 hours
+			259200000, // 3 days
+			604800000, // 7 days
+			2592000000 // 30 days
+		],
+		{
+			message: "Step must be one of: 1m, 5m, 30m, 1h, 6h, 24h, 3d, 7d, 30d"
+		}
+	)
+	step: number
 }
 
 export class FindListTokenFavoriteParams extends PaginatedParams {}

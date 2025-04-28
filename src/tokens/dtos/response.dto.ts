@@ -5,7 +5,7 @@ import { TokenTransaction } from "@root/dtos/token-transaction.dto"
 import { Token as TokenDto } from "@root/dtos/token.dto"
 import { User } from "@root/dtos/user.dto"
 import { Expose, Type } from "class-transformer"
-import { IsArray } from "class-validator"
+import { IsArray, IsNumber } from "class-validator"
 
 export class CreateTokenInCacheResponse {
 	@ApiProperty({ description: "Token information", type: TokenDto })
@@ -158,4 +158,68 @@ export class TrendingTopicResponse {
 	@Expose()
 	@IsArray()
 	data: string[]
+}
+
+class ChartData {
+	@ApiProperty({
+		description: "Timestamp in milliseconds",
+		example: 1711008000000,
+		required: true
+	})
+	@Expose()
+	@IsNumber()
+	date: number
+
+	@ApiProperty({
+		description: "Opening price",
+		example: 0.0001,
+		required: true
+	})
+	@Expose()
+	@IsNumber()
+	open: number
+
+	@ApiProperty({
+		description: "Highest price",
+		example: 0.0002,
+		required: true
+	})
+	@Expose()
+	@IsNumber()
+	high: number
+
+	@ApiProperty({
+		description: "Lowest price",
+		example: 0.00005,
+		required: true
+	})
+	@Expose()
+	@IsNumber()
+	low: number
+
+	@ApiProperty({
+		description: "Closing price",
+		example: 0.00015,
+		required: true
+	})
+	@Expose()
+	@IsNumber()
+	close: number
+
+	@ApiProperty({
+		description: "Trading volume",
+		example: 1000000,
+		required: true
+	})
+	@Expose()
+	@IsNumber()
+	volume: number
+}
+
+export class ChartResponse {
+	@ApiProperty({ type: ChartData, description: "Data", isArray: true })
+	@Expose()
+	@IsArray()
+	@Type(() => ChartData)
+	data: ChartData[]
 }

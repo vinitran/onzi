@@ -12,6 +12,7 @@ import {
 	Paginate as PaginatedResponse
 } from "@root/dtos/common.dto"
 import {
+	ChartParams,
 	CreateTokenOnchainPayload,
 	CreateTokenPayload,
 	FindListTokenFavoriteParams,
@@ -20,6 +21,7 @@ import {
 	SickoModeParams
 } from "@root/tokens/dtos/payload.dto"
 import {
+	ChartResponse,
 	CreateTokenInCacheResponse,
 	CreateTokenOffchainResponse,
 	CreateTokenOnchainResponse,
@@ -138,6 +140,26 @@ export class TokensController {
 		return plainToInstance(TrendingTopicResponse, data, {
 			excludeExtraneousValues: true
 		})
+	}
+
+	@Get(":id/chart")
+	@ApiResponse({
+		status: 200,
+		description: "Get chart price token successfully",
+		type: ChartResponse
+	})
+	@ApiOperation({ summary: "Get token price chart" })
+	async getChart(@Param("id") id: string, @Query() params: ChartParams) {
+		const data = await this.tokensService.getChart(id, params)
+
+		return plainToInstance(
+			ChartResponse,
+			{ data },
+			{
+				excludeExtraneousValues: true,
+				enableImplicitConversion: true
+			}
+		)
 	}
 
 	@Auth()
