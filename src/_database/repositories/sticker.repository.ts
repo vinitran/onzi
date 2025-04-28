@@ -15,7 +15,16 @@ export class StickerRepository {
 	}
 
 	create(data: Prisma.StickerCreateInput) {
-		return this.prisma.sticker.create({ data })
+		return this.prisma.$transaction(async tx => {
+			const sticker = await tx.sticker.create({ data })
+			await tx.stickerOwner.create({
+				data: {
+					stickerId: sticker.id,
+					ownerAddress: sticker.creatorAddress
+				}
+			})
+			return sticker
+		})
 	}
 
 	delete(id: string) {

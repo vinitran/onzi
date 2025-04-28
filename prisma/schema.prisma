@@ -30,6 +30,7 @@ model User {
   updatedAt     DateTime?       @updatedAt @map("updated_at") @db.Timestamptz(3)
   tokenFavorite TokenFavorite[]
   stickers      Sticker[]
+  stickerOwners StickerOwner[]
 
   @@map("user")
 }
@@ -231,15 +232,28 @@ model Setting {
 }
 
 model Sticker {
-  id          String   @id @default(uuid()) @db.Uuid
-  userAddress String   @map("user_address") @db.VarChar
-  uri         String
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  id             String   @id @default(uuid()) @db.Uuid
+  creatorAddress String   @map("creator_address") @db.VarChar
+  uri            String
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  user User @relation(fields: [userAddress], references: [address], onDelete: Cascade)
+  creator       User           @relation(fields: [creatorAddress], references: [address], onDelete: Cascade)
+  stickerOwners StickerOwner[]
 
-  @@index([userAddress])
+  @@index([creatorAddress])
   @@map("sticker")
+}
+
+model StickerOwner {
+  ownerAddress String   @map("owner_address") @db.VarChar
+  stickerId    String   @map("sticker_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  owner   User    @relation(fields: [ownerAddress], references: [address], onDelete: Cascade)
+  sticker Sticker @relation(fields: [stickerId], references: [id], onDelete: Cascade)
+
+  @@id([ownerAddress, stickerId])
+  @@map("sticker_owner")
 }
 
 enum Network {

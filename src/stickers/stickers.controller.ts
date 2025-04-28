@@ -10,7 +10,7 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
 import { Claims } from "@root/auth/auth.service"
-import { Sticker, Sticker as StickerResponse } from "@root/dtos/sticker.dto"
+import { StickerOwner as StickerOwnerResponse } from "@root/dtos/sticker-owner.dto"
 import { User } from "@root/users/user.decorator"
 import { plainToInstance } from "class-transformer"
 import { CreateStickerPayload } from "./dtos/payload.dto"
@@ -48,13 +48,50 @@ export class StickersController {
 	@ApiResponse({
 		status: 200,
 		description: "Get list sticker of user successfully",
-		type: [Sticker]
+		type: [StickerOwnerResponse]
 	})
 	async getList(@Param("userAddress") userAddress: string) {
 		const result = await this.stickersService.getByUserAddress(userAddress)
-		return plainToInstance(StickerResponse, result, {
+
+		return plainToInstance(StickerOwnerResponse, result, {
 			excludeExtraneousValues: true
 		})
+	}
+
+	@Auth()
+	@Post("/:id/owner")
+	@ApiOperation({ summary: "Add a sticker" })
+	@ApiResponse({
+		status: 200,
+		description: "Sticker added successfully"
+	})
+	async addToOwner(
+		@Param("id", ParseUUIDPipe) id: string,
+		@User() user: Claims
+	) {
+		await this.stickersService.addStickerOnwer({
+			stickerId: id,
+			ownerAddress: user.address
+		})
+		return { message: "Sticker added successfully" }
+	}
+
+	@Auth()
+	@Delete("/:id/owner")
+	@ApiOperation({ summary: "Add a sticker" })
+	@ApiResponse({
+		status: 200,
+		description: "Sticker added successfully"
+	})
+	async removeOwner(
+		@Param("id", ParseUUIDPipe) id: string,
+		@User() user: Claims
+	) {
+		await this.stickersService.removeStickerOwner({
+			stickerId: id,
+			ownerAddress: user.address
+		})
+		return { message: "Sticker removed successfully" }
 	}
 
 	@Auth()

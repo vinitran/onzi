@@ -4,6 +4,7 @@ import {
 	InternalServerErrorException,
 	NotFoundException
 } from "@nestjs/common"
+import { StickerOwnerRepository } from "@root/_database/repositories/sticker-owner.repository"
 import { StickerRepository } from "@root/_database/repositories/sticker.repository"
 import { S3Service } from "@root/file/file.service"
 import { v4 as uuidv4 } from "uuid"
@@ -12,11 +13,12 @@ import { CreateStickerPayload } from "./dtos/payload.dto"
 export class StickersService {
 	constructor(
 		private sticker: StickerRepository,
+		private stickerOwner: StickerOwnerRepository,
 		private s3Service: S3Service
 	) {}
 
 	async getByUserAddress(userAddress: string) {
-		return this.sticker.find({ userAddress })
+		return this.stickerOwner.findAllByUserAddress(userAddress)
 	}
 
 	//   Create sticker
@@ -34,24 +36,47 @@ export class StickersService {
 
 		const sticker = await this.sticker.create({
 			uri: attachmentUrl,
-			user: { connect: { address: userAddress } }
+			creator: { connect: { address: userAddress } }
 		})
+
 		return {
 			sticker,
 			attachment: { fields, url }
 		}
 	}
 
+	// Delete sticker by creator
 	async delete(id: string, userAddress: string) {
 		const sticker = await this.sticker.findById(id)
 		if (!sticker) throw new NotFoundException("Not found sticker")
 
-		if (sticker.userAddress !== userAddress)
+		if (sticker.creatorAddress !== userAddress)
 			throw new ForbiddenException("Not allow delete")
 
 		await this.sticker.delete(id)
 		await this.s3Service.deleteFile(this.getKeyS3(sticker.uri))
 	}
+
+	// Add sticker to become owner
+	async addStickerOnwer(payload: { ownerAddress: string; stickerId: string }) {
+		const stickerOwner = await this.stickerOwner.findOne(payload)
+		if (stickerOwner) throw new ForbiddenException("Owned this sticker!")
+		return this.stickerOwner.create(payload)
+	}
+
+	// Remove sticker
+	async removeStickerOwner(payload: {
+		ownerAddress: string
+		stickerId: string
+	}) {
+		const stickerOwner = await this.stickerOwner.findOne(payload)
+		if (!stickerOwner) throw new ForbiddenException("Not own this sticker!")
+		if (stickerOwner.ownerAddress === stickerOwner.sticker.creatorAddress) {
+			throw new ForbiddenException("Not permission!")
+		}
+		return this.stickerOwner.delete(payload)
+	}
+
 
 	//   Get key S3
 	getKeyS3(uri: string) {

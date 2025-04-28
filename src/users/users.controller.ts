@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Post, Put, Query } from "@nestjs/common"
+import {
+	Body,
+	Controller,
+	Delete,
+	Get,
+	Param,
+	Post,
+	Put,
+	Query
+} from "@nestjs/common"
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
 import { Claims } from "@root/auth/auth.service"
@@ -234,6 +243,21 @@ export class UsersController {
 	) {
 		const unfollowing = await this.userService.unfollowing(id, followId)
 		return plainToInstance(UserConnectionResponse, unfollowing, {
+			excludeExtraneousValues: true
+		})
+	}
+
+	@Get("/:address")
+	@Auth()
+	@ApiOperation({ summary: "Get user's profile information" })
+	@ApiResponse({
+		status: 200,
+		description: "Successfully retrieved user info",
+		type: UserResponse
+	})
+	async getProfile(@Param("address") address: string) {
+		const user = await this.userService.getProfile(address)
+		return plainToInstance(UserResponse, user, {
 			excludeExtraneousValues: true
 		})
 	}
