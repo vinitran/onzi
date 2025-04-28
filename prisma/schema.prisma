@@ -238,6 +238,7 @@ model Sticker {
 
   user User @relation(fields: [userAddress], references: [address], onDelete: Cascade)
 
+  @@index([userAddress])
   @@map("sticker")
 }
 

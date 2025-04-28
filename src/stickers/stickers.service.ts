@@ -50,7 +50,13 @@ export class StickersService {
 			throw new ForbiddenException("Not allow delete")
 
 		await this.sticker.delete(id)
-		await this.s3Service.deleteFile(sticker.uri)
+		await this.s3Service.deleteFile(this.getKeyS3(sticker.uri))
+	}
+
+	//   Get key S3
+	getKeyS3(uri: string) {
+		const parts = uri.split("/")
+		return parts[parts.length - 1]
 	}
 
 	//   Get uri
@@ -60,6 +66,7 @@ export class StickersService {
 		contentType: string
 	}) {
 		const { stickerId, userAddress, contentType } = payload
+
 		const key = `sticker-${userAddress}-${stickerId}`
 		const { fields, url } = await this.s3Service.postPresignedSignedUrl(
 			key,
