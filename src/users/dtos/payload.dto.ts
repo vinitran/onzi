@@ -25,7 +25,7 @@ export class SetInformationPayload {
 	})
 	@Prop({ required: false })
 	@IsOptional()
-	@MaxLength(50, { message: "Maximum length allowed is 20 characters." })
+	@MaxLength(50, { message: "Maximum length allowed is 50 characters." })
 	bio?: string
 
 	@ApiProperty({
@@ -43,6 +43,41 @@ export class SetInformationPayload {
 	@EmptyStringToTrue()
 	@IsOptional()
 	updateBackground?: string
+
+	@ApiProperty({
+		description: "Telegram profile link",
+		required: false
+	})
+	@IsOptional()
+	telegramLink?: string
+
+	@ApiProperty({
+		description: "Twitter profile link",
+		required: false
+	})
+	@IsOptional()
+	twitterLink?: string
+
+	@ApiProperty({
+		description: "Instagram profile link",
+		required: false
+	})
+	@IsOptional()
+	instagramLink?: string
+
+	@ApiProperty({
+		description: "TikTok profile link",
+		required: false
+	})
+	@IsOptional()
+	tiktokLink?: string
+
+	@ApiProperty({
+		description: "OnlyFans profile link",
+		required: false
+	})
+	@IsOptional()
+	onlyFansLink?: string
 }
 
 export class FollowingPayload {

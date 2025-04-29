@@ -10,11 +10,10 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
 import { Claims } from "@root/auth/auth.service"
-import { StickerOwner as StickerOwnerResponse } from "@root/dtos/sticker-owner.dto"
 import { User } from "@root/users/user.decorator"
 import { plainToInstance } from "class-transformer"
 import { CreateStickerPayload } from "./dtos/payload.dto"
-import { CreateStickerResponse } from "./dtos/response.dto"
+import { CreateStickerResponse, GetStickersResponse } from "./dtos/response.dto"
 import { StickersService } from "./stickers.service"
 
 @ApiTags("stickers")
@@ -43,17 +42,20 @@ export class StickersController {
 		})
 	}
 
-	@Get("/user/:userAddress")
+	@Get("/user/:userId")
 	@ApiOperation({ summary: "Get list sticker of user" })
 	@ApiResponse({
 		status: 200,
 		description: "Get list sticker of user successfully",
-		type: [StickerOwnerResponse]
+		type: [GetStickersResponse]
 	})
-	async getList(@Param("userAddress") userAddress: string) {
-		const result = await this.stickersService.getByUserAddress(userAddress)
+	async getList(
+		@Param("userId", ParseUUIDPipe) userId: string,
+		@User() user: Claims | undefined
+	) {
+		const result = await this.stickersService.getByUserId(userId, user?.id)
 
-		return plainToInstance(StickerOwnerResponse, result, {
+		return plainToInstance(GetStickersResponse, result, {
 			excludeExtraneousValues: true
 		})
 	}

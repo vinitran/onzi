@@ -41,7 +41,8 @@ export class UsersService {
 	}
 
 	async getCoinHeld(id: string, query: PaginatedParams) {
-		const user = await this.token.findById(id)
+		const user = await this.userRepository.findById(id)
+
 		if (!user) throw new NotFoundException("can not find user")
 
 		const items = await this.indexer.getUserTokenAccounts(user.address)

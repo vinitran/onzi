@@ -476,7 +476,17 @@ export class TokenRepository {
 					updatedAt: Prisma.SortOrder.desc
 				},
 				skip,
-				take
+				take,
+				include: {
+					creator: {
+						select: {
+							address: true,
+							id: true,
+							avatarUrl: true,
+							username: true
+						}
+					}
+				}
 			})
 		])
 

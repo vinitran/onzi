@@ -14,7 +14,7 @@ export class Sticker {
 		example: "123e4567-e89b-12d3-a456-426614174999"
 	})
 	@Expose()
-	userAddress: string
+	creatorAddress: string
 
 	@ApiProperty({
 		description: "Uri of sticker",

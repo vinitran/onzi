@@ -4,6 +4,7 @@ import {
 	InternalServerErrorException,
 	NotFoundException
 } from "@nestjs/common"
+import { StickerOwner } from "@prisma/client"
 import { StickerOwnerRepository } from "@root/_database/repositories/sticker-owner.repository"
 import { StickerRepository } from "@root/_database/repositories/sticker.repository"
 import { S3Service } from "@root/file/file.service"
@@ -17,8 +18,21 @@ export class StickersService {
 		private s3Service: S3Service
 	) {}
 
-	async getByUserAddress(userAddress: string) {
-		return this.stickerOwner.findAllByUserAddress(userAddress)
+	async getByUserId(ownerId: string, userId?: string) {
+		const ownerStickers = await this.stickerOwner.findAllByUserId(ownerId)
+		let userStickers: StickerOwner[] = []
+		if (userId) {
+			userStickers = await this.stickerOwner.findAllByUserId(userId)
+		}
+
+		return ownerStickers.map(ownerSticker => {
+			return {
+				...ownerSticker,
+				isOwned: userStickers.some(
+					userSticker => userSticker.stickerId === ownerSticker.stickerId
+				)
+			}
+		})
 	}
 
 	//   Create sticker

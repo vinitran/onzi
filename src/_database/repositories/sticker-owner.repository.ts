@@ -5,9 +5,9 @@ import { PrismaService } from "../prisma.service"
 export class StickerOwnerRepository {
 	constructor(private prisma: PrismaService) {}
 
-	findAllByUserAddress(ownerAddress: string) {
+	findAllByUserId(userId: string) {
 		return this.prisma.stickerOwner.findMany({
-			where: { ownerAddress },
+			where: { owner: { id: userId } },
 			include: { sticker: true }
 		})
 	}
