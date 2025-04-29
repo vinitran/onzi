@@ -298,13 +298,24 @@ export class TokenRepository {
 		if (query.detail) {
 			include.creator = {
 				select: {
+					id: true,
 					address: true,
 					username: true,
 					avatarUrl: true
 				}
 			}
 			include.tokenOwners = {
-				select: { userAddress: true, amount: true },
+				select: {
+					user: {
+						select: {
+							id: true,
+							username: true,
+							address: true,
+							avatarUrl: true
+						}
+					},
+					amount: true
+				},
 				orderBy: { amount: Prisma.SortOrder.desc },
 				take: 10
 			}
@@ -340,8 +351,8 @@ export class TokenRepository {
 			this.prisma.token.findMany({
 				skip,
 				take: query.take,
-				include,
 				orderBy,
+				include,
 				where
 			}),
 			this.prisma.token.count({ where })

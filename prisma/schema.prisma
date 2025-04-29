@@ -91,7 +91,7 @@ model Token {
   id                      String    @id @default(uuid()) @db.Uuid
   address                 String    @unique @db.VarChar
   name                    String    @db.VarChar
-  price                   Float?
+  price                   Float?    @default(0)
   uri                     String    @db.VarChar
   imageUri                String    @db.VarChar
   ticker                  String    @db.VarChar

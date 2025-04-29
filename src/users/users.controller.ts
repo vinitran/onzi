@@ -244,7 +244,7 @@ export class UsersController {
 		})
 	}
 
-	@Get("/:address")
+	@Get(":id")
 	@Auth()
 	@ApiOperation({ summary: "Get user's profile information" })
 	@ApiResponse({
@@ -252,8 +252,8 @@ export class UsersController {
 		description: "Successfully retrieved user info",
 		type: UserResponse
 	})
-	async getProfile(@Param("address") address: string) {
-		const user = await this.userService.getProfile(address)
+	async getProfile(@Param("id") id: string) {
+		const user = await this.userService.getProfile(id)
 		return plainToInstance(UserResponse, user, {
 			excludeExtraneousValues: true
 		})

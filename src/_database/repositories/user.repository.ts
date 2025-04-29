@@ -38,11 +38,17 @@ export class UserRepository {
 	}
 
 	findByAddress(address: string) {
-		return this.prisma.user.findFirst({
-			where: {
-				address
-			}
-		})
+		return this.redis.getOrSet(
+			`findUserByUsername:${address}`,
+			async () => {
+				return this.prisma.user.findFirst({
+					where: {
+						address
+					}
+				})
+			},
+			3
+		)
 	}
 
 	async findByUsername(username: string) {

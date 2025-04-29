@@ -1,4 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger"
+import { Token } from "@root/dtos/token.dto"
+import { User } from "@root/dtos/user.dto"
 import { Expose } from "class-transformer"
 
 export class TokenOwner {
@@ -22,6 +24,20 @@ export class TokenOwner {
 	})
 	@Expose()
 	tokenAddress: string
+
+	@ApiProperty({
+		description: "User",
+		type: () => User
+	})
+	@Expose()
+	user: User
+
+	@ApiProperty({
+		description: "Token details",
+		type: () => Token
+	})
+	@Expose()
+	token: Token
 
 	@ApiProperty({
 		description: "Amount of tokens owned",

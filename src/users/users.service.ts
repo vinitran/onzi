@@ -226,8 +226,8 @@ export class UsersService {
 		return this.userConnectionRepository.delete(followId)
 	}
 
-	async getProfile(address: string) {
-		const user = await this.userRepository.findByAddress(address)
+	async getProfile(id: string) {
+		const user = await this.userRepository.findById(id)
 		if (!user) throw new NotFoundException("not found user")
 
 		return user
