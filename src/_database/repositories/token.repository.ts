@@ -358,7 +358,7 @@ export class TokenRepository {
 			)
 		}
 
-		const transformedTokens = tokens.map((token, index) => {
+		const transformedTokens = tokens.map(token => {
 			return {
 				...token,
 				isFavorite: userAddress ? favoriteTokens.includes(token.address) : false

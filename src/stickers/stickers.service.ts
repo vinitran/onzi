@@ -77,7 +77,6 @@ export class StickersService {
 		return this.stickerOwner.delete(payload)
 	}
 
-
 	//   Get key S3
 	getKeyS3(uri: string) {
 		const parts = uri.split("/")
