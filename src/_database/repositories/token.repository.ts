@@ -34,7 +34,7 @@ export class TokenRepository {
 	findLatest(take: number) {
 		return this.prisma.token.findMany({
 			orderBy: {
-				createdAt: "desc"
+				createdAt: Prisma.SortOrder.desc
 			},
 			take
 		})
@@ -380,7 +380,7 @@ export class TokenRepository {
 				skip,
 				take,
 				orderBy: {
-					createdAt: "desc"
+					createdAt: Prisma.SortOrder.desc
 				},
 				include: {
 					creator: {
@@ -414,7 +414,7 @@ export class TokenRepository {
 						user: true
 					},
 					orderBy: {
-						amount: "desc"
+						amount: Prisma.SortOrder.desc
 					},
 					take: 20
 				}
@@ -446,22 +446,23 @@ export class TokenRepository {
 		})
 	}
 
-	async getCoinCreated(address: string, params: GetCoinCreatedParams) {
+	async getCoinCreated(userId: string, params: GetCoinCreatedParams) {
 		const { page, take } = params
 		const skip = (page - 1) * take
+		const where: Prisma.TokenWhereInput = {
+			creator: {
+				id: userId
+			}
+		}
 
 		const [total, coinCreated] = await Promise.all([
 			this.prisma.token.count({
-				where: {
-					address
-				}
+				where
 			}),
 			this.prisma.token.findMany({
-				where: {
-					address
-				},
+				where,
 				orderBy: {
-					updatedAt: "desc"
+					updatedAt: Prisma.SortOrder.desc
 				},
 				skip,
 				take
@@ -516,7 +517,7 @@ export class TokenRepository {
 				isCompletedBondingCurve: false
 			},
 			orderBy: {
-				marketCapacity: "desc"
+				marketCapacity: Prisma.SortOrder.desc
 			}
 		})
 	}
@@ -638,7 +639,7 @@ export class TokenRepository {
 				isCompletedBondingCurve: false,
 				isCompletedKingOfHill: true
 			},
-			orderBy: { marketCapacity: "desc" }
+			orderBy: { marketCapacity: Prisma.SortOrder.desc }
 		})
 	}
 
@@ -654,7 +655,7 @@ export class TokenRepository {
 	findSimilar(marketCapacity: number) {
 		return this.prisma.token.findMany({
 			where: { marketCapacity: { lte: marketCapacity } },
-			orderBy: { createdAt: "desc" },
+			orderBy: { createdAt: Prisma.SortOrder.desc },
 			take: 20
 		})
 	}
@@ -663,7 +664,7 @@ export class TokenRepository {
 	getLatestOnChain() {
 		return this.prisma.token.findFirst({
 			where: { bump: true, bumpAt: { not: null } },
-			orderBy: { bumpAt: "desc" },
+			orderBy: { bumpAt: Prisma.SortOrder.desc },
 			select: {
 				id: true,
 				address: true,

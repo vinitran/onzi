@@ -113,22 +113,19 @@ export class CommentRepository {
 	async findReplyByUserId(userId: string, query: PaginatedParams) {
 		const { page, take } = query
 
+		const where: Prisma.CommentWhereInput = {
+			parentId: {
+				not: null
+			},
+			authorId: userId
+		}
+
 		const getTotal = this.prisma.comment.count({
-			where: {
-				parentId: {
-					not: null
-				},
-				authorId: userId
-			}
+			where
 		})
 
 		const getReplies = this.prisma.comment.findMany({
-			where: {
-				parentId: {
-					not: null
-				},
-				authorId: userId
-			},
+			where,
 			skip: (page - 1) * take,
 			take
 		})

@@ -40,8 +40,11 @@ export class UsersService {
 		return user
 	}
 
-	async getCoinHeld(address: string, query: PaginatedParams) {
-		const items = await this.indexer.getUserTokenAccounts(address)
+	async getCoinHeld(id: string, query: PaginatedParams) {
+		const user = await this.token.findById(id)
+		if (!user) throw new NotFoundException("can not find user")
+
+		const items = await this.indexer.getUserTokenAccounts(user.address)
 		const itemsFilted = items.token_accounts.filter((account: TokenAccount) =>
 			account.mint.endsWith("ponz")
 		)
@@ -76,8 +79,8 @@ export class UsersService {
 		return connections
 	}
 
-	async getCoinCreated(address: string, params: GetCoinCreatedParams) {
-		const coinCreatedList = await this.token.getCoinCreated(address, {
+	async getCoinCreated(id: string, params: GetCoinCreatedParams) {
+		const coinCreatedList = await this.token.getCoinCreated(id, {
 			take: params.take,
 			page: params.page
 		})

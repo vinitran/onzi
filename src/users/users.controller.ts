@@ -53,7 +53,7 @@ export class UsersController {
 		})
 	}
 
-	@Get("coinHelds")
+	@Get(":id/coinHelds")
 	@Auth()
 	@ApiPaginatedResponse(CoinHeldsResponse)
 	@ApiOperation({
@@ -64,12 +64,9 @@ export class UsersController {
 		description: "Successfully retrieved user's token holdings",
 		type: PaginatedResponse
 	})
-	async getCoinHelds(
-		@User() { address }: Claims,
-		@Query() query: PaginatedParams
-	) {
+	async getCoinHelds(@Param("id") id: string, @Query() query: PaginatedParams) {
 		const { data, total, maxPage } = await this.userService.getCoinHeld(
-			address,
+			id,
 			query
 		)
 		return plainToInstance(
@@ -81,7 +78,7 @@ export class UsersController {
 		)
 	}
 
-	@Get("followers")
+	@Get(":id/followers")
 	@Auth()
 	@ApiPaginatedResponse(UserConnectionResponse)
 	@ApiOperation({ summary: "Get paginated list of user's followers" })
@@ -91,7 +88,7 @@ export class UsersController {
 		type: PaginatedResponse
 	})
 	@ApiResponse({ status: 404, description: "User not found" })
-	async getFollower(@User() { id }: Claims, @Query() query: PaginatedParams) {
+	async getFollower(@Param("id") id: string, @Query() query: PaginatedParams) {
 		const { total, maxPage, data } = await this.userService.getFollower(
 			id,
 			query
@@ -105,7 +102,7 @@ export class UsersController {
 		)
 	}
 
-	@Get("following")
+	@Get(":id/following")
 	@Auth()
 	@ApiPaginatedResponse(UserConnectionResponse)
 	@ApiOperation({
@@ -117,7 +114,7 @@ export class UsersController {
 		type: PaginatedResponse
 	})
 	@ApiResponse({ status: 404, description: "User not found" })
-	async getFollowing(@User() { id }: Claims, @Query() query: PaginatedParams) {
+	async getFollowing(@Param("id") id: string, @Query() query: PaginatedParams) {
 		const { total, maxPage, data } = await this.userService.getFollowing(
 			id,
 			query
@@ -131,7 +128,7 @@ export class UsersController {
 		)
 	}
 
-	@Get("coinCreated")
+	@Get(":id/coin-created")
 	@Auth()
 	@ApiPaginatedResponse(TokenResponse)
 	@ApiOperation({
@@ -143,11 +140,11 @@ export class UsersController {
 		type: PaginatedResponse
 	})
 	async getCoinCreated(
-		@User() { address }: Claims,
+		@Param("id") id: string,
 		@Query() query: GetCoinCreatedParams
 	) {
 		const { total, maxPage, data } = await this.userService.getCoinCreated(
-			address,
+			id,
 			query
 		)
 		return plainToInstance(
@@ -159,7 +156,7 @@ export class UsersController {
 		)
 	}
 
-	@Get("replies")
+	@Get(":id/replies")
 	@Auth()
 	@ApiPaginatedResponse(CommentResponse)
 	@ApiOperation({ summary: "Get paginated list of user's comment replies" })
@@ -168,7 +165,7 @@ export class UsersController {
 		description: "Successfully retrieved user's replies",
 		type: PaginatedResponse
 	})
-	async getReplies(@User() { id }: Claims, @Query() query: PaginatedParams) {
+	async getReplies(@Param("id") id: string, @Query() query: PaginatedParams) {
 		const { replies, total, maxPage } = await this.userService.getReplies(
 			id,
 			query
