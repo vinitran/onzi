@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger"
-import { Prop } from "@root/_shared/utils/decorators"
+import { EmptyStringToTrue, Prop } from "@root/_shared/utils/decorators"
 import { PaginatedParams } from "@root/dtos/common.dto"
-import { IsBoolean, IsOptional, MaxLength } from "class-validator"
+import { IsOptional, MaxLength } from "class-validator"
 
 export class GetCoinCreatedParams extends PaginatedParams {}
 
@@ -30,21 +30,19 @@ export class SetInformationPayload {
 
 	@ApiProperty({
 		description: "Update Avatar",
-		example: false,
 		required: false
 	})
-	@IsBoolean()
+	@EmptyStringToTrue()
 	@IsOptional()
-	updateAvatar?: boolean
+	updateAvatar?: string
 
 	@ApiProperty({
 		description: "Update backround",
-		example: false,
 		required: false
 	})
-	@IsBoolean()
+	@EmptyStringToTrue()
 	@IsOptional()
-	updateBackground?: boolean
+	updateBackground?: string
 }
 
 export class FollowingPayload {

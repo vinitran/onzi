@@ -42,36 +42,14 @@ export class SimilarTokenResponse extends TokenDto {
 
 export class ListTransactionResponse extends TokenTransaction {}
 
-export class TokenPriceChangeResponse {
+class FindTokenCount {
 	@ApiProperty({
-		description: "Price change in last 1 hour",
-		example: 5.25,
-		required: false,
-		default: 0
+		description: "Amount Holder of token",
+		required: false
 	})
 	@Expose()
-	"1h" = 0
+	amountHolders?: number
 
-	@ApiProperty({
-		description: "Price change in last 24 hours",
-		example: -2.5,
-		required: false,
-		default: 0
-	})
-	@Expose()
-	"24h" = 0
-
-	@ApiProperty({
-		description: "Price change in last 7 days",
-		example: 10.75,
-		required: false,
-		default: 0
-	})
-	@Expose()
-	"7d" = 0
-}
-
-export class FindTokenResponse extends TokenDto {
 	@ApiProperty({
 		description: "Amount of transaction",
 		required: false,
@@ -79,22 +57,15 @@ export class FindTokenResponse extends TokenDto {
 	})
 	@Expose()
 	amountTx?: number = 0
+}
 
+export class FindTokenResponse extends TokenDto {
 	@ApiProperty({
-		description: "Price change of token",
-		required: false,
-		type: TokenPriceChangeResponse
-	})
-	@Expose()
-	@Type(() => TokenPriceChangeResponse)
-	priceChange?: TokenPriceChangeResponse
-
-	@ApiProperty({
-		description: "Amount Holder of token",
+		description: "Count information",
 		required: false
 	})
 	@Expose()
-	amountHolders?: number
+	_count: FindTokenCount
 }
 
 class SickoModeCountResponse {

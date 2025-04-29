@@ -265,6 +265,7 @@ export class TokenRepository {
 
 	async find(userAddress: string | undefined, query: FindTokenParams) {
 		const skip = (query.page - 1) * query.take
+
 		const where: Prisma.TokenWhereInput = {
 			...(query.searchText && {
 				OR: [
@@ -275,26 +276,46 @@ export class TokenRepository {
 			}),
 			...(query.hallOfFame && {
 				hallOfFame: true
+			}),
+			...(query.reward && {
+				rewardTax: { gt: 0 }
+			}),
+			...(query.jackpot && {
+				jackpotTax: { gt: 0 }
+			}),
+			...(query.burn && {
+				burnTax: { gt: 0 }
+			}),
+			...(query.lock && {
+				lockPercent: { gt: 0 }
+			}),
+			...(query.lightning && {
+				isCompletedBondingCurve: true
 			})
 		}
 
-		const include: Prisma.TokenInclude = {
-			...(query.detail && {
-				creator: {
-					select: { address: true, username: true, avatarUrl: true }
-				},
-				tokenOwners: {
-					select: { userAddress: true, amount: true },
-					orderBy: { amount: Prisma.SortOrder.desc },
-					take: 10
+		const include: Prisma.TokenInclude = {}
+		if (query.detail) {
+			include.creator = {
+				select: {
+					address: true,
+					username: true,
+					avatarUrl: true
 				}
-			}),
-			...(query.tx && {
-				_count: { select: { tokenTransaction: true } }
-			}),
-			...(query.holders && {
-				_count: { select: { tokenOwners: true } }
-			})
+			}
+			include.tokenOwners = {
+				select: { userAddress: true, amount: true },
+				orderBy: { amount: Prisma.SortOrder.desc },
+				take: 10
+			}
+		}
+
+		const countSelect: { tokenTransaction?: boolean; tokenOwners?: boolean } = {
+			...(query.tx && { tokenTransaction: true }),
+			...(query.holders && { tokenOwners: true })
+		}
+		if (Object.keys(countSelect).length > 0) {
+			include._count = { select: countSelect }
 		}
 
 		const orderBy: Prisma.TokenOrderByWithRelationInput[] = [
@@ -307,6 +328,11 @@ export class TokenRepository {
 			...(query.approachingJackpot
 				? [{ jackpotPending: query.approachingJackpot }]
 				: []),
+			...(query.priceChange1h ? [{ token1hChange: query.priceChange1h }] : []),
+			...(query.priceChange24h
+				? [{ token24hChange: query.priceChange24h }]
+				: []),
+			...(query.priceChange7d ? [{ token7dChange: query.priceChange7d }] : []),
 			...(query.latest ? [{ createdAt: query.latest }] : [])
 		]
 
@@ -314,8 +340,8 @@ export class TokenRepository {
 			this.prisma.token.findMany({
 				skip,
 				take: query.take,
-				orderBy: orderBy.length ? orderBy : undefined,
-				include: Object.keys(include).length ? include : undefined,
+				include,
+				orderBy,
 				where
 			}),
 			this.prisma.token.count({ where })
@@ -324,6 +350,7 @@ export class TokenRepository {
 		let favoriteTokens: string[] = []
 		if (userAddress) {
 			const favorites = await this.prisma.tokenFavorite.findMany({
+				select: { tokenAddress: true },
 				where: { userAddress }
 			})
 			favoriteTokens = favorites.map(
@@ -331,43 +358,12 @@ export class TokenRepository {
 			)
 		}
 
-		const priceChanges = await Promise.all(
-			tokens.map(token =>
-				this.tokenTransaction.getPriceChangePercentages(token.address)
-			)
-		)
-
 		const transformedTokens = tokens.map((token, index) => {
-			const { _count, ...rest } = token as Prisma.TokenGetPayload<{
-				include: {
-					_count: { select: { TokenTransaction: true; tokenOwners: true } }
-				}
-			}>
-
 			return {
-				...rest,
-				...(query.tx && { amountTx: _count?.TokenTransaction || 0 }),
-				amountHolders: _count?.tokenOwners || 0,
-				priceChange: priceChanges[index],
+				...token,
 				isFavorite: userAddress ? favoriteTokens.includes(token.address) : false
 			}
 		})
-
-		if (query.priceChange1h || query.priceChange24h || query.priceChange7d) {
-			const sortKey = query.priceChange1h
-				? "1h"
-				: query.priceChange24h
-					? "24h"
-					: "7d"
-			const sortOrder =
-				query.priceChange1h || query.priceChange24h || query.priceChange7d
-
-			transformedTokens.sort((a, b) => {
-				const changeA = a.priceChange[sortKey] || 0
-				const changeB = b.priceChange[sortKey] || 0
-				return sortOrder === "desc" ? changeB - changeA : changeA - changeB
-			})
-		}
 
 		return {
 			tokens: transformedTokens,

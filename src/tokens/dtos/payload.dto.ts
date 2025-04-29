@@ -1,10 +1,13 @@
 import { ApiProperty } from "@nestjs/swagger"
-import { OptionalProp, Prop } from "@root/_shared/utils/decorators"
+import {
+	EmptyStringToTrue,
+	OptionalProp,
+	Prop
+} from "@root/_shared/utils/decorators"
 import { PaginatedParams } from "@root/dtos/common.dto"
 import { Transform, Type } from "class-transformer"
 import {
 	IsArray,
-	IsBoolean,
 	IsEnum,
 	IsIn,
 	IsNumber,
@@ -223,7 +226,7 @@ export class SickoModeParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Minimum market cap filter",
-		example: 1000,
+		example: 0,
 		required: false
 	})
 	@IsOptional()
@@ -233,7 +236,7 @@ export class SickoModeParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Maximum market cap filter",
-		example: 10000,
+		example: 1000000000,
 		required: false
 	})
 	@IsOptional()
@@ -243,7 +246,7 @@ export class SickoModeParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Minimum volume filter",
-		example: 100,
+		example: 0,
 		required: false
 	})
 	@IsOptional()
@@ -253,7 +256,7 @@ export class SickoModeParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Maximum volume filter",
-		example: 1000,
+		example: 1000000000000,
 		required: false
 	})
 	@IsOptional()
@@ -263,7 +266,7 @@ export class SickoModeParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Minimum holders filter",
-		example: 10,
+		example: 0,
 		required: false
 	})
 	@IsOptional()
@@ -273,19 +276,57 @@ export class SickoModeParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Maximum holders filter",
-		example: 100,
 		required: false
 	})
 	@IsOptional()
 	@Type(() => Number)
 	@IsNumber({ allowNaN: false })
 	holderTo?: number
+
+	@ApiProperty({
+		description: "Filter by reward tax > 0",
+		required: false
+	})
+	@IsOptional()
+	@EmptyStringToTrue()
+	reward?: string
+
+	@ApiProperty({
+		description: "Filter by jackpot tax > 0",
+		required: false
+	})
+	@IsOptional()
+	@EmptyStringToTrue()
+	jackpot?: string
+
+	@ApiProperty({
+		description: "Filter by burn tax > 0",
+		required: false
+	})
+	@IsOptional()
+	@EmptyStringToTrue()
+	burn?: string
+
+	@ApiProperty({
+		description: "Filter by lock percentage > 0",
+		required: false
+	})
+	@IsOptional()
+	@EmptyStringToTrue()
+	lock?: string
+
+	@ApiProperty({
+		description: "Filter by lightning percentage > 0",
+		required: false
+	})
+	@IsOptional()
+	@EmptyStringToTrue()
+	lightning?: string
 }
 
 export class FindTokenParams extends PaginatedParams {
 	@ApiProperty({
 		description: "Text to search in token name, ticker, and description",
-		example: "Ponz",
 		required: false
 	})
 	@IsOptional()
@@ -294,7 +335,6 @@ export class FindTokenParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Sort by latest creation date",
-		example: "desc",
 		required: false,
 		enum: ["desc", "asc"]
 	})
@@ -304,27 +344,22 @@ export class FindTokenParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Show detail token",
-		example: false,
 		required: false
 	})
-	@IsBoolean()
 	@IsOptional()
-	@Transform(({ value }) => value === "true")
-	detail?: boolean
+	@EmptyStringToTrue()
+	detail?: string
 
 	@ApiProperty({
 		description: "Search hall of fame",
-		example: false,
 		required: false
 	})
-	@IsBoolean()
 	@IsOptional()
-	@Transform(({ value }) => value === "true")
-	hallOfFame?: boolean
+	@EmptyStringToTrue()
+	hallOfFame?: string
 
 	@ApiProperty({
 		description: "Sort By MarketCap",
-		example: "desc",
 		required: false,
 		enum: ["desc", "asc"]
 	})
@@ -334,7 +369,6 @@ export class FindTokenParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Sort By Price",
-		example: "desc",
 		required: false,
 		enum: ["desc", "asc"]
 	})
@@ -344,7 +378,6 @@ export class FindTokenParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Sort By Transaction amount",
-		example: "desc",
 		required: false,
 		enum: ["desc", "asc"]
 	})
@@ -354,7 +387,6 @@ export class FindTokenParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Sort By Transaction volumn",
-		example: "desc",
 		required: false,
 		enum: ["desc", "asc"]
 	})
@@ -364,7 +396,6 @@ export class FindTokenParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Sort By 1h Price Change",
-		example: "desc",
 		required: false,
 		enum: ["desc", "asc"]
 	})
@@ -374,7 +405,6 @@ export class FindTokenParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Sort By 24h Price Change",
-		example: "desc",
 		required: false,
 		enum: ["desc", "asc"]
 	})
@@ -384,7 +414,6 @@ export class FindTokenParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Sort By 7d Price Change",
-		example: "desc",
 		required: false,
 		enum: ["desc", "asc"]
 	})
@@ -394,7 +423,6 @@ export class FindTokenParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Sort By Amount of Token Holders",
-		example: "desc",
 		required: false,
 		enum: ["desc", "asc"]
 	})
@@ -404,7 +432,6 @@ export class FindTokenParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Sort By last trade time",
-		example: "desc",
 		required: false,
 		enum: ["desc", "asc"]
 	})
@@ -414,13 +441,52 @@ export class FindTokenParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Sort By approaching jackpot",
-		example: "desc",
 		required: false,
 		enum: ["desc", "asc"]
 	})
 	@IsEnum(["desc", "asc"])
 	@IsOptional()
 	approachingJackpot?: "desc" | "asc"
+
+	@ApiProperty({
+		description: "Filter by reward tax > 0",
+		required: false
+	})
+	@IsOptional()
+	@EmptyStringToTrue()
+	reward?: string
+
+	@ApiProperty({
+		description: "Filter by jackpot tax > 0",
+		required: false
+	})
+	@IsOptional()
+	@EmptyStringToTrue()
+	jackpot?: string
+
+	@ApiProperty({
+		description: "Filter by burn tax > 0",
+		required: false
+	})
+	@IsOptional()
+	@EmptyStringToTrue()
+	burn?: string
+
+	@ApiProperty({
+		description: "Filter by lock percentage > 0",
+		required: false
+	})
+	@IsOptional()
+	@EmptyStringToTrue()
+	lock?: string
+
+	@ApiProperty({
+		description: "Filter by lightning percentage > 0",
+		required: false
+	})
+	@IsOptional()
+	@EmptyStringToTrue()
+	lightning?: string
 }
 
 export class BuyTokenOnchainPayload {
@@ -479,13 +545,11 @@ export class CreateTokenOnchainPayload extends BuyTokenOnchainPayload {
 export class ListTransactionParams extends PaginatedParams {
 	@ApiProperty({
 		description: "Show detail token",
-		example: false,
 		required: false
 	})
-	@IsBoolean()
 	@IsOptional()
-	@Transform(({ value }) => value === "true")
-	detail?: boolean
+	@EmptyStringToTrue()
+	detail?: string
 
 	@ApiProperty({
 		description: "Sort By type transaction",
@@ -499,7 +563,6 @@ export class ListTransactionParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Sort By transaction amount token",
-		example: "desc",
 		required: false,
 		enum: ["desc", "asc"]
 	})
@@ -509,7 +572,6 @@ export class ListTransactionParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Sort By transaction amount lamports",
-		example: "desc",
 		required: false,
 		enum: ["desc", "asc"]
 	})
@@ -519,7 +581,6 @@ export class ListTransactionParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Sort By token price",
-		example: "desc",
 		required: false,
 		enum: ["desc", "asc"]
 	})
@@ -529,7 +590,6 @@ export class ListTransactionParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Sort By creation time",
-		example: "desc",
 		required: false,
 		enum: ["desc", "asc"]
 	})
@@ -539,7 +599,6 @@ export class ListTransactionParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Filter by token name",
-		example: "Ponz",
 		required: false
 	})
 	@IsString()
@@ -548,7 +607,6 @@ export class ListTransactionParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Minimum amount token filter",
-		example: 0,
 		required: false
 	})
 	@IsOptional()
@@ -558,7 +616,7 @@ export class ListTransactionParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Maximum amount token filter",
-		example: 1000000,
+		example: 1000000000,
 		required: false
 	})
 	@IsOptional()
@@ -568,7 +626,6 @@ export class ListTransactionParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Minimum amount solana filter",
-		example: 0,
 		required: false
 	})
 	@IsOptional()
@@ -578,7 +635,6 @@ export class ListTransactionParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Maximum amount solana filter",
-		example: 1000000000,
 		required: false
 	})
 	@IsOptional()
@@ -588,7 +644,6 @@ export class ListTransactionParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Minimum create at filter",
-		example: "2024-03-20T00:00:00.000Z",
 		required: false
 	})
 	@IsOptional()
@@ -598,7 +653,6 @@ export class ListTransactionParams extends PaginatedParams {
 
 	@ApiProperty({
 		description: "Maximum create at filter",
-		example: "2024-03-21T00:00:00.000Z",
 		required: false
 	})
 	@IsOptional()

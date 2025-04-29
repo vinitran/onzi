@@ -131,7 +131,12 @@ model Token {
   tiktokLink    String? @map("tiktok_link") @db.VarChar
   onlyFansLink  String? @map("only_fans_link") @db.VarChar
 
-  bumpAt    DateTime? @map("pump_at") @db.Timestamptz(3) // Time on chain
+  bumpAt DateTime? @map("pump_at") @db.Timestamptz(3) // Time on chain
+
+  token1hChange  Float @default(0) @map("1h_change")
+  token24hChange Float @default(0) @map("24h_change")
+  token7dChange  Float @default(0) @map("7d_change")
+
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
 

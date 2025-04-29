@@ -28,6 +28,16 @@ export const IsInterger = (target: object, propertyKey: string | symbol) => {
 	IsInt()(target, propertyKey)
 }
 
+/**
+ * Decorator to convert empty string values to "true".
+ */
+export function EmptyStringToTrue() {
+	return Transform(({ value }) => {
+		if (value === "") return "true"
+		return value
+	})
+}
+
 export const OptionalProp =
 	(options?: ApiPropertyOptions, ignoreEmpry = true): PropertyDecorator =>
 	(target: object, propertyKey: string | symbol) => {

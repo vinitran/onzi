@@ -282,6 +282,33 @@ export class Token extends SocialToken {
 	unlockAt: Date
 
 	@ApiProperty({
+		description: "Price change in last 1 hour",
+		example: 5.25,
+		required: false,
+		default: 0
+	})
+	@Expose()
+	token1hChange: number
+
+	@ApiProperty({
+		description: "Price change in last 24 hours",
+		example: -2.5,
+		required: false,
+		default: 0
+	})
+	@Expose()
+	token24hChange: number
+
+	@ApiProperty({
+		description: "Price change in last 7 days",
+		example: 10.75,
+		required: false,
+		default: 0
+	})
+	@Expose()
+	token7dChange: number
+
+	@ApiProperty({
 		description: "Token favorite",
 		example: false
 	})
