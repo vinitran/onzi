@@ -33,6 +33,18 @@ export class UserRepository {
 			where: {
 				id
 			},
+			include: {
+				social: true
+			},
+			data: payload
+		})
+	}
+
+	async updateSocial(id: string, payload: Prisma.UserSocialUpdateInput) {
+		return this.prisma.user.update({
+			where: {
+				id
+			},
 			data: payload
 		})
 	}
@@ -44,6 +56,9 @@ export class UserRepository {
 				return this.prisma.user.findFirst({
 					where: {
 						address
+					},
+					include: {
+						social: true
 					}
 				})
 			},
@@ -58,6 +73,9 @@ export class UserRepository {
 				return this.prisma.user.findFirst({
 					where: {
 						username
+					},
+					include: {
+						social: true
 					}
 				})
 			},
@@ -74,8 +92,7 @@ export class UserRepository {
 						id
 					},
 					include: {
-						follower: true,
-						following: true
+						social: true
 					}
 				})
 			},

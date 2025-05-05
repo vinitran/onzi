@@ -6,6 +6,7 @@ import {
 	NotFoundException
 } from "@nestjs/common"
 
+import { Prisma } from "@prisma/client"
 import { CommentRepository } from "@root/_database/repositories/comment.repository"
 import { TokenOwnerRepository } from "@root/_database/repositories/token-owner.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
@@ -38,7 +39,10 @@ export class UsersService {
 		const user = await this.userRepository.findById(id)
 		if (!user) throw new NotFoundException("not found user")
 
-		return user
+		return {
+			...user,
+			canChangeUsername: user.usernameChangeCount < 4
+		}
 	}
 
 	async getCoinHeld(id: string, query: PaginatedParams) {
@@ -89,50 +93,45 @@ export class UsersService {
 		return replies
 	}
 
-	private extractStringFields(payload: SetInformationPayload): {
-		username?: string
-		bio?: string
-		avatarUrl?: string
-		backgroundUrl?: string
-	} {
-		const result: {
-			username?: string
-			bio?: string
-			avatarUrl?: string
-			backgrounfUrl?: string
-		} = {}
-
-		if (payload.username) {
-			result.username = payload.username
-		}
-
-		if (payload.bio) {
-			result.bio = payload.bio
-		}
-
-		return result
-	}
-
 	async setInformation(id: string, payload: SetInformationPayload) {
+		const social = {
+			telegramLink: payload.telegramLink,
+			twitterLink: payload.twitterLink,
+			instagramLink: payload.instagramLink,
+			tiktokLink: payload.tiktokLink,
+			onlyFansLink: payload.onlyFansLink
+		}
+
+		const updateUser: Prisma.UserUpdateInput = {
+			bio: payload.bio,
+			social: {
+				upsert: {
+					update: social,
+					create: social
+				}
+			}
+		}
+
 		if (payload.username) {
-			const userWithUsername = await this.userRepository.findByUsername(
-				payload.username
-			)
+			const [user, userWithUsername] = await Promise.all([
+				this.userRepository.findById(id),
+				await this.userRepository.findByUsername(payload.username)
+			])
+
+			if (!user) throw new NotFoundException("not found user")
+
+			if (user.usernameChangeCount > 3)
+				throw new InternalServerErrorException(
+					"can not change username more than 2 times"
+				)
 
 			if (userWithUsername)
 				throw new BadRequestException(
 					"Username is already taken. Please choose another one."
 				)
-		}
 
-		const updatedPayload = this.extractStringFields(payload)
-
-		if (
-			Object.keys(updatedPayload).length === 0 &&
-			!payload.updateAvatar &&
-			!payload.updateBackground
-		) {
-			throw new BadRequestException("No valid fields to update.")
+			updateUser.username = payload.username
+			updateUser.usernameChangeCount = user.usernameChangeCount + 1
 		}
 
 		let avatarAttachment:
@@ -147,18 +146,18 @@ export class UsersService {
 				id,
 				"image/*"
 			)
-			updatedPayload.avatarUrl = avatarUrl
+			updateUser.avatarUrl = avatarUrl
 			avatarAttachment = { url, fields }
 		}
 
 		if (payload.updateBackground) {
 			const { backgroundUrl, url, fields } =
 				await this.setBackgroundPresignedUrl(id, "image/*")
-			updatedPayload.backgroundUrl = backgroundUrl
+			updateUser.backgroundUrl = backgroundUrl
 			backgroundAttachment = { url, fields }
 		}
 
-		const user = await this.userRepository.update(id, updatedPayload)
+		const user = await this.userRepository.update(id, updateUser)
 
 		if (!user) throw new InternalServerErrorException("can not update")
 

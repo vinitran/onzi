@@ -17,6 +17,8 @@ model User {
   premium       Boolean @default(false)
   backgroundUrl String? @map("background_url") @db.VarChar
 
+  usernameChangeCount Float @default(0) @map("username_change_count")
+
   tokens            Token[]
   tokenOwners       TokenOwner[]
   comments          Comment[]
@@ -31,8 +33,27 @@ model User {
   tokenFavorite TokenFavorite[]
   stickers      Sticker[]
   stickerOwners StickerOwner[]
+  social        UserSocial?
 
   @@map("user")
+}
+
+model UserSocial {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @unique @map("user_id") @db.Uuid
+
+  telegramLink  String? @map("telegram_link") @db.VarChar
+  twitterLink   String? @map("twitter_link") @db.VarChar
+  instagramLink String? @map("instagram_link") @db.VarChar
+  tiktokLink    String? @map("tiktok_link") @db.VarChar
+  onlyFansLink  String? @map("only_fans_link") @db.VarChar
+
+  user User @relation(fields: userId, references: id, onDelete: Cascade)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("user_social")
 }
 
 model UserConnection {

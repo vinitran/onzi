@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger"
+import { UserSocial } from "@root/dtos/user-social.dto"
 import { Expose } from "class-transformer"
 
 export class User {
@@ -60,6 +61,14 @@ export class User {
 	premium: string
 
 	@ApiProperty({
+		description: "User social",
+		required: false,
+		type: UserSocial
+	})
+	@Expose()
+	social?: UserSocial
+
+	@ApiProperty({
 		description: "Timestamp when the user was created",
 		example: "2024-03-20T12:00:00Z"
 	})
@@ -72,6 +81,13 @@ export class User {
 	})
 	@Expose()
 	updatedAt: string
+
+	@ApiProperty({
+		description: "Can change username",
+		example: true
+	})
+	@Expose()
+	canChangeUsername?: boolean
 
 	constructor(partial: Partial<User>) {
 		Object.assign(this, partial)
