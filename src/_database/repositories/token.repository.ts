@@ -287,7 +287,7 @@ export class TokenRepository {
 				burnTax: { gt: 0 }
 			}),
 			...(query.lock && {
-				lockPercent: { gt: 0 }
+				lockAmount: { gt: 0 }
 			}),
 			...(query.lightning && {
 				isCompletedBondingCurve: true
