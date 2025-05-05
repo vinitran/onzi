@@ -1,10 +1,16 @@
 import { BN } from "@coral-xyz/anchor"
 import { Injectable } from "@nestjs/common"
+import { Prisma } from "@prisma/client"
+import { RedisService } from "@root/_redis/redis.service"
+import { PaginatedParams } from "@root/dtos/common.dto"
 import { PrismaService } from "../prisma.service"
 
 @Injectable()
 export class TokenOwnerRepository {
-	constructor(private prisma: PrismaService) {}
+	constructor(
+		private prisma: PrismaService,
+		private redis: RedisService
+	) {}
 
 	findListHolder(data: { tokenAddress: string; take?: number }) {
 		const { take = 20, tokenAddress } = data
@@ -47,6 +53,54 @@ export class TokenOwnerRepository {
 				}
 			}
 		})
+	}
+
+	async getBalance(userAddress: string, query: PaginatedParams) {
+		const where: Prisma.TokenOwnerWhereInput = {
+			userAddress,
+			amount: {
+				gt: 0
+			}
+		}
+
+		const orderBy: Prisma.TokenOwnerOrderByWithRelationInput = {
+			amount: Prisma.SortOrder.desc
+		}
+
+		const include: Prisma.TokenOwnerInclude = {
+			token: {
+				select: {
+					name: true,
+					ticker: true,
+					imageUri: true,
+					price: true
+				}
+			}
+		}
+
+		const [data, total] = await this.redis.getOrSet(
+			`getBalance:${userAddress}, query: ${query}`,
+			async () => {
+				return Promise.all([
+					this.prisma.tokenOwner.findMany({
+						where,
+						orderBy,
+						include
+					}),
+					this.prisma.tokenOwner.count({ where })
+				])
+			},
+			3
+		)
+
+		return {
+			data: data.map(item => ({
+				...item,
+				amount: item.amount.toString()
+			})),
+			total,
+			maxPage: Math.ceil(total / query.take)
+		}
 	}
 
 	async createTokenOwner(

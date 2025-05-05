@@ -45,7 +45,7 @@ export class TokenOwner {
 		required: false
 	})
 	@Expose()
-	amount?: number
+	amount?: string
 
 	@ApiProperty({
 		description: "Token creation timestamp",

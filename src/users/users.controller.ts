@@ -69,6 +69,7 @@ export class UsersController {
 			id,
 			query
 		)
+
 		return plainToInstance(
 			PaginatedResponse<CoinHeldsResponse>,
 			new PaginatedResponse(data, total, maxPage),

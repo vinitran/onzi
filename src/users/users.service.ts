@@ -7,13 +7,13 @@ import {
 } from "@nestjs/common"
 
 import { CommentRepository } from "@root/_database/repositories/comment.repository"
+import { TokenOwnerRepository } from "@root/_database/repositories/token-owner.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserConnectionRepository } from "@root/_database/repositories/user-connection.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { PaginatedParams } from "@root/dtos/common.dto"
 import { S3Service } from "@root/file/file.service"
-import { TokenAccount } from "@root/indexer/dtos/tokenAccount.dto"
 import { IndexerService } from "@root/indexer/indexer.service"
 import {
 	GetCoinCreatedParams,
@@ -25,6 +25,7 @@ export class UsersService {
 	constructor(
 		private userRepository: UserRepository,
 		private userConnectionRepository: UserConnectionRepository,
+		private tokenOwnerRepository: TokenOwnerRepository,
 		private token: TokenRepository,
 		private comment: CommentRepository,
 		private s3Service: S3Service,
@@ -45,17 +46,7 @@ export class UsersService {
 
 		if (!user) throw new NotFoundException("can not find user")
 
-		const items = await this.indexer.getUserTokenAccounts(user.address)
-		const itemsFilted = items.token_accounts.filter((account: TokenAccount) =>
-			account.mint.endsWith("ponz")
-		)
-
-		const total = itemsFilted.length
-		const maxPage = Math.ceil(total / query.take)
-		const start = (query.page - 1) * query.take
-		const end = start + query.take
-		const data = itemsFilted.slice(start, end)
-		return { data, maxPage, total }
+		return this.tokenOwnerRepository.getBalance(user.address, query)
 	}
 
 	async getFollower(id: string, query: PaginatedParams) {

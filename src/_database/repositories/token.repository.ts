@@ -369,15 +369,19 @@ export class TokenRepository {
 			)
 		}
 
-		const transformedTokens = tokens.map(token => {
-			return {
-				...token,
-				isFavorite: userAddress ? favoriteTokens.includes(token.address) : false
-			}
-		})
-
 		return {
-			tokens: transformedTokens,
+			tokens: tokens.map(token => ({
+				...token,
+				isFavorite: userAddress
+					? favoriteTokens.includes(token.address)
+					: false,
+				tokenOwners: query.detail
+					? token.tokenOwners.map(item => ({
+							...item,
+							amount: item.amount.toString()
+						}))
+					: undefined
+			})),
 			total,
 			maxPage: Math.ceil(total / query.take)
 		}
