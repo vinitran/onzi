@@ -9,7 +9,7 @@ import { StickerOwnerRepository } from "@root/_database/repositories/sticker-own
 import { StickerRepository } from "@root/_database/repositories/sticker.repository"
 import { S3Service } from "@root/file/file.service"
 import { v4 as uuidv4 } from "uuid"
-import { CreateStickerPayload } from "./dtos/payload.dto"
+import { CreateStickerPayload, PaginateStickerParams } from "./dtos/payload.dto"
 @Injectable()
 export class StickersService {
 	constructor(
@@ -18,21 +18,36 @@ export class StickersService {
 		private s3Service: S3Service
 	) {}
 
-	async getByUserId(ownerId: string, userId?: string) {
-		const ownerStickers = await this.stickerOwner.findAllByUserId(ownerId)
+	async getByUserId(
+		payload: { ownerId: string; userId?: string } & PaginateStickerParams
+	) {
+		const { ownerId, page, take, userId } = payload
+		const {
+			data: ownerStickers,
+			maxPage,
+			total
+		} = await this.stickerOwner.paginateByUserId({
+			userId: ownerId,
+			page,
+			take
+		})
 		let userStickers: StickerOwner[] = []
 		if (userId) {
 			userStickers = await this.stickerOwner.findAllByUserId(userId)
 		}
 
-		return ownerStickers.map(ownerSticker => {
-			return {
-				...ownerSticker,
-				isOwned: userStickers.some(
-					userSticker => userSticker.stickerId === ownerSticker.stickerId
-				)
-			}
-		})
+		return {
+			data: ownerStickers.map(ownerSticker => {
+				return {
+					...ownerSticker,
+					isOwned: userStickers.some(
+						userSticker => userSticker.stickerId === ownerSticker.stickerId
+					)
+				}
+			}),
+			maxPage,
+			total
+		}
 	}
 
 	//   Create sticker

@@ -5,14 +5,19 @@ import {
 	Get,
 	Param,
 	ParseUUIDPipe,
-	Post
+	Post,
+	Query
 } from "@nestjs/common"
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
 import { Claims } from "@root/auth/auth.service"
+import {
+	ApiPaginatedResponse,
+	Paginate as PaginatedResponse
+} from "@root/dtos/common.dto"
 import { User } from "@root/users/user.decorator"
 import { plainToInstance } from "class-transformer"
-import { CreateStickerPayload } from "./dtos/payload.dto"
+import { CreateStickerPayload, PaginateStickerParams } from "./dtos/payload.dto"
 import { CreateStickerResponse, GetStickersResponse } from "./dtos/response.dto"
 import { StickersService } from "./stickers.service"
 
@@ -43,6 +48,7 @@ export class StickersController {
 	}
 
 	@Get("/user/:userId")
+	@ApiPaginatedResponse(GetStickersResponse)
 	@ApiOperation({ summary: "Get list sticker of user" })
 	@ApiResponse({
 		status: 200,
@@ -51,13 +57,23 @@ export class StickersController {
 	})
 	async getList(
 		@Param("userId", ParseUUIDPipe) userId: string,
-		@User() user: Claims | undefined
+		@User() user: Claims | undefined,
+		@Query() query: PaginateStickerParams
 	) {
-		const result = await this.stickersService.getByUserId(userId, user?.id)
-
-		return plainToInstance(GetStickersResponse, result, {
-			excludeExtraneousValues: true
+		const { data, maxPage, total } = await this.stickersService.getByUserId({
+			ownerId: userId,
+			userId: user?.id,
+			page: query.page,
+			take: query.take
 		})
+
+		return plainToInstance(
+			PaginatedResponse<GetStickersResponse>,
+			new PaginatedResponse(data, total, maxPage),
+			{
+				excludeExtraneousValues: true
+			}
+		)
 	}
 
 	@Auth()
