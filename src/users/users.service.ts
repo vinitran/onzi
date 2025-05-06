@@ -14,11 +14,13 @@ import { UserConnectionRepository } from "@root/_database/repositories/user-conn
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { PaginatedParams } from "@root/dtos/common.dto"
+import { Token as TokenResponse } from "@root/dtos/token.dto"
 import { S3Service } from "@root/file/file.service"
 import {
 	GetCoinCreatedParams,
 	SetInformationPayload
 } from "@root/users/dtos/payload.dto"
+import { plainToInstance } from "class-transformer"
 
 @Injectable()
 export class UsersService {
@@ -70,15 +72,15 @@ export class UsersService {
 		return connections
 	}
 
-	async getCoinCreated(id: string, params: GetCoinCreatedParams) {
-		const coinCreatedList = await this.token.getCoinCreated(id, {
-			take: params.take,
-			page: params.page
-		})
-		if (!coinCreatedList)
-			throw new NotFoundException("can not find connections")
-
-		return coinCreatedList
+	async getCoinCreated(id: string, query: GetCoinCreatedParams) {
+		return this.token.getCoinCreated(id, query).then(result => ({
+			data: plainToInstance(TokenResponse, result.data, {
+				excludeExtraneousValues: true,
+				enableImplicitConversion: true
+			}),
+			total: result.total,
+			maxPage: result.maxPage
+		}))
 	}
 
 	async getReplies(id: string, query: PaginatedParams) {

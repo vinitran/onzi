@@ -95,6 +95,7 @@ export class Token extends SocialToken {
 		example: 1.25
 	})
 	@Expose()
+	@Type(() => Number)
 	price?: number
 
 	@ApiProperty({
@@ -151,6 +152,7 @@ export class Token extends SocialToken {
 		example: 1000000
 	})
 	@Expose()
+	@Type(() => Number)
 	bondingCurveTarget: number
 
 	@ApiProperty({
@@ -201,13 +203,15 @@ export class Token extends SocialToken {
 		example: 10000000
 	})
 	@Expose()
-	marketCapacity: number
+	@Type(() => Number)
+	marketCapacity?: number
 
 	@ApiProperty({
 		description: "Token total supply ",
 		example: 1000000000
 	})
 	@Expose()
+	@Type(() => Number)
 	totalSupply: number
 
 	@ApiProperty({
@@ -223,6 +227,7 @@ export class Token extends SocialToken {
 		example: 1000000
 	})
 	@Expose()
+	@Type(() => Number)
 	volumn: number
 
 	@ApiProperty({
@@ -230,6 +235,7 @@ export class Token extends SocialToken {
 		example: 5
 	})
 	@Expose()
+	@Type(() => Number)
 	tax: number
 
 	@ApiProperty({
@@ -237,6 +243,7 @@ export class Token extends SocialToken {
 		example: 2
 	})
 	@Expose()
+	@Type(() => Number)
 	rewardTax: number
 
 	@ApiProperty({
@@ -244,6 +251,7 @@ export class Token extends SocialToken {
 		example: 1
 	})
 	@Expose()
+	@Type(() => Number)
 	jackpotTax: number
 
 	@ApiProperty({
@@ -251,6 +259,7 @@ export class Token extends SocialToken {
 		example: 1000
 	})
 	@Expose()
+	@Type(() => Number)
 	jackpotAmount: number
 
 	@ApiProperty({
@@ -258,6 +267,7 @@ export class Token extends SocialToken {
 		example: 2
 	})
 	@Expose()
+	@Type(() => Number)
 	burnTax: number
 
 	@ApiProperty({
@@ -265,6 +275,7 @@ export class Token extends SocialToken {
 		example: 100000000
 	})
 	@Expose()
+	@Type(() => Number)
 	jackpotPending: number
 
 	@ApiProperty({
@@ -272,6 +283,7 @@ export class Token extends SocialToken {
 		example: 1000000000
 	})
 	@Expose()
+	@Type(() => Number)
 	taxPending: number
 
 	@ApiProperty({
@@ -279,6 +291,7 @@ export class Token extends SocialToken {
 		example: 1000000000
 	})
 	@Expose()
+	@Type(() => Number)
 	lockAmount: number
 
 	@ApiProperty({
@@ -295,6 +308,7 @@ export class Token extends SocialToken {
 		default: 0
 	})
 	@Expose()
+	@Type(() => Number)
 	token1hChange: number
 
 	@ApiProperty({
@@ -304,6 +318,7 @@ export class Token extends SocialToken {
 		default: 0
 	})
 	@Expose()
+	@Type(() => Number)
 	token24hChange: number
 
 	@ApiProperty({
@@ -313,6 +328,7 @@ export class Token extends SocialToken {
 		default: 0
 	})
 	@Expose()
+	@Type(() => Number)
 	token7dChange: number
 
 	@ApiProperty({

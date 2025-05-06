@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger"
 import { Token } from "@root/dtos/token.dto"
 import { User } from "@root/dtos/user.dto"
-import { Expose } from "class-transformer"
+import { Expose, Type } from "class-transformer"
 
 export enum TransactionType {
 	BUY = "Buy",
@@ -23,7 +23,8 @@ export class TokenTransaction {
 
 	@ApiProperty({ description: "Transaction amount" })
 	@Expose()
-	amount: string
+	@Type(() => Number)
+	amount: number
 
 	@ApiProperty({ description: "Token address" })
 	@Expose()
@@ -31,7 +32,8 @@ export class TokenTransaction {
 
 	@ApiProperty({ description: "Lamports amount (Solana coin)" })
 	@Expose()
-	lamports: string
+	@Type(() => Number)
+	lamports: number
 
 	@ApiProperty({ description: "Transaction date" })
 	@Expose()
@@ -43,11 +45,13 @@ export class TokenTransaction {
 
 	@ApiProperty({ description: "Token price at transaction time" })
 	@Expose()
-	price: string
+	@Type(() => Number)
+	price: number
 
 	@ApiProperty({ description: "New token price after transaction" })
 	@Expose()
-	newPrice: string
+	@Type(() => Number)
+	newPrice: number
 
 	@ApiProperty({ description: "Transaction type", enum: TransactionType })
 	@Expose()

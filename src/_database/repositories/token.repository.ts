@@ -373,15 +373,7 @@ export class TokenRepository {
 		return {
 			tokens: tokens.map(token => ({
 				...token,
-				isFavorite: userAddress
-					? favoriteTokens.includes(token.address)
-					: false,
-				tokenOwners: query.detail
-					? token.tokenOwners.map(item => ({
-							...item,
-							amount: item.amount.toString()
-						}))
-					: undefined
+				isFavorite: userAddress ? favoriteTokens.includes(token.address) : false
 			})),
 			total,
 			maxPage: Math.ceil(total / query.take)
