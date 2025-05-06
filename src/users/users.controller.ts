@@ -53,7 +53,7 @@ export class UsersController {
 		})
 	}
 
-	@Get(":id/coinHelds")
+	@Get(":id/coin-helds")
 	@Auth()
 	@ApiPaginatedResponse(CoinHeldsResponse)
 	@ApiOperation({
