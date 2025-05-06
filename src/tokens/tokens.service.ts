@@ -268,6 +268,8 @@ export class TokensService {
 
 		return {
 			...token,
+			totalSupply: token.totalSupply.toNumber(),
+			marketCapacity: token.marketCapacity.toNumber(),
 			totalReplies,
 			percentOfBondingCurve,
 			percentOfKingOfHill,
