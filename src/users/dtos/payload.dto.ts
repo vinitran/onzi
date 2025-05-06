@@ -1,9 +1,16 @@
 import { ApiProperty } from "@nestjs/swagger"
-import { EmptyStringToTrue, Prop } from "@root/_shared/utils/decorators"
+import { Prop } from "@root/_shared/utils/decorators"
 import { PaginatedParams } from "@root/dtos/common.dto"
-import { IsOptional, MaxLength } from "class-validator"
+import { IsEnum, IsOptional, MaxLength } from "class-validator"
 
 export class GetCoinCreatedParams extends PaginatedParams {}
+
+export enum ContentType {
+	JPEG = "image/jpeg",
+	PNG = "image/png",
+	GIF = "image/gif",
+	WEBP = "image/webp"
+}
 
 export class SetInformationPayload {
 	@ApiProperty({
@@ -30,19 +37,25 @@ export class SetInformationPayload {
 
 	@ApiProperty({
 		description: "Update Avatar",
-		required: false
+		example: ContentType.JPEG,
+		enum: ContentType,
+		required: true
 	})
-	@EmptyStringToTrue()
+	@Prop()
+	@IsEnum(ContentType)
 	@IsOptional()
-	updateAvatar?: string
+	contentTypeAvatar?: ContentType
 
 	@ApiProperty({
 		description: "Update backround",
-		required: false
+		example: ContentType.JPEG,
+		enum: ContentType,
+		required: true
 	})
-	@EmptyStringToTrue()
+	@Prop()
+	@IsEnum(ContentType)
 	@IsOptional()
-	updateBackground?: string
+	contentTypeBackground?: string
 
 	@ApiProperty({
 		description: "Telegram profile link",

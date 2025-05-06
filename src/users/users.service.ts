@@ -138,18 +138,18 @@ export class UsersService {
 			| { url: string; fields: Record<string, string> }
 			| undefined
 
-		if (payload.updateAvatar) {
+		if (payload.contentTypeAvatar) {
 			const { avatarUrl, url, fields } = await this.setAvatarPresignedUrl(
 				id,
-				"image/*"
+				payload.contentTypeAvatar
 			)
 			updateUser.avatarUrl = avatarUrl
 			avatarAttachment = { url, fields }
 		}
 
-		if (payload.updateBackground) {
+		if (payload.contentTypeBackground) {
 			const { backgroundUrl, url, fields } =
-				await this.setBackgroundPresignedUrl(id, "image/*")
+				await this.setBackgroundPresignedUrl(id, payload.contentTypeBackground)
 			updateUser.backgroundUrl = backgroundUrl
 			backgroundAttachment = { url, fields }
 		}
