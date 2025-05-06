@@ -83,11 +83,11 @@ export class User {
 	updatedAt: string
 
 	@ApiProperty({
-		description: "Can change username",
-		example: true
+		description: "Username change count",
+		example: 1
 	})
 	@Expose()
-	canChangeUsername?: boolean
+	usernameChangeCount?: number
 
 	constructor(partial: Partial<User>) {
 		Object.assign(this, partial)

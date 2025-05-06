@@ -341,7 +341,7 @@ export class SolanaIndexerService implements OnModuleInit {
 		}
 
 		// find token has highest marketCap, if not exist set token is king of hill
-		if (marketCapacity < tokenWithMaxCap.marketCapacity) return
+		if (marketCapacity < tokenWithMaxCap.marketCapacity.toNumber()) return
 
 		// If the current token has the highest marketCapacity, update it as the "King of Hill".
 		return this.tokenRepository.updateKingOfCoin(id)

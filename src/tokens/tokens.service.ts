@@ -280,7 +280,9 @@ export class TokensService {
 		const token = await this.token.findByAddress(address)
 		if (!token) throw new NotFoundException("Not found token")
 
-		const listToken = await this.token.findSimilar(token.marketCapacity)
+		const listToken = await this.token.findSimilar(
+			token.marketCapacity.toNumber()
+		)
 
 		const data = await Promise.all(
 			listToken.map(async token => {

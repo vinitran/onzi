@@ -127,9 +127,9 @@ model Token {
   createdAtKingOfHill     DateTime? @map("created_at_king_of_hill")
   bump                    Boolean?  @default(false) // on chain
   creatorAddress          String    @map("creator_address") @db.VarChar
-  marketCapacity          Float     @default(28000000000) @map("market_capacity") @db.DoublePrecision
+  marketCapacity          Decimal   @default(28000000000) @map("market_capacity") @db.Decimal(20, 0)
   volumn                  Float     @default(0)
-  // totalSupply             Decimal? // 1.000.000
+  totalSupply             Decimal   @default(1000000000000000) @map("total_supply") @db.Decimal(20, 0)
   hallOfFame              Boolean   @default(false) @map("hall_of_fame")
 
   tax           Float @default(0)

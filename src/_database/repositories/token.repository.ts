@@ -204,7 +204,7 @@ export class TokenRepository {
 					0
 				)
 				const top10Percentage =
-					token.marketCapacity > 0
+					token.marketCapacity.toNumber() > 0
 						? (top10Total / Number(token.marketCapacity)) * 100
 						: 0
 

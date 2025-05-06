@@ -204,6 +204,13 @@ export class Token extends SocialToken {
 	marketCapacity: number
 
 	@ApiProperty({
+		description: "Token total supply ",
+		example: 1000000000
+	})
+	@Expose()
+	totalSupply: number
+
+	@ApiProperty({
 		description: "Token bump timestamp",
 		example: "2024-03-22T09:45:00Z",
 		required: false
