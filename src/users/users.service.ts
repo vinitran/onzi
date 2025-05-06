@@ -15,7 +15,6 @@ import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { PaginatedParams } from "@root/dtos/common.dto"
 import { S3Service } from "@root/file/file.service"
-import { IndexerService } from "@root/indexer/indexer.service"
 import {
 	GetCoinCreatedParams,
 	SetInformationPayload
@@ -30,7 +29,6 @@ export class UsersService {
 		private token: TokenRepository,
 		private comment: CommentRepository,
 		private s3Service: S3Service,
-		private indexer: IndexerService,
 
 		@InjectEnv() private env: Env
 	) {}
@@ -39,10 +37,7 @@ export class UsersService {
 		const user = await this.userRepository.findById(id)
 		if (!user) throw new NotFoundException("not found user")
 
-		return {
-			...user,
-			canChangeUsername: user.usernameChangeCount < 4
-		}
+		return user
 	}
 
 	async getCoinHeld(id: string, query: PaginatedParams) {

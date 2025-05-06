@@ -172,6 +172,7 @@ export class TokenRepository {
 					burnTax: true,
 					jackpotPending: true,
 					lockAmount: true,
+					totalSupply: true,
 					unlockAt: true,
 					taxPending: true,
 					createdAt: true,
