@@ -101,7 +101,14 @@ export class Ponz extends SolanaProgram<PonzSc> {
 				tokenPool: this.getTokenPool(mint),
 				psrvTokenPool: this.getRewardVaultTokenPool(mint),
 				ponzScRewardVault: this.rewardVault,
-				payer: user
+				ponzTokenMintAuthorityWallet: new PublicKey(
+					"FMQGZ4KUHYt2uhvCDfm8NEoouvcWAzXfb8nT3sHafXEj"
+				),
+				payer: user,
+				tokenProgram: TOKEN_2022_PROGRAM_ID,
+				rent: SYSVAR_RENT_PUBKEY,
+				systemProgram: SYSTEM_PROGRAM_ID,
+				associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID
 			})
 			.instruction()
 
@@ -114,7 +121,10 @@ export class Ponz extends SolanaProgram<PonzSc> {
 				tokenPool: this.getTokenPool(mint),
 				feePool: this.feePool,
 				payerAta: this.getOwnerAta(user, mint),
-				payer: user
+				payer: user,
+				tokenProgram: TOKEN_2022_PROGRAM_ID,
+				systemProgram: SYSTEM_PROGRAM_ID,
+				associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID
 			})
 			.instruction()
 
