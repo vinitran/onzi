@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common"
+import {
+	Body,
+	Controller,
+	Get,
+	Param,
+	ParseUUIDPipe,
+	Post,
+	Query
+} from "@nestjs/common"
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
 import { Claims } from "@root/auth/auth.service"
@@ -56,6 +64,29 @@ export class CommentController {
 		)
 	}
 
+	@Get(":tokenId/pin")
+	@ApiPaginatedResponse(CommentResponse)
+	@ApiOperation({ summary: "Get paginated comments for a token" })
+	@ApiResponse({
+		status: 200,
+		description: "Comments retrieved successfully"
+	})
+	async getPinnedComments(
+		@Param("tokenId") tokenId: string,
+		@User() user: Claims
+	) {
+		const result = await this.commentService.getPinnedComment({
+			tokenId,
+			userId: user.id
+		})
+
+		console.log("result: ", result)
+
+		return plainToInstance(CommentResponse, result, {
+			excludeExtraneousValues: true
+		})
+	}
+
 	@Post(":tokenId")
 	@ApiOperation({ summary: "Create a new comment on a token" })
 	@ApiResponse({
@@ -71,11 +102,31 @@ export class CommentController {
 		const result = await this.commentService.createComment({
 			content: body.content,
 			isContainAttachment: body.isContainAttachment,
+			stickerId: body.stickerId,
 			userId: user.id,
 			tokenId
 		})
 
 		return plainToInstance(CreateCommentResponse, result, {
+			excludeExtraneousValues: true
+		})
+	}
+
+	@Post(":commentId/toggle-pin")
+	@ApiOperation({ summary: "Pin message by dev" })
+	@ApiResponse({
+		status: 201,
+		description: "Comment is pinned successfully"
+	})
+	async pinComment(
+		@Param("commentId", new ParseUUIDPipe()) commentId: string,
+		@User() user: Claims
+	) {
+		const result = this.commentService.togglePinComment({
+			commentId,
+			userId: user.id
+		})
+		return plainToInstance(CommentResponse, result, {
 			excludeExtraneousValues: true
 		})
 	}

@@ -2,6 +2,7 @@ import { ApiProperty } from "@nestjs/swagger"
 import { S3Upload } from "@root/dtos/file.dto"
 import { User } from "@root/dtos/user.dto"
 import { Expose } from "class-transformer"
+import { Sticker } from "./sticker.dto"
 
 export class Comment {
 	@ApiProperty({
@@ -41,12 +42,26 @@ export class Comment {
 	tokenId: string
 
 	@ApiProperty({
+		description: "Status pinned by dev"
+	})
+	@Expose()
+	isPinned: boolean
+
+	@ApiProperty({
 		description: "ID of the parent comment if this is a reply",
 		example: "123e4567-e89b-12d3-a456-426614174000",
 		required: false
 	})
 	@Expose()
 	parentId?: string
+
+	@ApiProperty({
+		description: "ID of sticker",
+		example: "123e4567-e89b-12d3-a456-426614174000",
+		required: false
+	})
+	@Expose()
+	stickerId?: string
 
 	@ApiProperty({
 		description: "Timestamp when the comment was created",
@@ -77,6 +92,12 @@ export class Comment {
 	})
 	@Expose()
 	author: User
+
+	@ApiProperty({
+		type: Sticker
+	})
+	@Expose()
+	sticker?: Sticker | null
 
 	@ApiProperty({
 		description: "Presigned URL data for attachment upload",

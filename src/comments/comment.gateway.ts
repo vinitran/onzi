@@ -39,7 +39,9 @@ export class CommentGateway
 			this.logger.log(
 				`Client connected: ${client.nsp.name} - ID: ${client.id}, User: ${user.id}`
 			)
-		} catch {
+		} catch (err) {
+			console.log("Error:", err)
+
 			client.disconnect()
 		}
 	}

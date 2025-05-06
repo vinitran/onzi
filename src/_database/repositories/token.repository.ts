@@ -4,6 +4,7 @@ import {
 	NotFoundException
 } from "@nestjs/common"
 import { Prisma } from "@prisma/client"
+import { DefaultArgs } from "@prisma/client/runtime/library"
 import { RedisService } from "@root/_redis/redis.service"
 import {
 	ICreateTokenInCache,
@@ -430,11 +431,12 @@ export class TokenRepository {
 		})
 	}
 
-	findById(tokenId: string) {
+	findById(tokenId: string, include?: Prisma.TokenInclude<DefaultArgs>) {
 		return this.prisma.token.findFirst({
 			where: {
 				id: tokenId
-			}
+			},
+			include: { ...include, creator: true }
 		})
 	}
 

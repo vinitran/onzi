@@ -83,6 +83,9 @@ export class CommentRepository {
 			include: {
 				author: {
 					select: { id: true, address: true, avatarUrl: true, username: true }
+				},
+				sticker: {
+					select: { id: true, uri: true }
 				}
 			}
 		})
@@ -137,5 +140,19 @@ export class CommentRepository {
 			maxPage: Math.ceil(total / take),
 			replies
 		}
+	}
+
+	async findMany(query: Prisma.CommentFindManyArgs) {
+		return this.prisma.comment.findMany({
+			...query,
+			include: {
+				author: {
+					select: { id: true, address: true, avatarUrl: true, username: true }
+				},
+				sticker: {
+					select: { id: true, uri: true }
+				}
+			}
+		})
 	}
 }

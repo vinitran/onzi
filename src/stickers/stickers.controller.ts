@@ -62,7 +62,7 @@ export class StickersController {
 	) {
 		const { data, maxPage, total } = await this.stickersService.getByUserId({
 			ownerId: userId,
-			userId: user?.id,
+			userAddress: user?.address,
 			page: query.page,
 			take: query.take
 		})

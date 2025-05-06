@@ -43,6 +43,15 @@ export class StickerOwnerRepository {
 		})
 	}
 
+	findOneByOwnerId(data: { userId: string; stickerId: string }) {
+		return this.prisma.stickerOwner.findFirst({
+			where: {
+				owner: { id: data.userId },
+				stickerId: data.stickerId
+			}
+		})
+	}
+
 	create(data: { ownerAddress: string; stickerId: string }) {
 		return this.prisma.stickerOwner.create({
 			data

@@ -10,6 +10,7 @@ export type ICreateComment = CreateCommentPayload & {
 	tokenId: string
 	userId: string
 	contentType?: string
+	stickerId?: string
 }
 
 export type ICreateCommentResponse = {

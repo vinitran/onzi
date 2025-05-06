@@ -2,7 +2,7 @@ import { ApiProperty } from "@nestjs/swagger"
 import { IsBool, OptionalProp, Prop } from "@root/_shared/utils/decorators"
 import { PaginatedParams } from "@root/dtos/common.dto"
 import { ContentType } from "@root/tokens/dtos/payload.dto"
-import { IsEnum, IsOptional, IsString } from "class-validator"
+import { IsEnum, IsOptional, IsString, IsUUID } from "class-validator"
 
 export class CreateCommentPayload {
 	@ApiProperty({
@@ -33,6 +33,13 @@ export class CreateCommentPayload {
 	@IsEnum(ContentType)
 	@IsOptional()
 	contentType?: ContentType
+
+	@ApiProperty({
+		description: "Sticker id owned"
+	})
+	@OptionalProp()
+	@IsUUID()
+	stickerId?: string
 }
 
 export class GetCommentsParams extends PaginatedParams {

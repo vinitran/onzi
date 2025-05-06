@@ -4,7 +4,6 @@ import {
 	InternalServerErrorException,
 	NotFoundException
 } from "@nestjs/common"
-import { StickerOwner } from "@prisma/client"
 import { StickerOwnerRepository } from "@root/_database/repositories/sticker-owner.repository"
 import { StickerRepository } from "@root/_database/repositories/sticker.repository"
 import { S3Service } from "@root/file/file.service"
@@ -19,9 +18,9 @@ export class StickersService {
 	) {}
 
 	async getByUserId(
-		payload: { ownerId: string; userId?: string } & PaginateStickerParams
+		payload: { ownerId: string; userAddress?: string } & PaginateStickerParams
 	) {
-		const { ownerId, page, take, userId } = payload
+		const { ownerId, page, take, userAddress } = payload
 		const {
 			data: ownerStickers,
 			maxPage,
@@ -31,20 +30,25 @@ export class StickersService {
 			page,
 			take
 		})
-		let userStickers: StickerOwner[] = []
-		if (userId) {
-			userStickers = await this.stickerOwner.findAllByUserId(userId)
-		}
 
-		return {
-			data: ownerStickers.map(ownerSticker => {
+		const formatData = await Promise.all(
+			ownerStickers.map(async ownerSticker => {
+				let isOwned = false
+				if (userAddress)
+					isOwned = !!(await this.stickerOwner.findOne({
+						ownerAddress: userAddress,
+						stickerId: ownerSticker.stickerId
+					}))
+
 				return {
 					...ownerSticker,
-					isOwned: userStickers.some(
-						userSticker => userSticker.stickerId === ownerSticker.stickerId
-					)
+					isOwned
 				}
-			}),
+			})
+		)
+
+		return {
+			data: formatData,
 			maxPage,
 			total
 		}

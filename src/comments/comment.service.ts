@@ -1,10 +1,12 @@
 import {
+	ForbiddenException,
 	Injectable,
 	InternalServerErrorException,
 	NotFoundException
 } from "@nestjs/common"
 import { Prisma } from "@prisma/client"
 import { CommentRepository } from "@root/_database/repositories/comment.repository"
+import { StickerOwnerRepository } from "@root/_database/repositories/sticker-owner.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import {
 	ICreateComment,
@@ -20,6 +22,7 @@ export class CommentService {
 	constructor(
 		private comment: CommentRepository,
 		private token: TokenRepository,
+		private stickerOwner: StickerOwnerRepository,
 		private s3Service: S3Service
 	) {}
 
@@ -27,18 +30,35 @@ export class CommentService {
 	async createComment(
 		payload: ICreateComment
 	): Promise<ICreateCommentResponse> {
-		const { content, tokenId, userId, contentType, isContainAttachment } =
-			payload
+		const {
+			content,
+			tokenId,
+			userId,
+			contentType,
+			isContainAttachment,
+			stickerId
+		} = payload
 		const token = await this.token.findById(payload.tokenId)
 
 		if (!token) {
 			throw new NotFoundException("Token not found")
 		}
 
+		if (stickerId) {
+			const isOwnedSticker = await this.stickerOwner.findOneByOwnerId({
+				userId,
+				stickerId
+			})
+			if (!isOwnedSticker) {
+				throw new ForbiddenException("Sticker have not owned")
+			}
+		}
+
 		let comment = await this.comment.create({
 			author: { connect: { id: userId } },
 			token: { connect: { id: tokenId } },
-			content
+			content,
+			...(stickerId ? { sticker: { connect: { id: stickerId } } } : {})
 		})
 
 		// Comment has attachment (image)
@@ -120,9 +140,11 @@ export class CommentService {
 
 		// Get data & total
 		// Only get comment level 1
+		// Only get comment NOT pinned
 		const whereConditions: Prisma.CommentWhereInput = {
 			tokenId,
-			parentId: { equals: null }
+			parentId: { equals: null },
+			isPinned: false
 		}
 
 		const getComments = this.comment.paginate({
@@ -156,6 +178,54 @@ export class CommentService {
 			maxPage: Math.ceil(total / take),
 			data
 		}
+	}
+
+	//   Get list pinned comment
+	async getPinnedComment(payload: { userId: string; tokenId: string }) {
+		const { tokenId, userId } = payload
+		const whereConditions: Prisma.CommentWhereInput = {
+			tokenId,
+			parentId: { equals: null },
+			isPinned: true
+		}
+		const listPinnedComment = await this.comment.findMany({
+			where: whereConditions,
+			orderBy: { createdAt: "desc" }
+		})
+
+		const data = await Promise.all(
+			listPinnedComment.map(async comment => {
+				const [userLiked, totalLike, totalReply] = await Promise.all([
+					this.comment.isLiked(comment.id, userId),
+					this.comment.countLike(comment.id),
+					this.comment.countReply(comment.id)
+				])
+				return {
+					...comment,
+					totalLike,
+					totalReply,
+					isLiked: !!userLiked
+				}
+			})
+		)
+		return data
+	}
+
+	// Pin comment
+	async togglePinComment(payload: { userId: string; commentId: string }) {
+		const { commentId, userId } = payload
+		const comment = await this.comment.findById(commentId)
+		if (!comment) throw new NotFoundException("Comment not found")
+		const token = await this.token.findById(comment.tokenId, { creator: true })
+		if (!token) throw new NotFoundException("Token not found")
+
+		// Only creator token have permission to pin comment
+		if (token.creator.id !== userId)
+			throw new ForbiddenException(
+				"Only token creator just has permision to pin"
+			)
+
+		return this.comment.update(commentId, { isPinned: !comment.isPinned })
 	}
 
 	// Paginate replies
