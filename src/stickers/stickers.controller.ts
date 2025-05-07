@@ -8,7 +8,12 @@ import {
 	Post,
 	Query
 } from "@nestjs/common"
-import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
+import {
+	ApiBearerAuth,
+	ApiOperation,
+	ApiResponse,
+	ApiTags
+} from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
 import { Claims } from "@root/auth/auth.service"
 import {
@@ -17,8 +22,16 @@ import {
 } from "@root/dtos/common.dto"
 import { User } from "@root/users/user.decorator"
 import { plainToInstance } from "class-transformer"
-import { CreateStickerPayload, PaginateStickerParams } from "./dtos/payload.dto"
-import { CreateStickerResponse, GetStickersResponse } from "./dtos/response.dto"
+import {
+	CreateStickerPayload,
+	GetFrequentlyUsedStickersParams,
+	PaginateStickerParams
+} from "./dtos/payload.dto"
+import {
+	CreateStickerResponse,
+	GetFrequentlyUsedStickersResponse,
+	GetStickersResponse
+} from "./dtos/response.dto"
 import { StickersService } from "./stickers.service"
 
 @ApiTags("stickers")
@@ -47,7 +60,30 @@ export class StickersController {
 		})
 	}
 
+	@Auth()
+	@Get("/user/frequently-used")
+	@ApiOperation({ summary: "Get list frequently used sticker of user" })
+	@ApiResponse({
+		status: 200,
+		description: "Get list frequently used sticker of user successfully",
+		type: [GetFrequentlyUsedStickersResponse]
+	})
+	async getListFrequentlyUsed(
+		@User() user: Claims,
+		@Query() query: GetFrequentlyUsedStickersParams
+	) {
+		const result = await this.stickersService.getFrequentlyUsed({
+			ownerId: user?.id,
+			take: query.take
+		})
+
+		return plainToInstance(GetFrequentlyUsedStickersResponse, result, {
+			excludeExtraneousValues: true
+		})
+	}
+
 	@Get("/user/:userId")
+	@ApiBearerAuth()
 	@ApiPaginatedResponse(GetStickersResponse)
 	@ApiOperation({ summary: "Get list sticker of user" })
 	@ApiResponse({

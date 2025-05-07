@@ -1,13 +1,20 @@
 import {
 	Body,
 	Controller,
+	Delete,
 	Get,
 	Param,
 	ParseUUIDPipe,
 	Post,
+	Put,
 	Query
 } from "@nestjs/common"
-import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
+import {
+	ApiBearerAuth,
+	ApiOperation,
+	ApiResponse,
+	ApiTags
+} from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
 import { Claims } from "@root/auth/auth.service"
 import {
@@ -28,7 +35,6 @@ import { User } from "@root/users/user.decorator"
 import { plainToInstance } from "class-transformer"
 import { CommentService } from "./comment.service"
 
-@Auth()
 @Controller("tokens/comments")
 @ApiTags("comments")
 @ApiResponse({ status: 401, description: "Unauthorized" })
@@ -38,6 +44,7 @@ export class CommentController {
 	constructor(private readonly commentService: CommentService) {}
 
 	@Get(":tokenId")
+	@ApiBearerAuth()
 	@ApiPaginatedResponse(CommentResponse)
 	@ApiOperation({ summary: "Get paginated comments for a token" })
 	@ApiResponse({
@@ -47,12 +54,12 @@ export class CommentController {
 	async getComments(
 		@Param("tokenId") tokenId: string,
 		@Query() query: GetCommentsParams,
-		@User() user: Claims
+		@User() user: Claims | undefined
 	) {
 		const { total, maxPage, data } = await this.commentService.getComments({
 			...query,
 			tokenId,
-			userId: user.id
+			userId: user?.id
 		})
 
 		return plainToInstance(
@@ -65,6 +72,7 @@ export class CommentController {
 	}
 
 	@Get(":tokenId/pin")
+	@ApiBearerAuth()
 	@ApiOperation({ summary: "Get pinned comments for a token" })
 	@ApiResponse({
 		status: 200,
@@ -73,11 +81,11 @@ export class CommentController {
 	})
 	async getPinnedComments(
 		@Param("tokenId") tokenId: string,
-		@User() user: Claims
+		@User() user: Claims | undefined
 	) {
 		const result = await this.commentService.getPinnedComment({
 			tokenId,
-			userId: user.id
+			userId: user?.id
 		})
 
 		return plainToInstance(CommentResponse, result, {
@@ -85,6 +93,7 @@ export class CommentController {
 		})
 	}
 
+	@Auth()
 	@Post(":tokenId")
 	@ApiOperation({ summary: "Create a new comment on a token" })
 	@ApiResponse({
@@ -110,7 +119,30 @@ export class CommentController {
 		})
 	}
 
-	@Post(":commentId/toggle-pin")
+	@Auth()
+	@Delete("/:tokenId/user/:userId")
+	@ApiOperation({ summary: "Delete comment from user by dev (token creator)" })
+	@ApiResponse({
+		status: 204,
+		description: "Delete comment from user successfully"
+	})
+	async deleteCommentsOfUser(
+		@Param("userId", ParseUUIDPipe) userId: string,
+		@Param("tokenId", ParseUUIDPipe) tokenId: string,
+		@User() user: Claims
+	) {
+		await this.commentService.deleteAllCommentFromUserByCreatorToken({
+			authorId: userId,
+			creatorAddress: user.address,
+			tokenId
+		})
+		return {
+			message: "Delete comments succesfully"
+		}
+	}
+
+	@Auth()
+	@Put(":commentId/toggle-pin")
 	@ApiOperation({ summary: "Pin message by dev" })
 	@ApiResponse({
 		status: 201,
@@ -129,6 +161,7 @@ export class CommentController {
 		})
 	}
 
+	@Auth()
 	@Post(":commentId/toggle-like")
 	@ApiOperation({ summary: "Toggle like on a comment" })
 	@ApiResponse({
@@ -137,7 +170,7 @@ export class CommentController {
 		type: ToggleLikeResponse
 	})
 	async toggleLike(
-		@Param("commentId") commentId: string,
+		@Param("commentId", ParseUUIDPipe) commentId: string,
 		@User() user: Claims
 	) {
 		const result = await this.commentService.toggleLike(commentId, user.id)
@@ -147,6 +180,7 @@ export class CommentController {
 	}
 
 	@Get(":commentId/reply")
+	@ApiBearerAuth()
 	@ApiPaginatedResponse(CommentResponse)
 	@ApiOperation({ summary: "Get paginated replies to a comment" })
 	@ApiResponse({
@@ -154,14 +188,14 @@ export class CommentController {
 		description: "Replies retrieved successfully"
 	})
 	async paginateReplies(
-		@Param("commentId") commentId: string,
-		@User() user: Claims,
+		@Param("commentId", ParseUUIDPipe) commentId: string,
+		@User() user: Claims | undefined,
 		@Query() query: RepliesParams
 	) {
 		const { total, maxPage, data } = await this.commentService.getReplies({
 			...query,
 			parentId: commentId,
-			userId: user.id
+			userId: user?.id
 		})
 
 		return plainToInstance(
@@ -173,6 +207,7 @@ export class CommentController {
 		)
 	}
 
+	@Auth()
 	@Post(":commentId/reply")
 	@ApiOperation({ summary: "Create a reply to a comment" })
 	@ApiResponse({
@@ -182,7 +217,7 @@ export class CommentController {
 	})
 	async replyComment(
 		@Body() body: CreateCommentPayload,
-		@Param("commentId") commentId: string,
+		@Param("commentId", ParseUUIDPipe) commentId: string,
 		@User() user: Claims
 	) {
 		const result = await this.commentService.replyComment({
@@ -194,5 +229,25 @@ export class CommentController {
 		return plainToInstance(CreateCommentResponse, result, {
 			excludeExtraneousValues: true
 		})
+	}
+
+	@Auth()
+	@Delete(":commentId")
+	@ApiOperation({ summary: "Delete comment by dev (token creator)" })
+	@ApiResponse({
+		status: 204,
+		description: "Delete comment successfully"
+	})
+	async deleteComment(
+		@Param("commentId", ParseUUIDPipe) commentId: string,
+		@User() user: Claims
+	) {
+		await this.commentService.deleteByCreatorToken({
+			commentId,
+			creatorAddress: user.address
+		})
+		return {
+			message: "Delete comment succesfully"
+		}
 	}
 }

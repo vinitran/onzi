@@ -30,7 +30,7 @@ export type IReplyComment = Omit<ICreateComment, "tokenId">
 /* Paginate comment */
 export type IPaginateComments = GetCommentsParams & {
 	tokenId: string
-	userId: string
+	userId?: string
 }
 export type Author = Pick<User, "id" | "address" | "avatarUrl" | "username">
 export type IPaginateCommentsData = {
@@ -50,7 +50,7 @@ export type IPaginateCommentsData = {
 /* Paginate replies */
 export type IPaginateReplies = GetCommentsParams & {
 	parentId: string
-	userId: string
+	userId?: string
 }
 
 export type IPaginateRepliesData = IPaginateCommentsData

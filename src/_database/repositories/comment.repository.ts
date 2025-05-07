@@ -14,7 +14,8 @@ export class CommentRepository {
 			include: {
 				author: {
 					select: { id: true, address: true, avatarUrl: true, username: true }
-				}
+				},
+				sticker: { select: { id: true, uri: true } }
 			}
 		})
 	}
@@ -27,7 +28,8 @@ export class CommentRepository {
 			include: {
 				author: {
 					select: { id: true, address: true, avatarUrl: true, username: true }
-				}
+				},
+				sticker: { select: { id: true, uri: true } }
 			}
 		})
 	}
@@ -37,6 +39,13 @@ export class CommentRepository {
 		return this.prisma.comment.findUnique({
 			where: { id },
 			include: { likes: true }
+		})
+	}
+
+	getDetailWithTokenById(id: string) {
+		return this.prisma.comment.findUnique({
+			where: { id },
+			include: { token: true }
 		})
 	}
 
@@ -154,5 +163,13 @@ export class CommentRepository {
 				}
 			}
 		})
+	}
+
+	deleteById(id: string) {
+		return this.prisma.comment.delete({ where: { id } })
+	}
+
+	deleteByAuthorId(authorId: string) {
+		return this.prisma.comment.deleteMany({ where: { authorId } })
 	}
 }

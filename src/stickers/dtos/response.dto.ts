@@ -31,3 +31,5 @@ export class GetStickersResponse extends StickerOwner {
 		Object.assign(this, partial)
 	}
 }
+
+export class GetFrequentlyUsedStickersResponse extends StickerOwner {}

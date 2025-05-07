@@ -1,5 +1,8 @@
 import { Injectable } from "@nestjs/common"
-import { PaginateStickerParams } from "@root/stickers/dtos/payload.dto"
+import {
+	GetFrequentlyUsedStickersParams,
+	PaginateStickerParams
+} from "@root/stickers/dtos/payload.dto"
 import { PrismaService } from "../prisma.service"
 
 @Injectable()
@@ -27,6 +30,56 @@ export class StickerOwnerRepository {
 			maxPage: Math.ceil(total / take),
 			data
 		}
+	}
+
+	// Get frequently used in comment
+	async getFrequentlyUsedInComment(
+		payload: { ownerId: string } & GetFrequentlyUsedStickersParams
+	) {
+		const { ownerId, take = 5 } = payload
+		const topStickers = await this.prisma.comment.groupBy({
+			by: ["stickerId"],
+			where: {
+				stickerId: {
+					not: null
+				},
+				authorId: ownerId
+			},
+			_count: {
+				stickerId: true
+			},
+			orderBy: {
+				_count: {
+					stickerId: "desc"
+				}
+			},
+
+			take
+		})
+
+		const listStickerId = topStickers
+			.map(i => i.stickerId)
+			.filter((id): id is string => id !== null)
+
+		const listOwnedSticker = await this.prisma.stickerOwner.findMany({
+			where: {
+				owner: { id: ownerId },
+				stickerId: { in: listStickerId }
+			},
+			include: {
+				sticker: true
+			}
+		})
+
+		return listOwnedSticker.sort((a, b) => {
+			const countA =
+				topStickers.find(i => i.stickerId === a.stickerId)?._count.stickerId ||
+				0
+			const countB =
+				topStickers.find(i => i.stickerId === b.stickerId)?._count.stickerId ||
+				0
+			return countB - countA
+		})
 	}
 
 	//   Get list sticker user own them

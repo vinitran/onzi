@@ -16,6 +16,7 @@ import {
 	IReplyComment
 } from "@root/_shared/types/comment"
 import { S3Service } from "@root/file/file.service"
+import { DateTime } from "luxon"
 
 @Injectable()
 export class CommentService {
@@ -144,7 +145,7 @@ export class CommentService {
 		const whereConditions: Prisma.CommentWhereInput = {
 			tokenId,
 			parentId: { equals: null },
-			isPinned: false
+			pinnedAt: { equals: null }
 		}
 
 		const getComments = this.comment.paginate({
@@ -160,7 +161,9 @@ export class CommentService {
 		const data = await Promise.all(
 			comments.map(async comment => {
 				const [userLiked, totalLike, totalReply] = await Promise.all([
-					this.comment.isLiked(comment.id, userId),
+					userId
+						? this.comment.isLiked(comment.id, userId)
+						: Promise.resolve(null),
 					this.comment.countLike(comment.id),
 					this.comment.countReply(comment.id)
 				])
@@ -181,22 +184,24 @@ export class CommentService {
 	}
 
 	//   Get list pinned comment
-	async getPinnedComment(payload: { userId: string; tokenId: string }) {
+	async getPinnedComment(payload: { userId?: string; tokenId: string }) {
 		const { tokenId, userId } = payload
 		const whereConditions: Prisma.CommentWhereInput = {
 			tokenId,
 			parentId: { equals: null },
-			isPinned: true
+			pinnedAt: { not: null }
 		}
 		const listPinnedComment = await this.comment.findMany({
 			where: whereConditions,
-			orderBy: { createdAt: "desc" }
+			orderBy: { pinnedAt: "desc" }
 		})
 
 		const data = await Promise.all(
 			listPinnedComment.map(async comment => {
 				const [userLiked, totalLike, totalReply] = await Promise.all([
-					this.comment.isLiked(comment.id, userId),
+					userId
+						? this.comment.isLiked(comment.id, userId)
+						: Promise.resolve(null),
 					this.comment.countLike(comment.id),
 					this.comment.countReply(comment.id)
 				])
@@ -225,7 +230,9 @@ export class CommentService {
 				"Only token creator just has permision to pin"
 			)
 
-		return this.comment.update(commentId, { isPinned: !comment.isPinned })
+		return this.comment.update(commentId, {
+			pinnedAt: comment.pinnedAt ? null : DateTime.now().toJSDate()
+		})
 	}
 
 	// Paginate replies
@@ -249,7 +256,9 @@ export class CommentService {
 		const data = await Promise.all(
 			comments.map(async comment => {
 				const [userLiked, totalLike, totalReply] = await Promise.all([
-					this.comment.isLiked(comment.id, userId),
+					userId
+						? this.comment.isLiked(comment.id, userId)
+						: Promise.resolve(null),
 					this.comment.countLike(comment.id),
 					this.comment.countReply(comment.id)
 				])
@@ -267,6 +276,40 @@ export class CommentService {
 			maxPage: Math.ceil(total / take),
 			data
 		}
+	}
+
+	// Delete comment by creator token
+	async deleteByCreatorToken(payload: {
+		creatorAddress: string
+		commentId: string
+	}) {
+		const { commentId, creatorAddress } = payload
+		const comment = await this.comment.getDetailWithTokenById(commentId)
+		if (!comment) throw new NotFoundException("Comment not found")
+
+		if (comment.token.creatorAddress !== creatorAddress)
+			throw new ForbiddenException("Only creator token just allow to delete")
+
+		await this.comment.deleteById(commentId)
+	}
+
+	//   Delete list comment from user by crertor token
+
+	async deleteAllCommentFromUserByCreatorToken(payload: {
+		creatorAddress: string
+		authorId: string
+		tokenId: string
+	}) {
+		const { authorId, creatorAddress, tokenId } = payload
+
+		const token = await this.token.findById(tokenId)
+
+		if (!token) throw new NotFoundException("Token not found")
+
+		if (token.creatorAddress !== creatorAddress)
+			throw new ForbiddenException("Only creator token just allow to delete")
+
+		await this.comment.deleteByAuthorId(authorId)
 	}
 
 	/** Get data to client upload file to aws3

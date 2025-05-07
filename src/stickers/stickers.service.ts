@@ -8,7 +8,11 @@ import { StickerOwnerRepository } from "@root/_database/repositories/sticker-own
 import { StickerRepository } from "@root/_database/repositories/sticker.repository"
 import { S3Service } from "@root/file/file.service"
 import { v4 as uuidv4 } from "uuid"
-import { CreateStickerPayload, PaginateStickerParams } from "./dtos/payload.dto"
+import {
+	CreateStickerPayload,
+	GetFrequentlyUsedStickersParams,
+	PaginateStickerParams
+} from "./dtos/payload.dto"
 @Injectable()
 export class StickersService {
 	constructor(
@@ -52,6 +56,12 @@ export class StickersService {
 			maxPage,
 			total
 		}
+	}
+
+	getFrequentlyUsed(
+		payload: { ownerId: string } & GetFrequentlyUsedStickersParams
+	) {
+		return this.stickerOwner.getFrequentlyUsedInComment(payload)
 	}
 
 	//   Create sticker
@@ -104,6 +114,7 @@ export class StickersService {
 	}) {
 		const stickerOwner = await this.stickerOwner.findOne(payload)
 		if (!stickerOwner) throw new ForbiddenException("Not own this sticker!")
+		// Creator not allow to remove owned permission
 		if (stickerOwner.ownerAddress === stickerOwner.sticker.creatorAddress) {
 			throw new ForbiddenException("Not permission!")
 		}

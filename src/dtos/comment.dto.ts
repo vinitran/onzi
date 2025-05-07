@@ -42,12 +42,6 @@ export class Comment {
 	tokenId: string
 
 	@ApiProperty({
-		description: "Status pinned by dev"
-	})
-	@Expose()
-	isPinned: boolean
-
-	@ApiProperty({
 		description: "ID of the parent comment if this is a reply",
 		example: "123e4567-e89b-12d3-a456-426614174000",
 		required: false
@@ -62,6 +56,12 @@ export class Comment {
 	})
 	@Expose()
 	stickerId?: string
+
+	@ApiProperty({
+		description: "Timestamp when comment was pinned by dev"
+	})
+	@Expose()
+	pinnedAt: string
 
 	@ApiProperty({
 		description: "Timestamp when the comment was created",
