@@ -65,11 +65,11 @@ export class CommentController {
 	}
 
 	@Get(":tokenId/pin")
-	@ApiPaginatedResponse(CommentResponse)
-	@ApiOperation({ summary: "Get paginated comments for a token" })
+	@ApiOperation({ summary: "Get pinned comments for a token" })
 	@ApiResponse({
 		status: 200,
-		description: "Comments retrieved successfully"
+		description: "Pinned comments retrieved successfully",
+		type: [CommentResponse]
 	})
 	async getPinnedComments(
 		@Param("tokenId") tokenId: string,
@@ -79,8 +79,6 @@ export class CommentController {
 			tokenId,
 			userId: user.id
 		})
-
-		console.log("result: ", result)
 
 		return plainToInstance(CommentResponse, result, {
 			excludeExtraneousValues: true

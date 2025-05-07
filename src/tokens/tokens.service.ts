@@ -26,12 +26,14 @@ import {
 	ChartParams,
 	CreateTokenPayload,
 	FindListTokenFavoriteParams,
+	FindTokenByTextParams,
 	FindTokenParams,
 	ListTransactionParams,
 	SickoModeParams
 } from "@root/tokens/dtos/payload.dto"
 import {
 	FindFavoriteTokenResponse,
+	FindSimilarTokenResponse,
 	FindTokenResponse,
 	ListTransactionResponse,
 	SickoModeResponse
@@ -391,20 +393,32 @@ export class TokensService {
 			const content = `${token.name} ${token.ticker} ${token.description}`
 			const words = content
 				.toLowerCase()
-				.replace(/[^a-z0-9\s]/g, "") // loại bỏ ký tự đặc biệt
+				.replace(/[^a-z0-9\s]/g, "")
 				.split(/\s+/)
-				.filter(word => word.length > 2) // bỏ qua từ ngắn
+				.filter(word => word.length > 2)
 
 			for (const word of words) {
 				wordCount[word] = (wordCount[word] || 0) + 1
 			}
 		}
 
-		// Sắp xếp theo số lần xuất hiện giảm dần
 		const sorted = Object.entries(wordCount)
 			.sort((a, b) => b[1] - a[1])
 			.map(([word, count]) => ({ word, count }))
 
 		return { data: sorted.slice(0, 5).map(item => item.word) }
+	}
+
+	//   Get tokens: name, ticker
+	async paginateSimilar(payload: FindTokenByTextParams) {
+		const { data, ...rest } = await this.token.paginateSimilar(payload)
+
+		return {
+			data: plainToInstance(FindSimilarTokenResponse, data, {
+				excludeExtraneousValues: true,
+				enableImplicitConversion: true
+			}),
+			...rest
+		}
 	}
 }

@@ -16,6 +16,7 @@ import {
 	CreateTokenOnchainPayload,
 	CreateTokenPayload,
 	FindListTokenFavoriteParams,
+	FindTokenByTextParams,
 	FindTokenParams,
 	ListTransactionParams,
 	SickoModeParams
@@ -26,6 +27,7 @@ import {
 	CreateTokenOffchainResponse,
 	CreateTokenOnchainResponse,
 	FindFavoriteTokenResponse,
+	FindSimilarTokenResponse,
 	FindTokenResponse,
 	ListTransactionResponse,
 	SickoModeResponse,
@@ -106,6 +108,22 @@ export class TokensController {
 		)
 	}
 
+	@Get("similar")
+	@ApiPaginatedResponse(FindSimilarTokenResponse)
+	@ApiOperation({ summary: "List token by text (name, ticker)" })
+	async pagninateSimliar(@Query() query: FindTokenByTextParams) {
+		const { data, maxPage, total } =
+			await this.tokensService.paginateSimilar(query)
+
+		return plainToInstance(
+			PaginatedResponse<FindSimilarTokenResponse>,
+			new PaginatedResponse(data, total, maxPage),
+			{
+				excludeExtraneousValues: true
+			}
+		)
+	}
+
 	@Get("/sicko-mode")
 	@ApiBearerAuth()
 	@ApiPaginatedResponse(SickoModeResponse)
@@ -119,6 +137,7 @@ export class TokensController {
 			total,
 			maxPage
 		} = await this.tokensService.findSickoMode(user?.address, query)
+
 		return plainToInstance(
 			PaginatedResponse<SickoModeResponse>,
 			new PaginatedResponse(data, total, maxPage),

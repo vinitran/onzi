@@ -489,6 +489,15 @@ export class FindTokenParams extends PaginatedParams {
 	lightning?: string
 }
 
+export class FindTokenByTextParams extends PaginatedParams {
+	@ApiProperty({
+		description: "Text to search for name, ticker",
+		example: "ponz"
+	})
+	@Prop()
+	@IsString()
+	searchText: string
+}
 export class BuyTokenOnchainPayload {
 	@ApiProperty({
 		description: "SOL amount for buying token",

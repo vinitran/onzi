@@ -210,7 +210,18 @@ export class TokenRepository {
 						? (top10Total / Number(token.marketCapacity)) * 100
 						: 0
 
-				const isFavorite = query.sort === SickoModeType.FAVORITE
+				let isFavorite = false
+
+				if (userAddress) {
+					isFavorite = !!(await this.prisma.tokenFavorite.findUnique({
+						where: {
+							tokenAddress_userAddress: {
+								tokenAddress: token.address,
+								userAddress
+							}
+						}
+					}))
+				}
 
 				if (token.tokenOwners.length === 0) {
 					return {
@@ -692,5 +703,60 @@ export class TokenRepository {
 				creator: true
 			}
 		})
+	}
+
+	async paginateSimilar(payload: {
+		searchText: string
+		page: number
+		take: number
+	}) {
+		const { page, searchText, take = 20 } = payload
+		const skip = (page - 1) * take
+		const whereCondition: Prisma.TokenWhereInput = {
+			OR: [
+				{
+					name: {
+						contains: searchText,
+						mode: "insensitive"
+					}
+				},
+				{
+					ticker: {
+						contains: searchText,
+						mode: "insensitive"
+					}
+				}
+			]
+		}
+		const [data, total] = await Promise.all([
+			this.prisma.token.findMany({
+				where: whereCondition,
+				skip,
+				take,
+				select: {
+					id: true,
+					address: true,
+					name: true,
+					ticker: true,
+					marketCapacity: true,
+					imageUri: true,
+					createdAt: true,
+					volumn: true
+				},
+				orderBy: {
+					createdAt: "desc"
+				}
+			}),
+
+			this.prisma.token.count({
+				where: whereCondition
+			})
+		])
+
+		return {
+			data,
+			total,
+			maxPage: Math.ceil(total / take)
+		}
 	}
 }

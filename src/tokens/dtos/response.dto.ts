@@ -194,3 +194,5 @@ export class ChartResponse {
 	@Type(() => ChartData)
 	data: ChartData[]
 }
+
+export class FindSimilarTokenResponse extends TokenDto {}
