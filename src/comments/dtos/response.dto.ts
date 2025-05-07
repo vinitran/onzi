@@ -1,7 +1,8 @@
 import { ApiProperty } from "@nestjs/swagger"
+import { BlockComment } from "@root/dtos/block-comment.dto"
 import { Comment } from "@root/dtos/comment.dto"
 import { S3Upload } from "@root/dtos/file.dto"
-import { Expose } from "class-transformer"
+import { Expose, Type } from "class-transformer"
 
 export class CreateCommentResponse {
 	@ApiProperty({
@@ -33,4 +34,24 @@ export class ToggleLikeResponse {
 	})
 	@Expose()
 	totalLike: number
+}
+
+class BlockedUser {
+	@Expose()
+	id: string
+
+	@Expose()
+	username: string
+
+	@Expose()
+	address: string
+
+	@Expose()
+	avatarUrl: string
+}
+
+export class GetBlockedUserCommentResponse extends BlockComment {
+	@Expose()
+	@Type(() => BlockedUser)
+	user: BlockedUser
 }

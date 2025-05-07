@@ -170,7 +170,7 @@ export class UsersService {
 		if (!url || !fields)
 			throw new InternalServerErrorException("can not get presigned url")
 
-		return { avatarUrl: `${url}${key}`, url, fields }
+		return { avatarUrl: `${url}${fields.key}`, url, fields }
 	}
 
 	async setBackgroundPresignedUrl(id: string, contentType: string) {
@@ -182,7 +182,7 @@ export class UsersService {
 		if (!url || !fields)
 			throw new InternalServerErrorException("can not get presigned url")
 
-		return { backgroundUrl: `${url}${key}`, url, fields }
+		return { backgroundUrl: `${url}${fields.key}`, url, fields }
 	}
 
 	async following(id: string, followingId: string) {

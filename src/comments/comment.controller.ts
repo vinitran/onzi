@@ -3,6 +3,7 @@ import {
 	Controller,
 	Delete,
 	Get,
+	HttpCode,
 	Param,
 	ParseUUIDPipe,
 	Post,
@@ -24,6 +25,7 @@ import {
 } from "@root/comments/dtos/payload.dto"
 import {
 	CreateCommentResponse,
+	GetBlockedUserCommentResponse,
 	ToggleLikeResponse
 } from "@root/comments/dtos/response.dto"
 import { Comment as CommentResponse } from "@root/dtos/comment.dto"
@@ -120,7 +122,49 @@ export class CommentController {
 	}
 
 	@Auth()
+	@Post("/:tokenId/user/:userId/block")
+	@ApiOperation({
+		summary: "Toggle blocking user comment by dev (token creator)"
+	})
+	@ApiResponse({
+		description: "Toggled blocking user comment successfully"
+	})
+	async blockUserComment(
+		@Param("userId", ParseUUIDPipe) userId: string,
+		@Param("tokenId", ParseUUIDPipe) tokenId: string,
+		@User() user: Claims
+	) {
+		await this.commentService.toggleBlock({
+			creatorAddress: user.address,
+			tokenId,
+			userId
+		})
+		return {
+			message: "Toggle blocking user succesfully"
+		}
+	}
+
+	@Auth()
+	@Get("/:tokenId/user/block")
+	@ApiOperation({
+		summary: "Get list blocked user in a token"
+	})
+	@ApiResponse({
+		description: "Get list blocked user in a token successfully",
+		type: [GetBlockedUserCommentResponse]
+	})
+	async getListBlockedUserComment(
+		@Param("tokenId", ParseUUIDPipe) tokenId: string
+	) {
+		const result = await this.commentService.getAllBlockedUserComment(tokenId)
+		return plainToInstance(GetBlockedUserCommentResponse, result, {
+			excludeExtraneousValues: true
+		})
+	}
+
+	@Auth()
 	@Delete("/:tokenId/user/:userId")
+	@HttpCode(204)
 	@ApiOperation({ summary: "Delete comment from user by dev (token creator)" })
 	@ApiResponse({
 		status: 204,
@@ -233,6 +277,7 @@ export class CommentController {
 
 	@Auth()
 	@Delete(":commentId")
+	@HttpCode(204)
 	@ApiOperation({ summary: "Delete comment by dev (token creator)" })
 	@ApiResponse({
 		status: 204,

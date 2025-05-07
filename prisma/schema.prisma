@@ -34,6 +34,7 @@ model User {
   stickers      Sticker[]
   stickerOwners StickerOwner[]
   social        UserSocial?
+  blockComments BlockComment[]
 
   @@map("user")
 }
@@ -93,6 +94,19 @@ model Comment {
   @@index([authorId])
   @@index([tokenId])
   @@map("comment")
+}
+
+model BlockComment {
+  userId  String @map("user_id") @db.Uuid
+  tokenId String @map("token_id") @db.Uuid
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token Token @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@id([userId, tokenId])
+  @@map("block_comment")
 }
 
 model CommentLike {
@@ -168,6 +182,7 @@ model Token {
   tokenTransaction TokenTransaction[]
   tokenKey         TokenKey           @relation(fields: [address], references: publicKey)
   tokenFavorite    TokenFavorite[]
+  blockComments    BlockComment[]
 
   @@index([creatorAddress, createdAt(sort: Desc)])
   @@map("token")

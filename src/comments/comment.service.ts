@@ -5,15 +5,21 @@ import {
 	NotFoundException
 } from "@nestjs/common"
 import { Prisma } from "@prisma/client"
+import { BlockCommentRepository } from "@root/_database/repositories/block-comment.repository"
 import { CommentRepository } from "@root/_database/repositories/comment.repository"
 import { StickerOwnerRepository } from "@root/_database/repositories/sticker-owner.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import {
+	DeleteAllCommentFromUserByCreatorTokenPayload,
+	DeleteCommentByCreatorTokenPayload,
+	GetPinnedCommentPayload,
 	ICreateComment,
 	ICreateCommentResponse,
 	IPaginateComments,
 	IPaginateReplies,
-	IReplyComment
+	IReplyComment,
+	ToggleBlockUserCommentPayload,
+	TogglePinCommentPayload
 } from "@root/_shared/types/comment"
 import { S3Service } from "@root/file/file.service"
 import { DateTime } from "luxon"
@@ -24,6 +30,7 @@ export class CommentService {
 		private comment: CommentRepository,
 		private token: TokenRepository,
 		private stickerOwner: StickerOwnerRepository,
+		private blockComment: BlockCommentRepository,
 		private s3Service: S3Service
 	) {}
 
@@ -42,8 +49,15 @@ export class CommentService {
 		const token = await this.token.findById(payload.tokenId)
 
 		if (!token) {
-			throw new NotFoundException("Token not found")
+			throw new NotFoundException("Not found token")
 		}
+
+		const isBlocked = !!(await this.blockComment.findOne({ tokenId, userId }))
+
+		if (isBlocked)
+			throw new ForbiddenException(
+				"Blocked user is not allowed to create comment"
+			)
 
 		if (stickerId) {
 			const isOwnedSticker = await this.stickerOwner.findOneByOwnerId({
@@ -51,7 +65,7 @@ export class CommentService {
 				stickerId
 			})
 			if (!isOwnedSticker) {
-				throw new ForbiddenException("Sticker have not owned")
+				throw new ForbiddenException("Sticker has not ever owned")
 			}
 		}
 
@@ -86,7 +100,7 @@ export class CommentService {
 		const comment = await this.comment.findById(commentId)
 
 		if (!comment) {
-			throw new NotFoundException("Comment not found")
+			throw new NotFoundException("Not found comment")
 		}
 
 		const isLiked = comment.likes.some(like => like.userId === userId)
@@ -104,7 +118,7 @@ export class CommentService {
 			payload
 		const parentComment = await this.comment.findById(commentId)
 		if (!parentComment) {
-			throw new NotFoundException("Comment not found")
+			throw new NotFoundException("Not found comment")
 		}
 
 		let comment = await this.comment.reply({
@@ -184,7 +198,7 @@ export class CommentService {
 	}
 
 	//   Get list pinned comment
-	async getPinnedComment(payload: { userId?: string; tokenId: string }) {
+	async getPinnedComment(payload: GetPinnedCommentPayload) {
 		const { tokenId, userId } = payload
 		const whereConditions: Prisma.CommentWhereInput = {
 			tokenId,
@@ -217,12 +231,12 @@ export class CommentService {
 	}
 
 	// Pin comment
-	async togglePinComment(payload: { userId: string; commentId: string }) {
+	async togglePinComment(payload: TogglePinCommentPayload) {
 		const { commentId, userId } = payload
 		const comment = await this.comment.findById(commentId)
-		if (!comment) throw new NotFoundException("Comment not found")
+		if (!comment) throw new NotFoundException("Not found comment")
 		const token = await this.token.findById(comment.tokenId, { creator: true })
-		if (!token) throw new NotFoundException("Token not found")
+		if (!token) throw new NotFoundException("Not found token")
 
 		// Only creator token have permission to pin comment
 		if (token.creator.id !== userId)
@@ -279,13 +293,10 @@ export class CommentService {
 	}
 
 	// Delete comment by creator token
-	async deleteByCreatorToken(payload: {
-		creatorAddress: string
-		commentId: string
-	}) {
+	async deleteByCreatorToken(payload: DeleteCommentByCreatorTokenPayload) {
 		const { commentId, creatorAddress } = payload
 		const comment = await this.comment.getDetailWithTokenById(commentId)
-		if (!comment) throw new NotFoundException("Comment not found")
+		if (!comment) throw new NotFoundException("Not found comment")
 
 		if (comment.token.creatorAddress !== creatorAddress)
 			throw new ForbiddenException("Only creator token just allow to delete")
@@ -293,23 +304,46 @@ export class CommentService {
 		await this.comment.deleteById(commentId)
 	}
 
-	//   Delete list comment from user by crertor token
-
-	async deleteAllCommentFromUserByCreatorToken(payload: {
-		creatorAddress: string
-		authorId: string
-		tokenId: string
-	}) {
+	//   Delete list comment from user by creator token
+	async deleteAllCommentFromUserByCreatorToken(
+		payload: DeleteAllCommentFromUserByCreatorTokenPayload
+	) {
 		const { authorId, creatorAddress, tokenId } = payload
 
 		const token = await this.token.findById(tokenId)
-
-		if (!token) throw new NotFoundException("Token not found")
-
+		if (!token) throw new NotFoundException("Not found token")
 		if (token.creatorAddress !== creatorAddress)
 			throw new ForbiddenException("Only creator token just allow to delete")
 
 		await this.comment.deleteByAuthorId(authorId)
+	}
+
+	// Toggle Block user comment by creator token
+	async toggleBlock(payload: ToggleBlockUserCommentPayload) {
+		const { tokenId, userId, creatorAddress } = payload
+
+		const token = await this.token.findById(tokenId)
+		if (!token) throw new NotFoundException("Not found token")
+		if (token.creatorAddress !== creatorAddress)
+			throw new ForbiddenException(
+				"Only creator token just allow to (un)block user"
+			)
+
+		const blockedUser = await this.blockComment.findOne({ tokenId, userId })
+
+		if (blockedUser) {
+			await this.blockComment.delete({ tokenId, userId })
+		} else {
+			await this.blockComment.create({
+				token: { connect: { id: tokenId } },
+				user: { connect: { id: userId } }
+			})
+		}
+	}
+
+	// Get all blocked user comment in token
+	async getAllBlockedUserComment(tokenId: string) {
+		return this.blockComment.getAllByTokenId(tokenId)
 	}
 
 	/** Get data to client upload file to aws3

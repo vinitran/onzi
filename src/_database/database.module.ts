@@ -2,6 +2,7 @@ import { Global, Module } from "@nestjs/common"
 import { UserConnectionRepository } from "@root/_database/repositories/user-connection.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { PrismaService } from "./prisma.service"
+import { BlockCommentRepository } from "./repositories/block-comment.repository"
 import { CommentRepository } from "./repositories/comment.repository"
 import { StickerOwnerRepository } from "./repositories/sticker-owner.repository"
 import { StickerRepository } from "./repositories/sticker.repository"
@@ -21,7 +22,8 @@ const repositories = [
 	TokenTransactionRepository,
 	TokenFavoriteRepository,
 	StickerRepository,
-	StickerOwnerRepository
+	StickerOwnerRepository,
+	BlockCommentRepository
 ]
 
 @Global()

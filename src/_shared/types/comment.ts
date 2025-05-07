@@ -54,3 +54,30 @@ export type IPaginateReplies = GetCommentsParams & {
 }
 
 export type IPaginateRepliesData = IPaginateCommentsData
+
+export type GetPinnedCommentPayload = {
+	userId?: string
+	tokenId: string
+}
+
+export type TogglePinCommentPayload = {
+	userId?: string
+	commentId: string
+}
+
+export type DeleteCommentByCreatorTokenPayload = {
+	creatorAddress: string
+	commentId: string
+}
+
+export type DeleteAllCommentFromUserByCreatorTokenPayload = {
+	creatorAddress: string
+	authorId: string
+	tokenId: string
+}
+
+export type ToggleBlockUserCommentPayload = {
+	userId: string
+	tokenId: string
+	creatorAddress: string
+}
