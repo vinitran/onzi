@@ -39,7 +39,7 @@ export class SetInformationPayload {
 		description: "Update Avatar",
 		example: ContentType.JPEG,
 		enum: ContentType,
-		required: true
+		required: false
 	})
 	@Prop()
 	@IsEnum(ContentType)
@@ -50,7 +50,7 @@ export class SetInformationPayload {
 		description: "Update backround",
 		example: ContentType.JPEG,
 		enum: ContentType,
-		required: true
+		required: false
 	})
 	@Prop()
 	@IsEnum(ContentType)
