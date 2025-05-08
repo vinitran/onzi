@@ -286,12 +286,14 @@ export class SolanaIndexerService implements OnModuleInit {
 		} else {
 			const lockData = await this.ponz.getLockData(address)
 
-			await this.tokenRepository.update(address.toBase58(), {
-				marketCapacity,
-				hallOfFame,
-				lockAmount: lockData.lockAmount,
-				unlockAt: new Date(lockData.unlockAt * 1000)
-			})
+			if (lockData) {
+				await this.tokenRepository.update(address.toBase58(), {
+					marketCapacity,
+					hallOfFame,
+					lockAmount: lockData.lockAmount,
+					unlockAt: new Date(lockData.unlockAt * 1000)
+				})
+			}
 		}
 
 		await this.verifyKingOfHill(

@@ -12,11 +12,6 @@ export class TokenOwnerRepository {
 		private redis: RedisService
 	) {}
 
-	findListHolder(data: { tokenAddress: string; take?: number }) {
-		const { take = 20, tokenAddress } = data
-		return this.prisma.tokenOwner.findMany({ where: { tokenAddress }, take })
-	}
-
 	async createTokenOwnerIfNotExist(
 		userAddress: string,
 		tokenAddress: string,

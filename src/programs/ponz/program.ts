@@ -225,6 +225,9 @@ export class Ponz extends SolanaProgram<PonzSc> {
 	public async getLockData(mint: PublicKey) {
 		const poolLock = this.getTokenPoolLockPDA(mint)
 
+		const poolLockInfor = await this.connection.getAccountInfo(poolLock)
+		if (!poolLockInfor) return
+
 		try {
 			const [timeUnlock, lockAmount] = await Promise.all([
 				this.account.bondingCurve.fetch(this.getBondingCurve(mint)),

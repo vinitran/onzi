@@ -10,7 +10,6 @@ import { TokenOwnerRepository } from "@root/_database/repositories/token-owner.r
 import { TokenTransactionRepository } from "@root/_database/repositories/token-transaction.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
-import { TOKEN_TOTAL_SUPPLY_DEFAULT } from "@root/_shared/constants/token"
 import { ICreateTokenOnchainPayload } from "@root/_shared/types/token"
 
 import { BN, web3 } from "@coral-xyz/anchor"
@@ -303,22 +302,26 @@ export class TokensService {
 
 	// Get list holder
 	async getListHolder(address: string) {
-		const token = await this.token.findByAddress(address)
-		if (!token) throw new NotFoundException("Not found token")
-		let listHolder = await this.tokenOwner.findListHolder({
-			tokenAddress: address
-		})
-		listHolder = listHolder.map(tokenOwner => {
-			const percentOfKeeper = tokenOwner.amount
-				.div(TOKEN_TOTAL_SUPPLY_DEFAULT)
-				.mul(100)
-			return {
-				...tokenOwner,
-				percentOfKeeper
+		const token = await this.token.findById(address, {
+			tokenOwners: {
+				select: {
+					amount: true,
+					user: {
+						select: {
+							avatarUrl: true,
+							address: true
+						}
+					}
+				}
 			}
 		})
+		if (!token) throw new NotFoundException("Not found token")
 
-		return listHolder
+		return {
+			address: token.address,
+			totalSupply: token.totalSupply,
+			tokenOwners: token.tokenOwners
+		}
 	}
 
 	// Get list transaction

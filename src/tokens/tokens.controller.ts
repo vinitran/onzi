@@ -251,20 +251,18 @@ export class TokensController {
 		)
 	}
 
-	@Get(":address/list-holder")
+	@Get(":id/list-holder")
 	@ApiOperation({ summary: "Get list of token holders" })
 	@ApiResponse({
 		status: 200,
 		description: "List of token holders retrieved successfully",
 		type: [TokenHolderResponse]
 	})
-	async getListHolder(@Param("address") address: string) {
+	async getListHolder(@Param("id") address: string) {
 		const data = await this.tokensService.getListHolder(address)
-		return data.map(item =>
-			plainToInstance(TokenHolderResponse, item, {
-				excludeExtraneousValues: true
-			})
-		)
+		return plainToInstance(TokenHolderResponse, data, {
+			excludeExtraneousValues: true
+		})
 	}
 
 	@Get(":id/transactions")

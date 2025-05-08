@@ -3,7 +3,6 @@ import { S3Upload } from "@root/dtos/file.dto"
 import { TokenFavorite } from "@root/dtos/token-favorite.dto"
 import { TokenTransaction } from "@root/dtos/token-transaction.dto"
 import { Token as TokenDto } from "@root/dtos/token.dto"
-import { User } from "@root/dtos/user.dto"
 import { Expose, Type } from "class-transformer"
 import { IsArray, IsNumber } from "class-validator"
 
@@ -107,14 +106,7 @@ export class SickoModeResponse extends TokenDto {
 	devHoldPersent: number
 }
 
-export class TokenHolderResponse extends User {
-	@ApiProperty({
-		description: "Percentage of total supply held by this holder",
-		type: "string"
-	})
-	@Expose()
-	percentOfKeeper: string
-}
+export class TokenHolderResponse extends TokenDto {}
 
 export class ToggleFavoriteTokenResponse {
 	@ApiProperty({ type: "string", description: "Message" })
