@@ -10,6 +10,7 @@ export class BlockComment {
 	})
 	@Expose()
 	userId: string
+
 	@ApiProperty({
 		description: "ID of token",
 		example: "123e4567-e89b-12d3-a456-426614174001"
@@ -37,6 +38,7 @@ export class BlockComment {
 	})
 	@Expose()
 	token: Partial<Token>
+
 	constructor(partial: Partial<BlockComment>) {
 		Object.assign(this, partial)
 	}

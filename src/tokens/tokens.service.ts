@@ -1,4 +1,5 @@
 import {
+	ForbiddenException,
 	Injectable,
 	InternalServerErrorException,
 	NotFoundException
@@ -28,7 +29,8 @@ import {
 	FindTokenByTextParams,
 	FindTokenParams,
 	ListTransactionParams,
-	SickoModeParams
+	SickoModeParams,
+	UpdateTokenPayload
 } from "@root/tokens/dtos/payload.dto"
 import {
 	FindFavoriteTokenResponse,
@@ -309,7 +311,8 @@ export class TokensService {
 					user: {
 						select: {
 							avatarUrl: true,
-							address: true
+							address: true,
+							username: true
 						}
 					}
 				}
@@ -422,6 +425,47 @@ export class TokensService {
 				enableImplicitConversion: true
 			}),
 			...rest
+		}
+	}
+
+	//   Update banner
+	async updateTokenBanner(
+		payload: { tokenId: string; userAddress: string } & UpdateTokenPayload
+	) {
+		const { contentTypeBanner, tokenId, userAddress } = payload
+		const token = await this.token.findById(tokenId)
+		if (!token) throw new NotFoundException("Not found token")
+
+		if (token.creatorAddress !== userAddress)
+			throw new ForbiddenException("Only token creator allows to add banner")
+
+		const { bannerUri, fields, url } = await this.getBannerPresignedUrl(
+			tokenId,
+			contentTypeBanner
+		)
+
+		await this.token.addBanner(tokenId, bannerUri)
+
+		return {
+			fields,
+			url
+		}
+	}
+
+	//   Get image url & authorize data to push image Aws3
+	async getBannerPresignedUrl(tokenId: string, contentType: string) {
+		const key = `token-banner-${tokenId}`
+		const { fields, url } = await this.s3Service.postPresignedSignedUrl(
+			key,
+			contentType
+		)
+		if (!url || !fields)
+			throw new InternalServerErrorException("Can not post presigned url")
+		const bannerUri = `${url}${fields.key}`
+		return {
+			bannerUri,
+			url,
+			fields
 		}
 	}
 }

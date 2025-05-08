@@ -130,6 +130,7 @@ model Token {
   price                   Float?    @default(0)
   uri                     String    @db.VarChar
   imageUri                String    @db.VarChar
+  bannerUri               String?   @map("banner_uri") @db.VarChar
   ticker                  String    @db.VarChar
   metadata                Json
   description             String    @db.Text
@@ -146,12 +147,11 @@ model Token {
   volumn                  Float     @default(0)
   totalSupply             Decimal   @default("1000000000000000") @map("total_supply")
   hallOfFame              Boolean   @default(false) @map("hall_of_fame")
-
-  tax           Float @default(0)
-  rewardTax     Float @default(0) @map("reward_tax")
-  jackpotTax    Float @default(0) @map("jackpot_tax")
-  jackpotAmount Float @default(0) @map("jackpot_amount")
-  burnTax       Float @default(0) @map("burn_tax")
+  tax                     Float     @default(0)
+  rewardTax               Float     @default(0) @map("reward_tax")
+  jackpotTax              Float     @default(0) @map("jackpot_tax")
+  jackpotAmount           Float     @default(0) @map("jackpot_amount")
+  burnTax                 Float     @default(0) @map("burn_tax")
 
   jackpotPending Float @default(0) @map("jackpot_pending")
   taxPending     Float @default(0) @map("tax_pending")

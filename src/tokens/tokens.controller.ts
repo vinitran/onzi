@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common"
+import {
+	Body,
+	Controller,
+	Get,
+	Param,
+	ParseUUIDPipe,
+	Post,
+	Put,
+	Query
+} from "@nestjs/common"
 import {
 	ApiBearerAuth,
 	ApiOperation,
@@ -19,7 +28,8 @@ import {
 	FindTokenByTextParams,
 	FindTokenParams,
 	ListTransactionParams,
-	SickoModeParams
+	SickoModeParams,
+	UpdateTokenPayload
 } from "@root/tokens/dtos/payload.dto"
 import {
 	ChartResponse,
@@ -34,7 +44,8 @@ import {
 	SimilarTokenResponse,
 	ToggleFavoriteTokenResponse,
 	TokenHolderResponse,
-	TrendingTopicResponse
+	TrendingTopicResponse,
+	UpdateBannerResponse
 } from "@root/tokens/dtos/response.dto"
 import { TokensService } from "@root/tokens/tokens.service"
 import { User } from "@root/users/user.decorator"
@@ -232,6 +243,27 @@ export class TokensController {
 		)
 	}
 
+	@Put(":id")
+	@Auth()
+	@ApiOperation({ summary: "Update token" })
+	@ApiResponse({
+		status: 200,
+		description: "Token updated on blockchain successfully",
+		type: UpdateBannerResponse
+	})
+	async updateBanner(
+		@Param("id", ParseUUIDPipe) tokenId: string,
+		@Body() body: UpdateTokenPayload,
+		@User() user: Claims
+	) {
+		const result = await this.tokensService.updateTokenBanner({
+			contentTypeBanner: body.contentTypeBanner,
+			tokenId,
+			userAddress: user.address
+		})
+		return plainToInstance(UpdateBannerResponse, result)
+	}
+
 	@Get(":address/similar")
 	@ApiOperation({
 		summary:
@@ -256,7 +288,7 @@ export class TokensController {
 	@ApiResponse({
 		status: 200,
 		description: "List of token holders retrieved successfully",
-		type: [TokenHolderResponse]
+		type: TokenHolderResponse
 	})
 	async getListHolder(@Param("id") address: string) {
 		const data = await this.tokensService.getListHolder(address)

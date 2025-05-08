@@ -717,3 +717,15 @@ export class ChartParams {
 }
 
 export class FindListTokenFavoriteParams extends PaginatedParams {}
+
+export class UpdateTokenPayload {
+	@ApiProperty({
+		description: "Content type of banner",
+		example: ContentType.PNG,
+		enum: ContentType,
+		required: true
+	})
+	@Prop()
+	@IsEnum(ContentType)
+	contentTypeBanner: ContentType
+}

@@ -188,3 +188,5 @@ export class ChartResponse {
 }
 
 export class FindSimilarTokenResponse extends TokenDto {}
+
+export class UpdateBannerResponse extends S3Upload {}

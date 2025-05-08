@@ -146,13 +146,12 @@ export class CommentController {
 
 	@Auth()
 	@Get("/:tokenId/user/block")
-	@ApiOperation({
-		summary: "Get list blocked user in a token"
-	})
 	@ApiResponse({
-		description: "Get list blocked user in a token successfully",
+		status: 200,
+		description: "Get blocked users successfully",
 		type: [GetBlockedUserCommentResponse]
 	})
+	@ApiOperation({ summary: "Get blocked users" })
 	async getListBlockedUserComment(
 		@Param("tokenId", ParseUUIDPipe) tokenId: string
 	) {

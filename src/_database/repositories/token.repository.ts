@@ -759,4 +759,16 @@ export class TokenRepository {
 			maxPage: Math.ceil(total / take)
 		}
 	}
+
+	//   Add banner
+	async addBanner(tokenId: string, value: string) {
+		return this.prisma.token.update({
+			where: {
+				id: tokenId
+			},
+			data: {
+				bannerUri: value
+			}
+		})
+	}
 }
