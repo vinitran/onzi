@@ -20,7 +20,8 @@ export class UserRepository {
 		if (!user) {
 			return this.prisma.user.create({
 				data: {
-					address: params.address
+					address: params.address,
+					username: `user-${params.address}`
 				}
 			})
 		}
