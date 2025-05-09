@@ -147,7 +147,10 @@ export class TokenRepository {
 			this.prisma.token.findMany({
 				skip,
 				take: query.take,
-				where,
+				where: {
+					bump: true,
+					...where
+				},
 				orderBy,
 				select: {
 					id: true,
