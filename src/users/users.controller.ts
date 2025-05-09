@@ -54,7 +54,6 @@ export class UsersController {
 	}
 
 	@Get(":id/coin-helds")
-	@Auth()
 	@ApiPaginatedResponse(CoinHeldsResponse)
 	@ApiOperation({
 		summary: "Get paginated list of tokens held by the current user"
@@ -130,7 +129,6 @@ export class UsersController {
 	}
 
 	@Get(":id/coin-created")
-	@Auth()
 	@ApiPaginatedResponse(TokenResponse)
 	@ApiOperation({
 		summary: "Get paginated list of tokens created by the current user"
@@ -246,7 +244,6 @@ export class UsersController {
 	}
 
 	@Get(":id")
-	@Auth()
 	@ApiOperation({ summary: "Get user's profile information" })
 	@ApiResponse({
 		status: 200,

@@ -113,6 +113,13 @@ export class Token extends SocialToken {
 	imageUri: string
 
 	@ApiProperty({
+		description: "Token banner URI",
+		example: "https://example.com/tokens/ponz.jpg"
+	})
+	@Expose()
+	bannerUri: string
+
+	@ApiProperty({
 		description: "Token metadata",
 		example: '{"attributes":[{"trait_type":"Rarity","value":"Legendary"}]}'
 	})

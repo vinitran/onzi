@@ -338,18 +338,17 @@ export class TokensController {
 
 	@Get(":address")
 	@ApiBearerAuth()
-	@ApiOperation({ summary: "Get token details" })
 	@ApiResponse({
 		status: 200,
 		description: "Token details retrieved successfully",
-		type: [FindTokenResponse]
+		type: FindTokenResponse
 	})
+	@ApiOperation({ summary: "Get token detail" })
 	async find(
 		@Param("address") address: string,
 		@User() user: Claims | undefined
 	) {
 		const data = await this.tokensService.getByAddress(address, user?.address)
-
 		return plainToInstance(FindTokenResponse, data, {
 			excludeExtraneousValues: true
 		})
