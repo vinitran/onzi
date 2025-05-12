@@ -10,6 +10,7 @@ import {
 } from "@coral-xyz/anchor"
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system"
 import { Injectable, InternalServerErrorException } from "@nestjs/common"
+import { Prisma } from "@prisma/client"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { TokenMetadataArgs } from "@root/programs/ponz/events"
 import idl from "@root/programs/ponz/ponz_sc.json"
@@ -216,7 +217,19 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		try {
 			const marketcapAccount =
 				await this.account.bondingCurve.fetch(bondingCurve)
-			return marketcapAccount.initVirtualSol * marketcapAccount.solReserves
+
+			const solReserves = new Prisma.Decimal(
+				marketcapAccount.solReserves.toString()
+			)
+			const initVirtualSol = new Prisma.Decimal(
+				marketcapAccount.initVirtualSol.toString()
+			)
+
+			// Compute total with BN arithmetic
+			const totalSol = initVirtualSol.add(solReserves)
+			console.log("all", totalSol.toString())
+
+			return totalSol
 		} catch (error) {
 			throw new InternalServerErrorException(`can not get marketCap: ${error}`)
 		}

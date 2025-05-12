@@ -14,6 +14,18 @@ export class RedisService {
 		await this.redis.set(key, value, "EX", 300)
 	}
 
+	async setFunc<T>(
+		key: string,
+		func: () => Promise<T>,
+		seconds: number | string = 300 // Default cache expiration is 300 seconds.
+	): Promise<T> {
+		const result = await func()
+
+		await this.redis.set(key, JSON.stringify(result), "EX", seconds)
+
+		return result
+	}
+
 	async get(key: string): Promise<string | null> {
 		return this.redis.get(key)
 	}

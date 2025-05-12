@@ -15,18 +15,38 @@ export class UserRepository {
 	) {}
 
 	async createIfNotExist(params: CreateUserIfNotExistParams) {
-		const user = await this.findByAddress(params.address)
+		const user = await this.exist(params.address)
 
 		if (!user) {
-			return this.prisma.user.create({
-				data: {
-					address: params.address,
-					username: `user-${params.address}`
-				}
-			})
+			return this.redis.setFunc(
+				`user-exist:${params.address}`,
+				async () => {
+					return this.prisma.user.create({
+						data: {
+							address: params.address,
+							username: params.address.slice(0, 8)
+						}
+					})
+				},
+				5
+			)
 		}
 
 		return user
+	}
+
+	async exist(address: string) {
+		return this.redis.getOrSet(
+			`user-exist:${address}`,
+			async () => {
+				return this.prisma.user.findFirst({
+					where: {
+						address
+					}
+				})
+			},
+			3
+		)
 	}
 
 	async update(id: string, payload: Prisma.UserUpdateInput) {
@@ -36,15 +56,6 @@ export class UserRepository {
 			},
 			include: {
 				social: true
-			},
-			data: payload
-		})
-	}
-
-	async updateSocial(id: string, payload: Prisma.UserSocialUpdateInput) {
-		return this.prisma.user.update({
-			where: {
-				id
 			},
 			data: payload
 		})

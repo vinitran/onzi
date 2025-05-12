@@ -1,6 +1,6 @@
 import { web3 } from "@coral-xyz/anchor"
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common"
-import { Network } from "@prisma/client"
+import { Network, Prisma } from "@prisma/client"
 import { TokenOwnerRepository } from "@root/_database/repositories/token-owner.repository"
 import { TokenTransactionRepository } from "@root/_database/repositories/token-transaction.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
@@ -22,6 +22,7 @@ import WebSocket from "ws"
 export class SolanaIndexerService implements OnModuleInit {
 	private HELIUS_WS = "wss://devnet.helius-rpc.com/?api-key="
 	private wsSolana: WebSocket
+	private SOL_MARKETCAP_DEFAULT = "80000000000"
 
 	constructor(
 		@InjectEnv() private env: Env,
@@ -158,6 +159,19 @@ export class SolanaIndexerService implements OnModuleInit {
 		event,
 		signature
 	}: { event: BuyTokensEvent; signature: string }) {
+		const [tokenBySig, token] = await Promise.all([
+			this.tokenTxRepository.findBySignature(signature),
+			this.tokenRepository.exist(event.mint.toBase58())
+		])
+
+		if (tokenBySig) {
+			return
+		}
+
+		if (!token) {
+			return
+		}
+
 		const date = await this.getTimeFromSignature(signature)
 
 		this.socket.handleBuyTx({
@@ -173,11 +187,6 @@ export class SolanaIndexerService implements OnModuleInit {
 		})
 
 		await this.updateTokenAfterTransaction(event.mint, event)
-
-		const tokenBySig = await this.tokenTxRepository.findBySignature(signature)
-		if (tokenBySig) {
-			return
-		}
 
 		await this.userRepository.createIfNotExist({
 			address: event.buyer.toBase58()
@@ -201,6 +210,19 @@ export class SolanaIndexerService implements OnModuleInit {
 		event,
 		signature
 	}: { event: SellTokensEvent; signature: string }) {
+		const [tokenBySig, token] = await Promise.all([
+			this.tokenTxRepository.findBySignature(signature),
+			this.tokenRepository.exist(event.mint.toBase58())
+		])
+
+		if (tokenBySig) {
+			return
+		}
+
+		if (!token) {
+			return
+		}
+
 		const date = await this.getTimeFromSignature(signature)
 
 		this.socket.handleSellTx({
@@ -220,12 +242,6 @@ export class SolanaIndexerService implements OnModuleInit {
 		})
 
 		await this.updateTokenAfterTransaction(event.mint, event)
-
-		const tokenBySig = await this.tokenTxRepository.findBySignature(signature)
-
-		if (tokenBySig) {
-			return
-		}
 
 		await this.userRepository.createIfNotExist({
 			address: event.seller.toBase58()
@@ -271,7 +287,7 @@ export class SolanaIndexerService implements OnModuleInit {
 		const marketCapacity = await this.ponz.calculateMarketcap(address)
 		if (!marketCapacity) return
 
-		const hallOfFame = marketCapacity > 1000000000 // 1000000000 is in test
+		const hallOfFame = marketCapacity.gt(1000000000) // 1000000000 is in test
 		if (event) {
 			const isBuy = "buyer" in event
 			const volumeChange = isBuy ? Number(event.lamports) : Number(event.amount)
@@ -330,11 +346,17 @@ export class SolanaIndexerService implements OnModuleInit {
 
 	private async verifyKingOfHill(
 		id: string,
-		marketCapacity: number,
-		bondingCurveTarget: number
+		marketCapacity: Prisma.Decimal,
+		bondingCurveTarget: Prisma.Decimal
 	) {
+		const realMarketCap = marketCapacity.sub(
+			new Prisma.Decimal(this.SOL_MARKETCAP_DEFAULT)
+		)
+		const realBondingCurveTarget = bondingCurveTarget.sub(
+			new Prisma.Decimal(this.SOL_MARKETCAP_DEFAULT)
+		)
 		// Check if marketCapacity (adjusted by 28) meets 70% of bondingCurveTarget (adjusted by 28). 28 is virtual sol
-		if (marketCapacity - 28 < 0.7 * (bondingCurveTarget - 28)) return
+		if (realMarketCap.lt(realBondingCurveTarget.mul(0.7))) return
 
 		const tokenWithMaxCap = await this.tokenRepository.findMaxMarketCap()
 		// If the current dont have any token has the highest marketCapacity, update token as the "King of Hill".
@@ -343,7 +365,7 @@ export class SolanaIndexerService implements OnModuleInit {
 		}
 
 		// find token has highest marketCap, if not exist set token is king of hill
-		if (marketCapacity < tokenWithMaxCap.marketCapacity.toNumber()) return
+		if (marketCapacity.lt(tokenWithMaxCap.marketCapacity)) return
 
 		// If the current token has the highest marketCapacity, update it as the "King of Hill".
 		return this.tokenRepository.updateKingOfCoin(id)

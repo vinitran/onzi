@@ -32,6 +32,18 @@ export class TokenRepository {
 		return `token-create-${id}`
 	}
 
+	async exist(address: string) {
+		return this.redis.getOrSet(
+			`token-exist:${address}`,
+			() => {
+				return this.prisma.token.findFirst({
+					where: { address }
+				})
+			},
+			5
+		)
+	}
+
 	findLatest(take: number) {
 		return this.prisma.token.findMany({
 			orderBy: {
