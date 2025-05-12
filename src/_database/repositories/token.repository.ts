@@ -690,10 +690,13 @@ export class TokenRepository {
 	}
 
 	//   Find token by address
-	findByAddress(address: string) {
+	findByAddress(address: string, include?: Prisma.TokenInclude) {
 		return this.prisma.token.findUnique({
 			where: { address },
-			include: { creator: true }
+			include: {
+				...include,
+				creator: true
+			}
 		})
 	}
 

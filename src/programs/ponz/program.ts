@@ -227,7 +227,6 @@ export class Ponz extends SolanaProgram<PonzSc> {
 
 			// Compute total with BN arithmetic
 			const totalSol = initVirtualSol.add(solReserves)
-			console.log("all", totalSol.toString())
 
 			return totalSol
 		} catch (error) {

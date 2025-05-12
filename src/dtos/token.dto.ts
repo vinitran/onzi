@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger"
+import { TokenFavorite } from "@root/dtos/token-favorite.dto"
 import { TokenOwner } from "@root/dtos/token-owner.dto"
 import { User } from "@root/dtos/user.dto"
 import { Expose, Type } from "class-transformer"
@@ -376,6 +377,16 @@ export class Token extends SocialToken {
 	@Expose()
 	@Type(() => TokenOwner)
 	tokenOwners?: TokenOwner[]
+
+	@ApiProperty({
+		description: "Token token favorite",
+		required: false,
+		isArray: true,
+		type: () => TokenFavorite
+	})
+	@Expose()
+	@Type(() => TokenFavorite)
+	tokenFavorite?: TokenFavorite[]
 
 	constructor(partial: Partial<Token>) {
 		super()

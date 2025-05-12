@@ -4,7 +4,6 @@ import {
 	InternalServerErrorException,
 	NotFoundException
 } from "@nestjs/common"
-import { Decimal } from "@prisma/client/runtime/library"
 import { CommentRepository } from "@root/_database/repositories/comment.repository"
 import { TokenKeyRepository } from "@root/_database/repositories/token-key.repository"
 import { TokenOwnerRepository } from "@root/_database/repositories/token-owner.repository"
@@ -14,6 +13,7 @@ import { UserRepository } from "@root/_database/repositories/user.repository"
 import { ICreateTokenOnchainPayload } from "@root/_shared/types/token"
 
 import { BN, web3 } from "@coral-xyz/anchor"
+import { Prisma } from "@prisma/client"
 import { TokenFavoriteRepository } from "@root/_database/repositories/token-favorite.repository"
 import {
 	encodeTransaction,
@@ -232,49 +232,38 @@ export class TokensService {
 		return success
 	}
 
-	/*  Get detail token by address (public key)
-    - percent of King of Hill: its marketCap / highest marketcap of token (is not bonding curve)
-    - percent of Bonding Curve: its marketCap / bondingCurve
-  */
 	async getByAddress(address: string, userAddress?: string) {
-		const token = await this.token.findByAddress(address)
+		const include: Prisma.TokenInclude = {
+			_count: {
+				select: {
+					comments: true
+				}
+			},
+			tokenOwners: userAddress
+				? {
+						select: {
+							userAddress: true,
+							amount: true
+						},
+						where: { userAddress }
+					}
+				: false,
+			tokenFavorite: userAddress
+				? {
+						select: {
+							userAddress: true
+						},
+						where: { userAddress }
+					}
+				: false
+		}
+
+		const token = await this.token.findByAddress(address, include)
+
 		if (!token) throw new NotFoundException("Not found token")
 
-		const [tokenKingOfHill, totalReplies, favoriteToken] = await Promise.all([
-			this.token.findKingOfHill(),
-			this.comment.countByTokenId({ where: { tokenId: token.id } }),
-			userAddress
-				? this.tokenFavorite.findOne({ tokenAddress: address, userAddress })
-				: Promise.resolve(null)
-		])
-
-		const VIRTUAL_DEFAULT_VALUE_OF_MARKETCAP = 28
-
-		let percentOfBondingCurve: null | Decimal = null // Null is still off chain
-		let percentOfKingOfHill: null | Decimal = null // Null is still off chain
-
-		if (token.bondingCurveTarget) {
-			percentOfBondingCurve = new Decimal(token.marketCapacity)
-				.minus(VIRTUAL_DEFAULT_VALUE_OF_MARKETCAP)
-				.div(token.bondingCurveTarget)
-				.mul(100)
-		}
-
-		if (tokenKingOfHill && !token.isCompletedKingOfHill) {
-			percentOfKingOfHill = new Decimal(token.marketCapacity)
-				.div(tokenKingOfHill.marketCapacity)
-				.mul(100)
-		}
-
-		if (token.isCompletedKingOfHill)
-			percentOfKingOfHill = new Decimal(1).mul(100)
-
 		return {
-			...token,
-			totalReplies,
-			percentOfBondingCurve,
-			percentOfKingOfHill,
-			isFavorite: !!favoriteToken
+			...token
 		}
 	}
 
