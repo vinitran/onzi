@@ -303,8 +303,8 @@ export class TokensService {
 	}
 
 	// Get list holder
-	async getListHolder(address: string) {
-		const token = await this.token.findById(address, {
+	async getListHolder(id: string) {
+		const token = await this.token.findById(id, {
 			tokenOwners: {
 				select: {
 					amount: true,
