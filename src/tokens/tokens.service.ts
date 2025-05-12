@@ -263,7 +263,11 @@ export class TokensService {
 		if (!token) throw new NotFoundException("Not found token")
 
 		return {
-			...token
+			...token,
+			tokenOwners: undefined,
+			tokenFavorite: undefined,
+			isFavorite: userAddress ? token.tokenFavorite.length > 0 : false,
+			balance: userAddress ? token.tokenOwners[0].amount : 0
 		}
 	}
 

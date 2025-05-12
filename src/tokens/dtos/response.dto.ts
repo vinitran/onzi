@@ -65,6 +65,13 @@ export class FindTokenResponse extends TokenDto {
 	})
 	@Expose()
 	_count: FindTokenCount
+	@ApiProperty({
+		description: "Token balance user",
+		example: 1.25
+	})
+	@Expose()
+	@Type(() => Number)
+	balance?: number
 }
 
 class SickoModeCountResponse {
