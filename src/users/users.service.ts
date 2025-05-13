@@ -20,6 +20,7 @@ import {
 	GetCoinCreatedParams,
 	SetInformationPayload
 } from "@root/users/dtos/payload.dto"
+import { CoinHeldsResponse } from "@root/users/dtos/response.dto"
 import { plainToInstance } from "class-transformer"
 
 @Injectable()
@@ -43,11 +44,57 @@ export class UsersService {
 	}
 
 	async getCoinHeld(id: string, query: PaginatedParams) {
-		const user = await this.userRepository.findById(id)
+		const tokenOwnerWhere = {
+			amount: {
+				gt: 0
+			}
+		}
+
+		const tokenOwnerInclude = {
+			select: {
+				amount: true,
+				token: {
+					select: {
+						id: true,
+						name: true,
+						ticker: true,
+						imageUri: true,
+						price: true
+					}
+				}
+			},
+			where: tokenOwnerWhere,
+			orderBy: {
+				amount: Prisma.SortOrder.desc
+			},
+			skip: (query.page - 1) * query.take,
+			take: query.take
+		}
+
+		const include: Prisma.UserInclude = {
+			tokenOwners: tokenOwnerInclude,
+			_count: {
+				select: {
+					tokenOwners: { where: tokenOwnerWhere }
+				}
+			}
+		}
+
+		const user = await this.userRepository.findById(id, include)
 
 		if (!user) throw new NotFoundException("can not find user")
 
-		return this.tokenOwnerRepository.getBalance(user.address, query)
+		const data = plainToInstance(CoinHeldsResponse, user.tokenOwners, {
+			excludeExtraneousValues: true,
+			enableImplicitConversion: true
+		})
+		const total = user._count.tokenOwners
+
+		return {
+			data,
+			total,
+			maxPage: Math.ceil(total / query.take)
+		}
 	}
 
 	async getFollower(id: string, query: PaginatedParams) {

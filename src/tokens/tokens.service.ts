@@ -306,7 +306,10 @@ export class TokensService {
 			tokenOwners: undefined,
 			tokenFavorite: undefined,
 			isFavorite: userAddress ? token.tokenFavorite.length > 0 : false,
-			balance: userAddress ? token.tokenOwners[0].amount : 0
+			balance:
+				userAddress && token.tokenOwners.length > 0
+					? token.tokenOwners[0].amount
+					: 0
 		}
 	}
 

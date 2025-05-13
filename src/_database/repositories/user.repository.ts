@@ -95,15 +95,21 @@ export class UserRepository {
 		)
 	}
 
-	async findById(id: string) {
+	async findById(
+		id: string,
+		include?: Prisma.UserInclude,
+		orderBy?: Prisma.UserOrderByWithRelationInput
+	) {
 		return this.redis.getOrSet(
-			`findUserById:${id}`,
+			`findUserById:${id}, include: ${include}, orderBy: ${orderBy}`,
 			async () => {
-				return this.prisma.user.findUnique({
+				return this.prisma.user.findFirst({
 					where: {
 						id
 					},
+					orderBy: orderBy ?? undefined,
 					include: {
+						...include,
 						social: true
 					}
 				})
