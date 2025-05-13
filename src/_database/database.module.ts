@@ -1,4 +1,5 @@
 import { Global, Module } from "@nestjs/common"
+import { TokenChartRepository } from "@root/_database/repositories/token-candle.repository"
 import { UserConnectionRepository } from "@root/_database/repositories/user-connection.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { PrismaService } from "./prisma.service"
@@ -21,6 +22,7 @@ const repositories = [
 	TokenOwnerRepository,
 	TokenTransactionRepository,
 	TokenFavoriteRepository,
+	TokenChartRepository,
 	StickerRepository,
 	StickerOwnerRepository,
 	BlockCommentRepository

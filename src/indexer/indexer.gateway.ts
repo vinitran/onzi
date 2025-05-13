@@ -7,6 +7,7 @@ import {
 	WebSocketGateway
 } from "@nestjs/websockets"
 import { TX_GATEWAY_EMIT_EVENTS } from "@root/_shared/constants/transaction"
+import { CandleDto } from "@root/indexer/dtos/chart.dto"
 import {
 	TokenCreationDto,
 	TransactionDto
@@ -52,5 +53,40 @@ export class IndexerGateway
 
 	handleTokenCreation(data: TokenCreationDto) {
 		this.serverInstance.emit(TX_GATEWAY_EMIT_EVENTS.SELL, data)
+	}
+}
+
+@WebSocketGateway({
+	cors: { origin: "*" },
+	namespace: "/chart"
+})
+export class ChartGateway
+	implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
+	private readonly logger = new Logger("chart")
+	private serverInstance: Server
+
+	afterInit(server: Server) {
+		this.serverInstance = server
+		console.log("Socket instance of chart started", server.sockets)
+	}
+
+	async handleConnection(@ConnectedSocket() client: Socket) {
+		this.logger.log(`Client connected to chart: ${client.id}`)
+
+		client.on("subscribe", ({ tokenId, step }) => {
+			const room = `chart:${tokenId}:${step}`
+			client.join(room)
+			this.logger.log(`Client ${client.id} subscribed to ${room}`)
+		})
+	}
+
+	handleDisconnect(client: Socket) {
+		this.logger.log(`Client disconnected from chart: ${client.id}`)
+	}
+
+	public emitNewCandle(candle: CandleDto) {
+		const room = `chart:${candle.tokenId}:${candle.step}`
+		this.serverInstance.to(room).emit("candle:update", candle)
 	}
 }

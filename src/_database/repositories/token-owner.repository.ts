@@ -141,7 +141,7 @@ export class TokenOwnerRepository {
 		})
 	}
 
-	async saveTokenOwner(data: {
+	async updateBalance(data: {
 		userAddress: string
 		tokenAddress: string
 		amount: BN

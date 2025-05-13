@@ -9,7 +9,6 @@ import { Transform, Type } from "class-transformer"
 import {
 	IsArray,
 	IsEnum,
-	IsIn,
 	IsNumber,
 	IsOptional,
 	IsString,
@@ -28,6 +27,16 @@ export enum ContentType {
 	AVI = "video/x-msvideo",
 	PDF = "application/pdf",
 	JSON = "application/json"
+}
+
+export enum ChartStep {
+	"1m" = 60, // 1 minute
+	"5m" = 300, // 5 minutes
+	"30m" = 1800, // 30 minutes
+	"1h" = 3600, // 1 hour
+	"1d" = 86400, // 24 hours
+	"7d" = 604800, // 7 days
+	"30d" = 2592000 // 30 days
 }
 
 export enum SickoModeType {
@@ -691,28 +700,14 @@ export class ChartParams {
 
 	@ApiProperty({
 		description:
-			"Step size in milliseconds. Allowed values: 60000 (1m), 300000 (5m), 1800000 (30m), 3600000 (1h), 21600000 (6h), 86400000 (24h), 259200000 (3d), 604800000 (7d), 2592000000 (30d)",
-		example: 3600000,
+			"Step size in milliseconds. Allowed values: 60 (1m), 300 (5m), 1800 (30m), 3600 (1h), 86400 (24h), 604800 (7d), 2592000 (30d)",
+		example: ChartStep["1m"],
+		enum: ChartStep,
 		required: true
 	})
 	@Prop()
 	@IsNumber()
-	@IsIn(
-		[
-			60000, // 1 minute
-			300000, // 5 minutes
-			1800000, // 30 minutes
-			3600000, // 1 hour
-			21600000, // 6 hours
-			86400000, // 24 hours
-			259200000, // 3 days
-			604800000, // 7 days
-			2592000000 // 30 days
-		],
-		{
-			message: "Step must be one of: 1m, 5m, 30m, 1h, 6h, 24h, 3d, 7d, 30d"
-		}
-	)
+	@IsEnum(ChartStep)
 	step: number
 }
 

@@ -14,6 +14,7 @@ import { ICreateTokenOnchainPayload } from "@root/_shared/types/token"
 
 import { BN, web3 } from "@coral-xyz/anchor"
 import { Prisma } from "@prisma/client"
+import { TokenChartRepository } from "@root/_database/repositories/token-candle.repository"
 import { TokenFavoriteRepository } from "@root/_database/repositories/token-favorite.repository"
 import {
 	encodeTransaction,
@@ -53,6 +54,7 @@ export class TokensService {
 		private user: UserRepository,
 		private s3Service: S3Service,
 		private tokenTransaction: TokenTransactionRepository,
+		private tokenChart: TokenChartRepository,
 		private ponz: Ponz,
 		@InjectConnection() private connection: web3.Connection
 	) {}
@@ -375,17 +377,7 @@ export class TokensService {
 	}
 
 	async getChart(id: string, params: ChartParams) {
-		const token = await this.token.findById(id)
-		if (!token) throw new NotFoundException("not found token")
-
-		const chartData = await this.tokenTransaction.getChart({
-			pubkey: token.address,
-			from: params.from,
-			to: params.to,
-			step: params.step
-		})
-
-		return chartData
+		return this.tokenChart.getChartData(id, params.step, params.from, params.to)
 	}
 
 	//   Toggle (add or remove favourite token of user)

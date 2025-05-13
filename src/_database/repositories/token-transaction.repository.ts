@@ -19,15 +19,6 @@ type CreateTokenTransactionParams = {
 	network: Network
 }
 
-export type ChartQuery = {
-	date: number // timestamp mili-s
-	open: number | null
-	high: number | null
-	low: number | null
-	close: number | null
-	volume: number | null
-}
-
 @Injectable()
 export class TokenTransactionRepository {
 	constructor(
@@ -177,84 +168,5 @@ export class TokenTransactionRepository {
 			total,
 			maxPage: Math.ceil(total / query.take)
 		}
-	}
-
-	async getChart({
-		pubkey,
-		from,
-		to,
-		step
-	}: {
-		pubkey: string
-		from: number
-		to: number
-		step: number
-	}) {
-		// Validate input
-		if (!pubkey) {
-			throw new Error("Invalid pubkey")
-		}
-		if (step <= 0) {
-			throw new Error("Invalid step")
-		}
-
-		return this.prisma.$queryRaw<ChartQuery[]>`
-			WITH time_buckets AS (
-				SELECT
-					token_address,
-					FLOOR(EXTRACT(EPOCH FROM date) * 1000 / ${step}) * ${step} AS bucket_start,
-					price,
-					new_price,
-					date,
-					amount
-				FROM token_transaction
-				WHERE token_address = ${pubkey}
-					AND date BETWEEN TO_TIMESTAMP(${from} / 1000) AND TO_TIMESTAMP(${to} / 1000)
-			),
-			bucket_data AS (
-				SELECT
-					bucket_start,
-				token_address,
-					MIN(date) AS first_date,
-					MAX(date) AS last_date,
-					MAX(price) AS high_price,
-					MIN(price) AS low_price,
-					SUM(amount) AS total_volume
-				FROM time_buckets
-				GROUP BY bucket_start, token_address
-			),
-			open_close_prices AS (
-				SELECT
-					b.bucket_start,
-					b.token_address,
-					b.high_price,
-					b.low_price,
-					b.total_volume,
-					(
-						SELECT price 
-						FROM time_buckets t 
-						WHERE t.bucket_start = b.bucket_start 
-						AND t.date = b.first_date 
-						LIMIT 1
-					) AS open_price,
-					(
-						SELECT new_price 
-						FROM time_buckets t 
-						WHERE t.bucket_start = b.bucket_start 
-						AND t.date = b.last_date 
-						LIMIT 1
-					) AS close_price
-				FROM bucket_data b
-			)
-			SELECT
-				bucket_start AS date,
-				open_price AS open,
-				high_price AS high,
-				low_price AS low,
-				close_price AS close,
-				total_volume AS volume
-			FROM open_close_prices
-			ORDER BY date ASC;
-		`
 	}
 }

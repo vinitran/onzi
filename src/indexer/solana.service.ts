@@ -1,13 +1,14 @@
 import { web3 } from "@coral-xyz/anchor"
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common"
 import { Network, Prisma } from "@prisma/client"
+import { TokenChartRepository } from "@root/_database/repositories/token-candle.repository"
 import { TokenOwnerRepository } from "@root/_database/repositories/token-owner.repository"
 import { TokenTransactionRepository } from "@root/_database/repositories/token-transaction.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { getTokenMetaData } from "@root/_shared/helpers/get-token-metadata"
-import { IndexerGateway } from "@root/indexer/indexer.gateway"
+import { ChartGateway, IndexerGateway } from "@root/indexer/indexer.gateway"
 import {
 	BuyTokensEvent,
 	CreateTokenEvent,
@@ -32,7 +33,9 @@ export class SolanaIndexerService implements OnModuleInit {
 		private tokenRepository: TokenRepository,
 		private tokenTxRepository: TokenTransactionRepository,
 		private tokenOwner: TokenOwnerRepository,
-		private socket: IndexerGateway
+		private tokenChart: TokenChartRepository,
+		private socket: IndexerGateway,
+		private chartSocket: ChartGateway
 	) {}
 
 	async onModuleInit() {
@@ -147,11 +150,13 @@ export class SolanaIndexerService implements OnModuleInit {
 
 	private async updateTokenAfterTransaction(
 		mint: web3.PublicKey,
-		event: BuyTokensEvent | SellTokensEvent
+		event: BuyTokensEvent | SellTokensEvent,
+		date?: number
 	) {
 		await Promise.all([
 			this.updateToken(mint, event),
-			this.updateBalanceUser(event)
+			this.updateBalanceUser(event),
+			this.updateTokenChart(mint.toBase58(), event, date)
 		])
 	}
 
@@ -186,7 +191,7 @@ export class SolanaIndexerService implements OnModuleInit {
 			signature: signature
 		})
 
-		await this.updateTokenAfterTransaction(event.mint, event)
+		await this.updateTokenAfterTransaction(event.mint, event, date.toMillis())
 
 		await this.userRepository.createIfNotExist({
 			address: event.buyer.toBase58()
@@ -241,7 +246,7 @@ export class SolanaIndexerService implements OnModuleInit {
 			address: event.seller.toBase58()
 		})
 
-		await this.updateTokenAfterTransaction(event.mint, event)
+		await this.updateTokenAfterTransaction(event.mint, event, date.toMillis())
 
 		await this.userRepository.createIfNotExist({
 			address: event.seller.toBase58()
@@ -291,11 +296,10 @@ export class SolanaIndexerService implements OnModuleInit {
 		if (event) {
 			const isBuy = "buyer" in event
 			const volumeChange = isBuy ? Number(event.lamports) : Number(event.amount)
-			const newVolume = (token.volumn || 0) + volumeChange
 
 			await this.tokenRepository.update(address.toBase58(), {
 				marketCapacity,
-				volumn: newVolume,
+				volumn: { increment: volumeChange },
 				price: event.newPrice,
 				hallOfFame
 			})
@@ -319,6 +323,45 @@ export class SolanaIndexerService implements OnModuleInit {
 		)
 	}
 
+	private async updateTokenChart(
+		address: string,
+		event: BuyTokensEvent | SellTokensEvent,
+		date?: number
+	) {
+		if (!date) {
+			Logger.warn(`Token ${address} not found date when trying to update chart`)
+			return
+		}
+
+		const token = await this.tokenRepository.findOneByAddress(address)
+		if (!token) {
+			Logger.warn(`Token ${address} not found when trying to update chart`)
+			return
+		}
+
+		await this.tokenChart.upsertWithManySteps(
+			token.id,
+			date,
+			event.previousPrice,
+			event.newPrice,
+			event.amount
+		)
+
+		const newCandle = await this.tokenChart.getLatestCandles(token.id, date)
+		for (const candle of newCandle) {
+			this.chartSocket.emitNewCandle({
+				tokenId: token.id,
+				step: candle.step,
+				bucketStart: Number(candle.bucketStart),
+				open: candle.open,
+				high: candle.high,
+				low: candle.low,
+				close: candle.close,
+				volume: candle.volume
+			})
+		}
+	}
+
 	private async updateBalanceUser(event: BuyTokensEvent | SellTokensEvent) {
 		const isBuy = "buyer" in event
 		const userAddress = (isBuy ? event.buyer : event.seller).toBase58()
@@ -327,16 +370,7 @@ export class SolanaIndexerService implements OnModuleInit {
 		// First ensure both user and token exist
 		await this.userRepository.createIfNotExist({ address: userAddress })
 
-		// Check if token exists
-		const token = await this.tokenRepository.findOneByAddress(tokenAddress)
-		if (!token) {
-			Logger.warn(
-				`Token ${tokenAddress} not found when trying to update balance for user ${userAddress}`
-			)
-			return
-		}
-
-		await this.tokenOwner.saveTokenOwner({
+		await this.tokenOwner.updateBalance({
 			userAddress: userAddress,
 			tokenAddress: tokenAddress,
 			amount: event.amount,
