@@ -54,7 +54,7 @@ export class CommentController {
 		description: "Comments retrieved successfully"
 	})
 	async getComments(
-		@Param("tokenId") tokenId: string,
+		@Param("tokenId", new ParseUUIDPipe({ version: "4" })) tokenId: string,
 		@Query() query: GetCommentsParams,
 		@User() user: Claims | undefined
 	) {
@@ -82,7 +82,7 @@ export class CommentController {
 		type: [CommentResponse]
 	})
 	async getPinnedComments(
-		@Param("tokenId") tokenId: string,
+		@Param("tokenId", new ParseUUIDPipe({ version: "4" })) tokenId: string,
 		@User() user: Claims | undefined
 	) {
 		const result = await this.commentService.getPinnedComment({
@@ -105,7 +105,7 @@ export class CommentController {
 	})
 	async createComment(
 		@Body() body: CreateCommentPayload,
-		@Param("tokenId") tokenId: string,
+		@Param("tokenId", new ParseUUIDPipe({ version: "4" })) tokenId: string,
 		@User() user: Claims
 	) {
 		const result = await this.commentService.createComment({
@@ -130,8 +130,8 @@ export class CommentController {
 		description: "Toggled blocking user comment successfully"
 	})
 	async blockUserComment(
-		@Param("userId", ParseUUIDPipe) userId: string,
-		@Param("tokenId", ParseUUIDPipe) tokenId: string,
+		@Param("userId", new ParseUUIDPipe({ version: "4" })) userId: string,
+		@Param("tokenId", new ParseUUIDPipe({ version: "4" })) tokenId: string,
 		@User() user: Claims
 	) {
 		await this.commentService.toggleBlock({
@@ -153,7 +153,7 @@ export class CommentController {
 	})
 	@ApiOperation({ summary: "Get blocked users" })
 	async getListBlockedUserComment(
-		@Param("tokenId", ParseUUIDPipe) tokenId: string
+		@Param("tokenId", new ParseUUIDPipe({ version: "4" })) tokenId: string
 	) {
 		const result = await this.commentService.getAllBlockedUserComment(tokenId)
 		return plainToInstance(GetBlockedUserCommentResponse, result, {
@@ -170,8 +170,8 @@ export class CommentController {
 		description: "Delete comment from user successfully"
 	})
 	async deleteCommentsOfUser(
-		@Param("userId", ParseUUIDPipe) userId: string,
-		@Param("tokenId", ParseUUIDPipe) tokenId: string,
+		@Param("userId", new ParseUUIDPipe({ version: "4" })) userId: string,
+		@Param("tokenId", new ParseUUIDPipe({ version: "4" })) tokenId: string,
 		@User() user: Claims
 	) {
 		await this.commentService.deleteAllCommentFromUserByCreatorToken({
@@ -192,7 +192,7 @@ export class CommentController {
 		description: "Comment is pinned successfully"
 	})
 	async pinComment(
-		@Param("commentId", new ParseUUIDPipe()) commentId: string,
+		@Param("commentId", new ParseUUIDPipe({ version: "4" })) commentId: string,
 		@User() user: Claims
 	) {
 		const result = this.commentService.togglePinComment({
@@ -213,7 +213,7 @@ export class CommentController {
 		type: ToggleLikeResponse
 	})
 	async toggleLike(
-		@Param("commentId", ParseUUIDPipe) commentId: string,
+		@Param("commentId", new ParseUUIDPipe({ version: "4" })) commentId: string,
 		@User() user: Claims
 	) {
 		const result = await this.commentService.toggleLike(commentId, user.id)
@@ -231,7 +231,7 @@ export class CommentController {
 		description: "Replies retrieved successfully"
 	})
 	async paginateReplies(
-		@Param("commentId", ParseUUIDPipe) commentId: string,
+		@Param("commentId", new ParseUUIDPipe({ version: "4" })) commentId: string,
 		@User() user: Claims | undefined,
 		@Query() query: RepliesParams
 	) {
@@ -260,7 +260,7 @@ export class CommentController {
 	})
 	async replyComment(
 		@Body() body: CreateCommentPayload,
-		@Param("commentId", ParseUUIDPipe) commentId: string,
+		@Param("commentId", new ParseUUIDPipe({ version: "4" })) commentId: string,
 		@User() user: Claims
 	) {
 		const result = await this.commentService.replyComment({
@@ -283,7 +283,7 @@ export class CommentController {
 		description: "Delete comment successfully"
 	})
 	async deleteComment(
-		@Param("commentId", ParseUUIDPipe) commentId: string,
+		@Param("commentId", new ParseUUIDPipe({ version: "4" })) commentId: string,
 		@User() user: Claims
 	) {
 		await this.commentService.deleteByCreatorToken({

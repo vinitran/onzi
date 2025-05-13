@@ -78,6 +78,24 @@ export class TokensController {
 		})
 	}
 
+	@Get(":id")
+	@ApiBearerAuth()
+	@ApiResponse({
+		status: 200,
+		description: "Token details retrieved successfully",
+		type: FindTokenResponse
+	})
+	@ApiOperation({ summary: "Get token detail" })
+	async find(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+		@User() user: Claims | undefined
+	) {
+		const data = await this.tokensService.getById(id, user?.address)
+		return plainToInstance(FindTokenResponse, data, {
+			excludeExtraneousValues: true
+		})
+	}
+
 	// get token in cache
 	// check
 	@Post(":id/offchain")
@@ -88,7 +106,9 @@ export class TokensController {
 		description: "Token created successfully",
 		type: CreateTokenOffchainResponse
 	})
-	async createOffchain(@Param("id") tokenId: string) {
+	async createOffchain(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) tokenId: string
+	) {
 		const result = await this.tokensService.createTokenOffchain(tokenId)
 
 		return plainToInstance(CreateTokenOffchainResponse, result, {
@@ -179,7 +199,10 @@ export class TokensController {
 		type: ChartResponse
 	})
 	@ApiOperation({ summary: "Get token price chart" })
-	async getChart(@Param("id") id: string, @Query() params: ChartParams) {
+	async getChart(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+		@Query() params: ChartParams
+	) {
 		const data = await this.tokensService.getChart(id, params)
 
 		return plainToInstance(
@@ -224,7 +247,7 @@ export class TokensController {
 		type: CreateTokenOnchainResponse
 	})
 	async createTokenOnchain(
-		@Param("id") tokenId: string,
+		@Param("id", new ParseUUIDPipe({ version: "4" })) tokenId: string,
 		@Body() payload: CreateTokenOnchainPayload,
 		@User() user: Claims
 	) {
@@ -252,7 +275,7 @@ export class TokensController {
 		type: UpdateBannerResponse
 	})
 	async updateBanner(
-		@Param("id", ParseUUIDPipe) tokenId: string,
+		@Param("id", new ParseUUIDPipe({ version: "4" })) tokenId: string,
 		@Body() body: UpdateTokenPayload,
 		@User() user: Claims
 	) {
@@ -290,8 +313,10 @@ export class TokensController {
 		description: "List of token holders retrieved successfully",
 		type: TokenHolderResponse
 	})
-	async getListHolder(@Param("id") address: string) {
-		const data = await this.tokensService.getListHolder(address)
+	async getListHolder(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string
+	) {
+		const data = await this.tokensService.getListHolder(id)
 		return plainToInstance(TokenHolderResponse, data, {
 			excludeExtraneousValues: true
 		})
@@ -301,7 +326,7 @@ export class TokensController {
 	@ApiPaginatedResponse(ListTransactionResponse)
 	@ApiOperation({ summary: "Get paginated list of token transactions" })
 	async getListTransaction(
-		@Param("id") id: string,
+		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
 		@Query() query: ListTransactionParams
 	) {
 		const { data, total, maxPage } = await this.tokensService.getTransactions(
@@ -332,24 +357,6 @@ export class TokensController {
 	) {
 		const data = await this.tokensService.toggleFavorite(address, user.address)
 		return plainToInstance(ToggleFavoriteTokenResponse, data, {
-			excludeExtraneousValues: true
-		})
-	}
-
-	@Get(":address")
-	@ApiBearerAuth()
-	@ApiResponse({
-		status: 200,
-		description: "Token details retrieved successfully",
-		type: FindTokenResponse
-	})
-	@ApiOperation({ summary: "Get token detail" })
-	async find(
-		@Param("address") address: string,
-		@User() user: Claims | undefined
-	) {
-		const data = await this.tokensService.getByAddress(address, user?.address)
-		return plainToInstance(FindTokenResponse, data, {
 			excludeExtraneousValues: true
 		})
 	}

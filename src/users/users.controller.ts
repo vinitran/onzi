@@ -4,6 +4,7 @@ import {
 	Delete,
 	Get,
 	Param,
+	ParseUUIDPipe,
 	Post,
 	Put,
 	Query
@@ -53,6 +54,22 @@ export class UsersController {
 		})
 	}
 
+	@Get(":id")
+	@ApiOperation({ summary: "Get user's profile information" })
+	@ApiResponse({
+		status: 200,
+		description: "Successfully retrieved user info",
+		type: UserResponse
+	})
+	async getProfile(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string
+	) {
+		const user = await this.userService.getProfile(id)
+		return plainToInstance(UserResponse, user, {
+			excludeExtraneousValues: true
+		})
+	}
+
 	@Get(":id/coin-helds")
 	@ApiPaginatedResponse(CoinHeldsResponse)
 	@ApiOperation({
@@ -63,7 +80,10 @@ export class UsersController {
 		description: "Successfully retrieved user's token holdings",
 		type: PaginatedResponse
 	})
-	async getCoinHelds(@Param("id") id: string, @Query() query: PaginatedParams) {
+	async getCoinHelds(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+		@Query() query: PaginatedParams
+	) {
 		const { data, total, maxPage } = await this.userService.getCoinHeld(
 			id,
 			query
@@ -88,7 +108,10 @@ export class UsersController {
 		type: PaginatedResponse
 	})
 	@ApiResponse({ status: 404, description: "User not found" })
-	async getFollower(@Param("id") id: string, @Query() query: PaginatedParams) {
+	async getFollower(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+		@Query() query: PaginatedParams
+	) {
 		const { total, maxPage, data } = await this.userService.getFollower(
 			id,
 			query
@@ -114,7 +137,10 @@ export class UsersController {
 		type: PaginatedResponse
 	})
 	@ApiResponse({ status: 404, description: "User not found" })
-	async getFollowing(@Param("id") id: string, @Query() query: PaginatedParams) {
+	async getFollowing(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+		@Query() query: PaginatedParams
+	) {
 		const { total, maxPage, data } = await this.userService.getFollowing(
 			id,
 			query
@@ -139,7 +165,7 @@ export class UsersController {
 		type: PaginatedResponse
 	})
 	async getCoinCreated(
-		@Param("id") id: string,
+		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
 		@Query() query: GetCoinCreatedParams
 	) {
 		const { total, maxPage, data } = await this.userService.getCoinCreated(
@@ -164,7 +190,10 @@ export class UsersController {
 		description: "Successfully retrieved user's replies",
 		type: PaginatedResponse
 	})
-	async getReplies(@Param("id") id: string, @Query() query: PaginatedParams) {
+	async getReplies(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+		@Query() query: PaginatedParams
+	) {
 		const { replies, total, maxPage } = await this.userService.getReplies(
 			id,
 			query
@@ -239,20 +268,6 @@ export class UsersController {
 	) {
 		const unfollowing = await this.userService.unfollowing(id, followId)
 		return plainToInstance(UserConnectionResponse, unfollowing, {
-			excludeExtraneousValues: true
-		})
-	}
-
-	@Get(":id")
-	@ApiOperation({ summary: "Get user's profile information" })
-	@ApiResponse({
-		status: 200,
-		description: "Successfully retrieved user info",
-		type: UserResponse
-	})
-	async getProfile(@Param("id") id: string) {
-		const user = await this.userService.getProfile(id)
-		return plainToInstance(UserResponse, user, {
 			excludeExtraneousValues: true
 		})
 	}

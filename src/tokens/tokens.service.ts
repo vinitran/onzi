@@ -271,6 +271,45 @@ export class TokensService {
 		}
 	}
 
+	async getById(id: string, userAddress?: string) {
+		const include: Prisma.TokenInclude = {
+			_count: {
+				select: {
+					comments: true
+				}
+			},
+			tokenOwners: userAddress
+				? {
+						select: {
+							userAddress: true,
+							amount: true
+						},
+						where: { userAddress }
+					}
+				: false,
+			tokenFavorite: userAddress
+				? {
+						select: {
+							userAddress: true
+						},
+						where: { userAddress }
+					}
+				: false
+		}
+
+		const token = await this.token.findById(id, include)
+
+		if (!token) throw new NotFoundException("Not found token")
+
+		return {
+			...token,
+			tokenOwners: undefined,
+			tokenFavorite: undefined,
+			isFavorite: userAddress ? token.tokenFavorite.length > 0 : false,
+			balance: userAddress ? token.tokenOwners[0].amount : 0
+		}
+	}
+
 	// Get list similar token (lte market cap)
 	async getListSimilar(address: string) {
 		const token = await this.token.findByAddress(address)

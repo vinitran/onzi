@@ -67,7 +67,7 @@ export class FindTokenResponse extends TokenDto {
 	_count: FindTokenCount
 	@ApiProperty({
 		description: "Token balance user",
-		example: 1.25
+		example: 1000000000
 	})
 	@Expose()
 	@Type(() => Number)
