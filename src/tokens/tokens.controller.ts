@@ -78,24 +78,6 @@ export class TokensController {
 		})
 	}
 
-	@Get(":id")
-	@ApiBearerAuth()
-	@ApiResponse({
-		status: 200,
-		description: "Token details retrieved successfully",
-		type: FindTokenResponse
-	})
-	@ApiOperation({ summary: "Get token detail" })
-	async find(
-		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
-		@User() user: Claims | undefined
-	) {
-		const data = await this.tokensService.getById(id, user?.address)
-		return plainToInstance(FindTokenResponse, data, {
-			excludeExtraneousValues: true
-		})
-	}
-
 	// get token in cache
 	// check
 	@Post(":id/offchain")
@@ -227,15 +209,14 @@ export class TokensController {
 			user.address,
 			query
 		)
-		const res = plainToInstance(
+
+		return plainToInstance(
 			PaginatedResponse<FindFavoriteTokenResponse>,
 			new PaginatedResponse(tokens, total, maxPage),
 			{
 				excludeExtraneousValues: true
 			}
 		)
-
-		return res
 	}
 
 	@Post(":id/onchain")
@@ -357,6 +338,24 @@ export class TokensController {
 	) {
 		const data = await this.tokensService.toggleFavorite(address, user.address)
 		return plainToInstance(ToggleFavoriteTokenResponse, data, {
+			excludeExtraneousValues: true
+		})
+	}
+
+	@Get(":id")
+	@ApiBearerAuth()
+	@ApiResponse({
+		status: 200,
+		description: "Token details retrieved successfully",
+		type: FindTokenResponse
+	})
+	@ApiOperation({ summary: "Get token detail" })
+	async find(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+		@User() user: Claims | undefined
+	) {
+		const data = await this.tokensService.getById(id, user?.address)
+		return plainToInstance(FindTokenResponse, data, {
 			excludeExtraneousValues: true
 		})
 	}

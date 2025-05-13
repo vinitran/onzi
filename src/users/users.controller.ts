@@ -54,22 +54,6 @@ export class UsersController {
 		})
 	}
 
-	@Get(":id")
-	@ApiOperation({ summary: "Get user's profile information" })
-	@ApiResponse({
-		status: 200,
-		description: "Successfully retrieved user info",
-		type: UserResponse
-	})
-	async getProfile(
-		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string
-	) {
-		const user = await this.userService.getProfile(id)
-		return plainToInstance(UserResponse, user, {
-			excludeExtraneousValues: true
-		})
-	}
-
 	@Get(":id/coin-helds")
 	@ApiPaginatedResponse(CoinHeldsResponse)
 	@ApiOperation({
@@ -227,7 +211,7 @@ export class UsersController {
 		})
 	}
 
-	@Put("")
+	@Put()
 	@Auth()
 	@ApiOperation({ summary: "Update user profile information" })
 	@ApiResponse({
@@ -268,6 +252,22 @@ export class UsersController {
 	) {
 		const unfollowing = await this.userService.unfollowing(id, followId)
 		return plainToInstance(UserConnectionResponse, unfollowing, {
+			excludeExtraneousValues: true
+		})
+	}
+
+	@Get(":id")
+	@ApiOperation({ summary: "Get user's profile information" })
+	@ApiResponse({
+		status: 200,
+		description: "Successfully retrieved user info",
+		type: UserResponse
+	})
+	async getProfile(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string
+	) {
+		const user = await this.userService.getProfile(id)
+		return plainToInstance(UserResponse, user, {
 			excludeExtraneousValues: true
 		})
 	}
