@@ -205,14 +205,14 @@ export class TokensController {
 		@Query() query: FindListTokenFavoriteParams,
 		@User() user: Claims
 	) {
-		const { maxPage, tokens, total } = await this.tokensService.getListFavorite(
+		const { maxPage, data, total } = await this.tokensService.getListFavorite(
 			user.address,
 			query
 		)
 
 		return plainToInstance(
 			PaginatedResponse<FindFavoriteTokenResponse>,
-			new PaginatedResponse(tokens, total, maxPage),
+			new PaginatedResponse(data, total, maxPage),
 			{
 				excludeExtraneousValues: true
 			}

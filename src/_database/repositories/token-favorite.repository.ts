@@ -19,7 +19,9 @@ export class TokenFavoriteRepository {
 
 		const include: Prisma.TokenFavoriteInclude = {
 			token: {
-				include: {
+				select: {
+					id: true,
+					address: true,
 					creator: {
 						select: {
 							id: true,
@@ -37,16 +39,16 @@ export class TokenFavoriteRepository {
 				where,
 				take,
 				skip,
-				orderBy: { createdAt: "desc" },
+				orderBy: { createdAt: Prisma.SortOrder.desc },
 				include
 			}),
 			this.prisma.tokenFavorite.count({ where })
 		])
 
 		return {
+			data,
 			total,
-			maxPage: Math.ceil(total / take),
-			tokens: data
+			maxPage: Math.ceil(total / take)
 		}
 	}
 
