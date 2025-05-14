@@ -28,13 +28,17 @@ model User {
   following         UserConnection[]   @relation("following")
   config            Config?
 
-  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime?       @updatedAt @map("updated_at") @db.Timestamptz(3)
-  tokenFavorite TokenFavorite[]
-  stickers      Sticker[]
-  stickerOwners StickerOwner[]
-  social        UserSocial?
-  blockComments BlockComment[]
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime?           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tokenFavorite      TokenFavorite[]
+  stickers           Sticker[]
+  stickerOwners      StickerOwner[]
+  social             UserSocial?
+  blockComments      BlockComment[]
+  reels              Reel[]
+  reelUserActions    ReelUserAction[]
+  reelComments       ReelComment[]
+  reelCommentActions ReelCommentAction[]
 
   @@map("user")
 }
@@ -184,6 +188,7 @@ model Token {
   tokenFavorite    TokenFavorite[]
   blockComments    BlockComment[]
   chart            TokenChart[]
+  reels            Reel[]
 
   @@index([creatorAddress, createdAt(sort: Desc)])
   @@map("token")
@@ -300,16 +305,6 @@ model StickerOwner {
   @@map("sticker_owner")
 }
 
-enum Network {
-  Solana
-}
-
-enum TransactionType {
-  Buy
-  Sell
-  Create
-}
-
 model TokenChart {
   id      String @id @default(uuid()) @db.Uuid
   tokenId String @map("token_id") @db.Uuid
@@ -330,4 +325,87 @@ model TokenChart {
   @@index([tokenId])
   @@index([date, step])
   @@map("token_chart")
+}
+
+model Reel {
+  id         String    @id @default(uuid()) @db.Uuid
+  videoUri   String    @map("video_uri")
+  caption    String    @db.Text
+  viewAmount BigInt    @default(0) @map("view_amount")
+  creatorId  String    @map("creator_id") @db.Uuid
+  tokenId    String    @map("token_id") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  token           Token            @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  creator         User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  reelUserActions ReelUserAction[]
+  reelComments    ReelComment[]
+
+  @@index([tokenId])
+  @@map("reel")
+}
+
+// Like or Dislike reels
+model ReelUserAction {
+  id        String           @id @default(uuid()) @db.Uuid
+  reelId    String           @map("reel_id") @db.Uuid
+  creatorId String           @map("creator_id") @db.Uuid
+  status    UserActionStatus
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  reel    Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([reelId, creatorId])
+  @@map("reel_user_action")
+}
+
+// Comment in reel
+model ReelComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  content   String   @db.Text
+  authorId  String   @map("author_id") @db.Uuid
+  reelId    String   @map("reel_id") @db.Uuid
+  parentId  String?  @map("parent_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  reel               Reel                @relation(fields: [reelId], references: [id])
+  author             User                @relation(fields: [authorId], references: [id])
+  parent             ReelComment?        @relation("CommentReelReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies            ReelComment[]       @relation("CommentReelReplies")
+  reelCommentActions ReelCommentAction[]
+
+  @@index([reelId])
+  @@map("reel_comment")
+}
+
+// Like or Dislike comments in reels
+model ReelCommentAction {
+  id            String           @id @default(uuid()) @db.Uuid
+  reelCommentId String           @map("reel_id") @db.Uuid
+  creatorId     String           @map("creator_id") @db.Uuid
+  status        UserActionStatus
+
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  user        User        @relation(fields: [creatorId], references: [id])
+  reelComment ReelComment @relation(fields: [reelCommentId], references: [id])
+
+  @@map("reel_comment_action")
+}
+
+enum Network {
+  Solana
+}
+
+enum TransactionType {
+  Buy
+  Sell
+  Create
+}
+
+enum UserActionStatus {
+  Like
+  Dislike
 }

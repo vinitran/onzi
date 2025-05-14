@@ -11,6 +11,7 @@ import { IndexerModule } from "@root/indexer/indexer.module"
 import { UsersModule } from "@root/users/users.module"
 import { CommentModule } from "./comments/comment.module"
 import { NotificationsModule } from "./notifications/notifications.module"
+import { ReelsModule } from "./reels/reels.module"
 import { StickersModule } from "./stickers/stickers.module"
 import { TokensModule } from "./tokens/tokens.module"
 
@@ -29,7 +30,8 @@ import { TokensModule } from "./tokens/tokens.module"
 		RedisModule,
 		IndexerModule,
 		NotificationsModule,
-		StickersModule
+		StickersModule,
+		ReelsModule
 	],
 	controllers: [AppController],
 	providers: [AppService]
