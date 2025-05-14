@@ -681,8 +681,8 @@ export class ListTransactionParams extends PaginatedParams {
 
 export class ChartParams {
 	@ApiProperty({
-		description: "Start timestamp in milliseconds",
-		example: 1711008000000,
+		description: "Start timestamp in seconds",
+		example: 1711008000,
 		required: true
 	})
 	@Prop()
@@ -690,8 +690,8 @@ export class ChartParams {
 	from: number
 
 	@ApiProperty({
-		description: "End timestamp in milliseconds",
-		example: 1711094400000,
+		description: "End timestamp in seconds",
+		example: 1711094400,
 		required: true
 	})
 	@Prop()

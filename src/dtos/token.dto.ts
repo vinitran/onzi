@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger"
+import { TokenChart } from "@root/dtos/token-chart.dto"
 import { TokenFavorite } from "@root/dtos/token-favorite.dto"
 import { TokenOwner } from "@root/dtos/token-owner.dto"
 import { User } from "@root/dtos/user.dto"
@@ -387,6 +388,16 @@ export class Token extends SocialToken {
 	@Expose()
 	@Type(() => TokenFavorite)
 	tokenFavorite?: TokenFavorite[]
+
+	@ApiProperty({
+		description: "Token charts",
+		required: false,
+		isArray: true,
+		type: () => TokenChart
+	})
+	@Expose()
+	@Type(() => TokenChart)
+	tokenCharts?: TokenChart[]
 
 	constructor(partial: Partial<Token>) {
 		super()
