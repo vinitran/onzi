@@ -352,7 +352,7 @@ export class SolanaIndexerService implements OnModuleInit {
 			this.chartSocket.emitNewCandle({
 				tokenId: token.id,
 				step: candle.step,
-				bucketStart: Number(candle.bucketStart),
+				date: candle.date,
 				open: candle.open,
 				high: candle.high,
 				low: candle.low,

@@ -1,5 +1,6 @@
 import { BN } from "@coral-xyz/anchor"
 import { Injectable } from "@nestjs/common"
+import { Prisma } from "@prisma/client"
 import { RedisService } from "@root/_redis/redis.service"
 import { PrismaService } from "../prisma.service"
 
@@ -37,7 +38,7 @@ export class TokenChartRepository {
 			// Calculate all bucket starts first
 			const bucketStarts = steps.map(step => ({
 				step,
-				bucketStart: Math.floor(timestampSeconds / step) * step
+				date: Math.floor(timestampSeconds / step) * step
 			}))
 
 			// Fetch all existing records in one query
@@ -46,8 +47,8 @@ export class TokenChartRepository {
 					AND: [
 						{ tokenId },
 						{
-							OR: bucketStarts.map(({ step, bucketStart }) => ({
-								AND: [{ step }, { bucketStart }]
+							OR: bucketStarts.map(({ step, date }) => ({
+								AND: [{ step }, { date }]
 							}))
 						}
 					]
@@ -56,29 +57,26 @@ export class TokenChartRepository {
 
 			// Create a map for quick lookup
 			const existingMap = new Map(
-				existingRecords.map(record => [
-					`${record.step}_${record.bucketStart}`,
-					record
-				])
+				existingRecords.map(record => [`${record.step}_${record.date}`, record])
 			)
 
 			// Prepare all upsert operations
-			const upsertOperations = bucketStarts.map(({ step, bucketStart }) => {
-				const key = `${step}_${bucketStart}`
+			const upsertOperations = bucketStarts.map(({ step, date }) => {
+				const key = `${step}_${date}`
 				const existing = existingMap.get(key)
 
 				return tx.tokenChart.upsert({
 					where: {
-						tokenId_step_bucketStart: {
+						tokenId_step_date: {
 							tokenId,
 							step,
-							bucketStart
+							date
 						}
 					},
 					create: {
 						tokenId,
 						step,
-						bucketStart,
+						date,
 						open: price,
 						high: Math.max(price, newPrice),
 						low: Math.min(price, newPrice),
@@ -107,16 +105,16 @@ export class TokenChartRepository {
 					where: {
 						tokenId: id,
 						step,
-						bucketStart: {
+						date: {
 							gte: from,
 							lte: to
 						}
 					},
 					orderBy: {
-						bucketStart: "asc"
+						date: Prisma.SortOrder.asc
 					},
 					select: {
-						bucketStart: true,
+						date: true,
 						open: true,
 						high: true,
 						low: true,
@@ -138,20 +136,20 @@ export class TokenChartRepository {
 		// Calculate bucket starts for each step
 		const bucketStarts = steps.map(step => ({
 			step,
-			bucketStart: Math.floor(timestampSeconds / step) * step
+			date: Math.floor(timestampSeconds / step) * step
 		}))
 
 		const latestCandles = await this.prisma.tokenChart.findMany({
 			where: {
 				tokenId,
-				OR: bucketStarts.map(({ step, bucketStart }) => ({
-					AND: [{ step }, { bucketStart }]
+				OR: bucketStarts.map(({ step, date }) => ({
+					AND: [{ step }, { date }]
 				}))
 			},
 			orderBy: [{ step: "asc" }],
 			select: {
 				step: true,
-				bucketStart: true,
+				date: true,
 				open: true,
 				high: true,
 				low: true,

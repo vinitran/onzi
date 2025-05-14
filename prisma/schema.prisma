@@ -311,23 +311,23 @@ enum TransactionType {
 }
 
 model TokenChart {
-  id          String @id @default(uuid()) @db.Uuid
-  tokenId     String @map("token_id") @db.Uuid
-  step        Int // milliseconds, e.g. 60000 for 1 min
-  bucketStart Int    @map("bucket_start") // timestamp in ms
-  open        Float
-  high        Float
-  low         Float
-  close       Float
-  volume      Float
+  id      String @id @default(uuid()) @db.Uuid
+  tokenId String @map("token_id") @db.Uuid
+  step    Int // milliseconds, e.g. 60000 for 1 min
+  date    Int    @map("bucket_start") // timestamp in ms
+  open    Float
+  high    Float
+  low     Float
+  close   Float
+  volume  Float
 
   token Token @relation(fields: [tokenId], references: [id], onDelete: Cascade)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  @@unique([tokenId, step, bucketStart])
+  @@unique([tokenId, step, date])
   @@index([tokenId])
-  @@index([bucketStart, step])
+  @@index([date, step])
   @@map("token_chart")
 }

@@ -1,7 +1,7 @@
 export class CandleDto {
 	tokenId: string
 	step: number // seconds
-	bucketStart: number // timestamp in s
+	date: number // timestamp in s
 	open: number
 	high: number
 	low: number

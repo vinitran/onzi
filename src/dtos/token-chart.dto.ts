@@ -25,12 +25,12 @@ export class TokenChart {
 	step: number
 
 	@ApiProperty({
-		description: "Bucket start timestamp in milliseconds",
-		example: 1710892800000
+		description: "Date timestamp in milliseconds",
+		example: 1710892800
 	})
 	@Expose()
 	@Type(() => Number)
-	bucketStart: number
+	date: number
 
 	@ApiProperty({
 		description: "Opening price",
