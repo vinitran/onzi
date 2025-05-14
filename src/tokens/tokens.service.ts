@@ -34,6 +34,7 @@ import {
 	UpdateTokenPayload
 } from "@root/tokens/dtos/payload.dto"
 import {
+	FindFavoriteTokenResponse,
 	FindSimilarTokenResponse,
 	FindTokenResponse,
 	ListTransactionResponse,
@@ -406,7 +407,14 @@ export class TokensService {
 		userAddress: string,
 		query: FindListTokenFavoriteParams
 	) {
-		return this.tokenFavorite.find({ ...query, userAddress })
+		return this.tokenFavorite.find({ ...query, userAddress }).then(result => ({
+			data: plainToInstance(FindFavoriteTokenResponse, result.data, {
+				excludeExtraneousValues: true,
+				enableImplicitConversion: true
+			}),
+			total: result.total,
+			maxPage: result.maxPage
+		}))
 	}
 
 	async getTrendingTopics() {

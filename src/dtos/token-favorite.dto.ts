@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger"
-import { Expose } from "class-transformer"
+import { Expose, Type } from "class-transformer"
 import { Token } from "./token.dto"
 import { User } from "./user.dto"
 
@@ -23,6 +23,7 @@ export class TokenFavorite {
 		type: () => Token
 	})
 	@Expose()
+	@Type(() => Token)
 	token: Token
 
 	@ApiProperty({

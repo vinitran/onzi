@@ -98,7 +98,7 @@ export class Token extends SocialToken {
 	})
 	@Expose()
 	@Type(() => Number)
-	price?: number
+	price: number
 
 	@ApiProperty({
 		description: "Token metadata URI",

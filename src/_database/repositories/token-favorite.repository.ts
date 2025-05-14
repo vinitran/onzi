@@ -19,9 +19,7 @@ export class TokenFavoriteRepository {
 
 		const include: Prisma.TokenFavoriteInclude = {
 			token: {
-				select: {
-					id: true,
-					address: true,
+				include: {
 					creator: {
 						select: {
 							id: true,
