@@ -266,9 +266,8 @@ export class TokenRepository {
 							amount: true
 						}
 					})
-					if (!creator)
-						throw new InternalServerErrorException("can not get creator")
-					creatorAmount = creator.amount
+
+					creatorAmount = creator ? creator.amount : new Prisma.Decimal(0)
 				}
 
 				const devHoldPersent =

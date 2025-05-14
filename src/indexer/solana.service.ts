@@ -130,12 +130,7 @@ export class SolanaIndexerService implements OnModuleInit {
 			uri: event.uri,
 			ticker: event.symbol,
 			network: Network.Solana,
-			bump: true,
-			creator: {
-				connect: {
-					address: event.creator.toBase58()
-				}
-			}
+			bump: true
 		})
 
 		await this.updateToken(event.mint)
