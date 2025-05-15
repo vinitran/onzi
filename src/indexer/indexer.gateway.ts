@@ -13,6 +13,7 @@ import {
 	TransactionDto
 } from "@root/indexer/dtos/transaction.dto"
 import { Server, Socket } from "socket.io"
+import { TokenTransaction } from '@root/dtos/token-transaction.dto';
 
 @WebSocketGateway({
 	cors: { origin: "*" },
@@ -31,7 +32,11 @@ export class IndexerGateway
 
 	async handleConnection(@ConnectedSocket() client: Socket) {
 		try {
-			this.logger.log(`Client connected: ${client.nsp.name} - ID: ${client.id}`)
+			client.on("subscribe", (tokenId) => {
+				const room = `transaction:${tokenId}`
+				client.join(room)
+				this.logger.log(`Client ${client.id} subscribed to ${room}`)
+			})
 		} catch {
 			client.disconnect()
 		}
@@ -43,16 +48,14 @@ export class IndexerGateway
 		)
 	}
 
-	handleBuyTx(data: TransactionDto) {
-		this.serverInstance.emit(TX_GATEWAY_EMIT_EVENTS.BUY, data)
-	}
-
-	handleSellTx(data: TransactionDto) {
-		this.serverInstance.emit(TX_GATEWAY_EMIT_EVENTS.SELL, data)
+	handleTx(data: TokenTransaction) {
+		const room = `transaction:${data.token?.id}`
+		this.serverInstance.to(room).emit(TX_GATEWAY_EMIT_EVENTS.NEW_TX, data)
 	}
 
 	handleTokenCreation(data: TokenCreationDto) {
-		this.serverInstance.emit(TX_GATEWAY_EMIT_EVENTS.SELL, data)
+		const room = `transaction:${data.address}`
+		this.serverInstance.to(room).emit(TX_GATEWAY_EMIT_EVENTS.CREATE_TOKEN, data)
 	}
 }
 

@@ -385,6 +385,8 @@ export class TokenRepository {
 			this.prisma.token.count({ where })
 		])
 
+		if (!tokens || tokens.length == 0) throw new NotFoundException("not found token")
+
 		let favoriteTokens: string[] = []
 		if (userAddress) {
 			const favorites = await this.prisma.tokenFavorite.findMany({
@@ -441,17 +443,10 @@ export class TokenRepository {
 			where: {
 				address
 			},
-			include: {
-				creator: true,
-				tokenOwners: {
-					include: {
-						user: true
-					},
-					orderBy: {
-						amount: Prisma.SortOrder.desc
-					},
-					take: 20
-				}
+			select: {
+				id: true,
+				address: true,
+				bondingCurveTarget: true
 			}
 		})
 	}

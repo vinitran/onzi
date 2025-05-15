@@ -1,5 +1,4 @@
 export const TX_GATEWAY_EMIT_EVENTS = {
-	BUY: "buy",
-	SELL: "sell",
+	NEW_TX: "new-transaction",
 	CREATE_TOKEN: "create-token"
 }

@@ -1,5 +1,16 @@
 import { BN } from "@coral-xyz/anchor"
+import { Expose } from 'class-transformer';
 
+class Signer {
+	@Expose()
+	id: string
+
+	@Expose()
+	address: string
+
+	@Expose()
+	username: string
+}
 export class TokenCreationDto {
 	address: string
 	name: string
@@ -20,7 +31,7 @@ export class TransactionDto {
 	date: number
 	amount: BN
 	lamports: BN
-	signer: string
+	signer: Signer
 	price: number
 	newPrice: number
 	network: string

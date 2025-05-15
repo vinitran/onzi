@@ -1,6 +1,6 @@
 import { web3 } from "@coral-xyz/anchor"
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common"
-import { Network, Prisma } from "@prisma/client"
+import { Network, Prisma } from '@prisma/client';
 import { TokenChartRepository } from "@root/_database/repositories/token-candle.repository"
 import { TokenOwnerRepository } from "@root/_database/repositories/token-owner.repository"
 import { TokenTransactionRepository } from "@root/_database/repositories/token-transaction.repository"
@@ -18,6 +18,11 @@ import { Ponz } from "@root/programs/ponz/program"
 import { InjectConnection } from "@root/programs/programs.module"
 import { DateTime } from "luxon"
 import WebSocket from "ws"
+import { TransactionDto } from '@root/indexer/dtos/transaction.dto';
+import { TokenTransaction, TransactionType } from '@root/dtos/token-transaction.dto';
+import { plainToInstance } from 'class-transformer';
+import { Token } from '@root/dtos/token.dto';
+import { User } from '@root/dtos/user.dto';
 
 @Injectable()
 export class SolanaIndexerService implements OnModuleInit {
@@ -159,38 +164,40 @@ export class SolanaIndexerService implements OnModuleInit {
 		event,
 		signature
 	}: { event: BuyTokensEvent; signature: string }) {
-		const [tokenBySig, token] = await Promise.all([
+		const [tokenBySig, token, user] = await Promise.all([
 			this.tokenTxRepository.findBySignature(signature),
-			this.tokenRepository.exist(event.mint.toBase58())
+			this.tokenRepository.findOneByAddress(event.mint.toBase58()),
+			this.userRepository.createIfNotExist({
+				address: event.buyer.toBase58()
+			})
 		])
 
 		if (tokenBySig) {
 			return
 		}
 
-		if (!token) {
+		if (!token || !user) {
 			return
 		}
 
 		const date = await this.getTimeFromSignature(signature)
 
-		this.socket.handleBuyTx({
-			address: event.mint.toBase58(),
-			date: date.toMillis(),
+		const transaction = {
+			type: TransactionType.BUY,
+			date: date.toJSDate(),
+			signature,
 			amount: event.amount,
 			lamports: event.lamports,
+			tokenAddress: event.mint.toBase58(),
 			signer: event.buyer.toBase58(),
 			price: event.previousPrice,
 			newPrice: event.newPrice,
-			network: "Solana",
-			signature: signature
-		})
+			token: plainToInstance(Token, token),
+			createdBy: plainToInstance(User, user),
+		};
+		this.socket.handleTx(plainToInstance(TokenTransaction, transaction));
 
 		await this.updateTokenAfterTransaction(event.mint, event, date.toMillis())
-
-		await this.userRepository.createIfNotExist({
-			address: event.buyer.toBase58()
-		})
 
 		await this.tokenTxRepository.create({
 			address: event.mint,
@@ -210,32 +217,38 @@ export class SolanaIndexerService implements OnModuleInit {
 		event,
 		signature
 	}: { event: SellTokensEvent; signature: string }) {
-		const [tokenBySig, token] = await Promise.all([
+		const [tokenBySig, token, user] = await Promise.all([
 			this.tokenTxRepository.findBySignature(signature),
-			this.tokenRepository.exist(event.mint.toBase58())
+			this.tokenRepository.findOneByAddress(event.mint.toBase58()),
+			this.userRepository.createIfNotExist({
+				address: event.seller.toBase58()
+			})
 		])
 
 		if (tokenBySig) {
 			return
 		}
 
-		if (!token) {
+		if (!token || !user) {
 			return
 		}
 
 		const date = await this.getTimeFromSignature(signature)
 
-		this.socket.handleSellTx({
-			address: event.mint.toBase58(),
-			date: date.toMillis(),
-			amount: event.amount,
-			lamports: event.lamports,
-			signer: event.seller.toBase58(),
-			price: event.previousPrice,
-			newPrice: event.newPrice,
-			network: "Solana",
-			signature: signature
-		})
+		const transaction = {
+      type: TransactionType.SELL,
+      date: date.toJSDate(),
+      signature,
+      amount: event.amount,
+      lamports: event.lamports,
+      tokenAddress: event.mint.toBase58(),
+      signer: event.seller.toBase58(),
+      price: event.previousPrice,
+      newPrice: event.newPrice,
+      token: plainToInstance(Token, token),
+      createdBy: plainToInstance(User, user),
+    };
+		this.socket.handleTx(plainToInstance(TokenTransaction, transaction));
 
 		await this.userRepository.createIfNotExist({
 			address: event.seller.toBase58()
