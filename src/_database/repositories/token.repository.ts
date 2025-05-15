@@ -217,13 +217,12 @@ export class TokenRepository {
 		const tokenData = await Promise.all(
 			tokens.map(async token => {
 				const top10Total = token.tokenOwners.reduce(
-					(sum, owner) => sum + Number(owner.amount),
-					0
+					(sum, owner) => sum.plus(owner.amount),
+					new Prisma.Decimal(0)
 				)
-				const top10Percentage =
-					token.marketCapacity.toNumber() > 0
-						? (top10Total / Number(token.marketCapacity)) * 100
-						: 0
+				const top10Percentage = token.marketCapacity.gt(0)
+					? top10Total.div(token.totalSupply).mul(100)
+					: new Prisma.Decimal(0)
 
 				let isFavorite = false
 
@@ -270,8 +269,7 @@ export class TokenRepository {
 					creatorAmount = creator ? creator.amount : new Prisma.Decimal(0)
 				}
 
-				const devHoldPersent =
-					Number(creatorAmount) / Number(token.marketCapacity)
+				const devHoldPersent = creatorAmount.div(token.totalSupply)
 
 				return {
 					...token,
