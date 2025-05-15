@@ -7,13 +7,10 @@ import {
 	WebSocketGateway
 } from "@nestjs/websockets"
 import { TX_GATEWAY_EMIT_EVENTS } from "@root/_shared/constants/transaction"
+import { TokenTransaction } from "@root/dtos/token-transaction.dto"
 import { CandleDto } from "@root/indexer/dtos/chart.dto"
-import {
-	TokenCreationDto,
-	TransactionDto
-} from "@root/indexer/dtos/transaction.dto"
+import { TokenCreationDto } from "@root/indexer/dtos/transaction.dto"
 import { Server, Socket } from "socket.io"
-import { TokenTransaction } from '@root/dtos/token-transaction.dto';
 
 @WebSocketGateway({
 	cors: { origin: "*" },
@@ -32,7 +29,7 @@ export class IndexerGateway
 
 	async handleConnection(@ConnectedSocket() client: Socket) {
 		try {
-			client.on("subscribe", (tokenId) => {
+			client.on("subscribe", tokenId => {
 				const room = `transaction:${tokenId}`
 				client.join(room)
 				this.logger.log(`Client ${client.id} subscribed to ${room}`)

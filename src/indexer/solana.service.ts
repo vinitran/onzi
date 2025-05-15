@@ -1,6 +1,6 @@
 import { web3 } from "@coral-xyz/anchor"
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common"
-import { Network, Prisma } from '@prisma/client';
+import { Network, Prisma } from "@prisma/client"
 import { TokenChartRepository } from "@root/_database/repositories/token-candle.repository"
 import { TokenOwnerRepository } from "@root/_database/repositories/token-owner.repository"
 import { TokenTransactionRepository } from "@root/_database/repositories/token-transaction.repository"
@@ -8,6 +8,12 @@ import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { getTokenMetaData } from "@root/_shared/helpers/get-token-metadata"
+import {
+	TokenTransaction,
+	TransactionType
+} from "@root/dtos/token-transaction.dto"
+import { Token } from "@root/dtos/token.dto"
+import { User } from "@root/dtos/user.dto"
 import { ChartGateway, IndexerGateway } from "@root/indexer/indexer.gateway"
 import {
 	BuyTokensEvent,
@@ -16,13 +22,9 @@ import {
 } from "@root/programs/ponz/events"
 import { Ponz } from "@root/programs/ponz/program"
 import { InjectConnection } from "@root/programs/programs.module"
+import { plainToInstance } from "class-transformer"
 import { DateTime } from "luxon"
 import WebSocket from "ws"
-import { TransactionDto } from '@root/indexer/dtos/transaction.dto';
-import { TokenTransaction, TransactionType } from '@root/dtos/token-transaction.dto';
-import { plainToInstance } from 'class-transformer';
-import { Token } from '@root/dtos/token.dto';
-import { User } from '@root/dtos/user.dto';
 
 @Injectable()
 export class SolanaIndexerService implements OnModuleInit {
@@ -193,9 +195,10 @@ export class SolanaIndexerService implements OnModuleInit {
 			price: event.previousPrice,
 			newPrice: event.newPrice,
 			token: plainToInstance(Token, token),
-			createdBy: plainToInstance(User, user),
-		};
-		this.socket.handleTx(plainToInstance(TokenTransaction, transaction));
+			createdBy: plainToInstance(User, user)
+		}
+
+		this.socket.handleTx(plainToInstance(TokenTransaction, transaction))
 
 		await this.updateTokenAfterTransaction(event.mint, event, date.toMillis())
 
@@ -236,19 +239,20 @@ export class SolanaIndexerService implements OnModuleInit {
 		const date = await this.getTimeFromSignature(signature)
 
 		const transaction = {
-      type: TransactionType.SELL,
-      date: date.toJSDate(),
-      signature,
-      amount: event.amount,
-      lamports: event.lamports,
-      tokenAddress: event.mint.toBase58(),
-      signer: event.seller.toBase58(),
-      price: event.previousPrice,
-      newPrice: event.newPrice,
-      token: plainToInstance(Token, token),
-      createdBy: plainToInstance(User, user),
-    };
-		this.socket.handleTx(plainToInstance(TokenTransaction, transaction));
+			type: TransactionType.SELL,
+			date: date.toJSDate(),
+			signature,
+			amount: event.amount,
+			lamports: event.lamports,
+			tokenAddress: event.mint.toBase58(),
+			signer: event.seller.toBase58(),
+			price: event.previousPrice,
+			newPrice: event.newPrice,
+			token: plainToInstance(Token, token),
+			createdBy: plainToInstance(User, user)
+		}
+
+		this.socket.handleTx(plainToInstance(TokenTransaction, transaction))
 
 		await this.userRepository.createIfNotExist({
 			address: event.seller.toBase58()

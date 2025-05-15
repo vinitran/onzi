@@ -1,5 +1,5 @@
 import { BN } from "@coral-xyz/anchor"
-import { Expose } from 'class-transformer';
+import { Expose } from "class-transformer"
 
 class Signer {
 	@Expose()

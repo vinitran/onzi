@@ -385,7 +385,8 @@ export class TokenRepository {
 			this.prisma.token.count({ where })
 		])
 
-		if (!tokens || tokens.length == 0) throw new NotFoundException("not found token")
+		if (!tokens || tokens.length === 0)
+			throw new NotFoundException("not found token")
 
 		let favoriteTokens: string[] = []
 		if (userAddress) {
