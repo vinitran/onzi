@@ -80,7 +80,7 @@ export class ReelsService {
 	async getDetail(payload: GetDetailReelPayload) {
 		const { reelId, userAddress, userId } = payload
 
-		const reel = await this.reel.getDetail(reelId, userAddress)
+		const reel = await this.reel.getDetail(reelId)
 		if (!reel) throw new NotFoundException("Not found reel")
 
 		const [totalComment, userActions] = await Promise.all([
