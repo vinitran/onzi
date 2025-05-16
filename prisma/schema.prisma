@@ -8,17 +8,16 @@ datasource db {
 }
 
 model User {
-  id            String  @id @default(uuid()) @db.Uuid
-  address       String  @unique @db.VarChar
-  username      String  @unique @db.VarChar
-  bio           String? @db.VarChar
-  avatarUrl     String? @map("avatar_url") @db.VarChar
-  network       Network @default(Solana)
-  premium       Boolean @default(false)
-  backgroundUrl String? @map("background_url") @db.VarChar
-
-  usernameChangeCount Float @default(0) @map("username_change_count")
-
+  id                  String  @id @default(uuid()) @db.Uuid
+  address             String  @unique @db.VarChar
+  username            String? @unique @db.VarChar
+  bio                 String? @db.VarChar
+  avatarUrl           String? @map("avatar_url") @db.VarChar
+  network             Network @default(Solana)
+  premium             Boolean @default(false)
+  backgroundUrl       String? @map("background_url") @db.VarChar
+  usernameChangeCount Float   @default(0) @map("username_change_count")
+  role                Role    @default(User)
   tokens            Token[]
   tokenOwners       TokenOwner[]
   comments          Comment[]
@@ -39,6 +38,7 @@ model User {
   reelUserActions    ReelUserAction[]
   reelComments       ReelComment[]
   reelCommentActions ReelCommentAction[]
+  reelCommentReports ReelCommentReport[]
 
   @@map("user")
 }
@@ -353,6 +353,7 @@ model ReelUserAction {
   creatorId String           @map("creator_id") @db.Uuid
   status    UserActionStatus
   createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   reel    Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
   creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
@@ -369,13 +370,13 @@ model ReelComment {
   reelId    String   @map("reel_id") @db.Uuid
   parentId  String?  @map("parent_id") @db.Uuid
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  reel               Reel                @relation(fields: [reelId], references: [id])
-  author             User                @relation(fields: [authorId], references: [id])
+  reel               Reel                @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  author             User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent             ReelComment?        @relation("CommentReelReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies            ReelComment[]       @relation("CommentReelReplies")
   reelCommentActions ReelCommentAction[]
+  reelCommentReports ReelCommentReport[]
 
   @@index([reelId])
   @@map("reel_comment")
@@ -384,19 +385,39 @@ model ReelComment {
 // Like or Dislike comments in reels
 model ReelCommentAction {
   id            String           @id @default(uuid()) @db.Uuid
-  reelCommentId String           @map("reel_id") @db.Uuid
+  reelCommentId String           @map("reel_comment_id") @db.Uuid
   creatorId     String           @map("creator_id") @db.Uuid
   status        UserActionStatus
 
-  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  user        User        @relation(fields: [creatorId], references: [id])
-  reelComment ReelComment @relation(fields: [reelCommentId], references: [id])
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  creator     User        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  reelComment ReelComment @relation(fields: [reelCommentId], references: [id], onDelete: Cascade)
 
   @@map("reel_comment_action")
 }
 
+model ReelCommentReport {
+  id            String   @id @default(uuid()) @db.Uuid
+  reelCommentId String   @map("reel_comment_id") @db.Uuid
+  reporterId    String   @map("reporter_id") @db.Uuid
+  description   String   @db.Text
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  reelComment ReelComment @relation(fields: [reelCommentId], references: [id], onDelete: Cascade)
+  reporter    User        @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@map("reel_comment_report")
+}
+
 enum Network {
   Solana
+}
+
+enum Role {
+  Admin
+  User
 }
 
 enum TransactionType {

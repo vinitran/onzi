@@ -9,6 +9,7 @@ import { BlockCommentRepository } from "@root/_database/repositories/block-comme
 import { CommentRepository } from "@root/_database/repositories/comment.repository"
 import { StickerOwnerRepository } from "@root/_database/repositories/sticker-owner.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
+import { UserRepository } from "@root/_database/repositories/user.repository"
 import {
 	DeleteAllCommentFromUserByCreatorTokenPayload,
 	DeleteCommentByCreatorTokenPayload,
@@ -31,6 +32,7 @@ export class CommentService {
 		private token: TokenRepository,
 		private stickerOwner: StickerOwnerRepository,
 		private blockComment: BlockCommentRepository,
+		private user: UserRepository,
 		private s3Service: S3Service
 	) {}
 
@@ -155,11 +157,9 @@ export class CommentService {
 
 		// Get data & total
 		// Only get comment level 1
-		// Only get comment NOT pinned
 		const whereConditions: Prisma.CommentWhereInput = {
 			tokenId,
-			parentId: { equals: null },
-			pinnedAt: { equals: null }
+			parentId: { equals: null }
 		}
 
 		const getComments = this.comment.paginate({
@@ -293,27 +293,42 @@ export class CommentService {
 	}
 
 	// Delete comment by creator token
-	async deleteByCreatorToken(payload: DeleteCommentByCreatorTokenPayload) {
+	async deleteComment(payload: DeleteCommentByCreatorTokenPayload) {
 		const { commentId, creatorAddress } = payload
 		const comment = await this.comment.getDetailWithTokenById(commentId)
 		if (!comment) throw new NotFoundException("Not found comment")
 
-		if (comment.token.creatorAddress !== creatorAddress)
-			throw new ForbiddenException("Only creator token just allow to delete")
+		const user = await this.user.findByAddress(creatorAddress)
+
+		if (!user) throw new NotFoundException("Not found user")
+
+		if (
+			comment.token.creatorAddress !== creatorAddress &&
+			user.role !== "Admin"
+		)
+			throw new ForbiddenException(
+				"Only creator token or admin just allow to delete"
+			)
 
 		await this.comment.deleteById(commentId)
 	}
 
 	//   Delete list comment from user by creator token
-	async deleteAllCommentFromUserByCreatorToken(
+	async deleteAllCommentFromUser(
 		payload: DeleteAllCommentFromUserByCreatorTokenPayload
 	) {
 		const { authorId, creatorAddress, tokenId } = payload
 
 		const token = await this.token.findById(tokenId)
 		if (!token) throw new NotFoundException("Not found token")
-		if (token.creatorAddress !== creatorAddress)
-			throw new ForbiddenException("Only creator token just allow to delete")
+
+		const user = await this.user.findByAddress(creatorAddress)
+		if (!user) throw new NotFoundException("Not found user")
+
+		if (token.creatorAddress !== creatorAddress && user.role !== "Admin")
+			throw new ForbiddenException(
+				"Only creator token or admin just allow to delete"
+			)
 
 		await this.comment.deleteByAuthorId(authorId)
 	}

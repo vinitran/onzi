@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common"
 import { JwtService } from "@nestjs/jwt"
+import { Role } from "@prisma/client"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RedisService } from "@root/_redis/redis.service"
@@ -12,6 +13,7 @@ import { decodeUTF8 } from "tweetnacl-util"
 export type Claims = {
 	id: string
 	address: string
+	role: Role
 }
 
 @Injectable()
@@ -57,7 +59,8 @@ export class AuthService {
 
 		const claims: Claims = {
 			id: user.id,
-			address: user.address
+			address: user.address,
+			role: user.role
 		}
 
 		return this.jwtService.signAsync(claims, {

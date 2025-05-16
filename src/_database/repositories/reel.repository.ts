@@ -11,6 +11,24 @@ export class ReelRepository {
 		return this.prisma.reel.findUnique({ where: { id } })
 	}
 
+	getDetail(id: string) {
+		return this.prisma.reel.findUnique({
+			where: { id },
+			include: {
+				token: {
+					select: {
+						id: true,
+						address: true,
+						name: true,
+						imageUri: true,
+						marketCapacity: true,
+						description: true
+					}
+				}
+			}
+		})
+	}
+
 	paginateByTokenId(
 		payload: PaginateListReelParams & {
 			tokenId: string
@@ -45,6 +63,14 @@ export class ReelRepository {
 				viewAmount: {
 					increment: 1
 				}
+			}
+		})
+	}
+
+	delete(id: string) {
+		return this.prisma.reel.delete({
+			where: {
+				id
 			}
 		})
 	}

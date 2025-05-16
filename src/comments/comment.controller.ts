@@ -174,7 +174,7 @@ export class CommentController {
 		@Param("tokenId", new ParseUUIDPipe({ version: "4" })) tokenId: string,
 		@User() user: Claims
 	) {
-		await this.commentService.deleteAllCommentFromUserByCreatorToken({
+		await this.commentService.deleteAllCommentFromUser({
 			authorId: userId,
 			creatorAddress: user.address,
 			tokenId
@@ -277,7 +277,7 @@ export class CommentController {
 	@Auth()
 	@Delete(":commentId")
 	@HttpCode(204)
-	@ApiOperation({ summary: "Delete comment by dev (token creator)" })
+	@ApiOperation({ summary: "Delete comment by dev (token creator) or admin" })
 	@ApiResponse({
 		status: 204,
 		description: "Delete comment successfully"
@@ -286,12 +286,9 @@ export class CommentController {
 		@Param("commentId", new ParseUUIDPipe({ version: "4" })) commentId: string,
 		@User() user: Claims
 	) {
-		await this.commentService.deleteByCreatorToken({
+		return this.commentService.deleteComment({
 			commentId,
 			creatorAddress: user.address
 		})
-		return {
-			message: "Delete comment succesfully"
-		}
 	}
 }
