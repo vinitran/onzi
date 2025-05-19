@@ -1,9 +1,14 @@
 import {
 	CreateReelCommentDto,
+	CreateReelCommentReportDto,
+	PaginateReelCommentDto
+} from "@root/reel-comments/dtos/payload.dto"
+import {
 	CreateReelDto,
+	CreateReelReportDto,
 	PaginateListReelParams,
 	PaginateReelCommenReplytDto,
-	PaginateReelCommentDto,
+	PaginateReelReportsDto,
 	UpdateReelUserActionDto
 } from "@root/reels/dtos/payload.dto"
 
@@ -39,4 +44,25 @@ export type PaginateReelCommentReplyPayload = PaginateReelCommenReplytDto & {
 
 export type PaginateListReelPayload = PaginateListReelParams & {
 	tokenId: string
+}
+
+export type CreateReelCommentReportPayload = CreateReelCommentReportDto & {
+	userId: string
+	reelCommentId: string
+}
+
+export type GetDetailReelPayload = {
+	reelId: string
+	userId?: string
+	userAddress?: string
+}
+
+export type CreateReelReportPayload = CreateReelReportDto & {
+	userId: string
+	reelId: string
+}
+
+export type PaginateReelReportsPayload = PaginateReelReportsDto & {
+	reelId: string
+	userId: string
 }

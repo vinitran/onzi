@@ -1,8 +1,9 @@
 import { ApiProperty } from "@nestjs/swagger"
 import { UserActionStatus } from "@prisma/client"
+import { REPORTED_REEL_SORT_OPTIONS } from "@root/_shared/constants/reel"
 import { OptionalProp, Prop } from "@root/_shared/utils/decorators"
 import { PaginatedParams } from "@root/dtos/common.dto"
-import { IsEnum, IsString, IsUUID, Length } from "class-validator"
+import { IsEnum, IsString, Length } from "class-validator"
 
 export class CreateReelDto {
 	@ApiProperty({
@@ -28,30 +29,11 @@ export class UpdateReelUserActionDto {
 	action: UserActionStatus
 }
 
-export class CreateReelCommentDto {
-	@ApiProperty({
-		description: "content",
-		example: "Great!"
-	})
-	@Prop()
-	@IsString()
-	@Length(1, 500)
-	content: string
-
-	@ApiProperty({
-		description: "Id parent comment to reply"
-	})
-	@OptionalProp()
-	@IsUUID()
-	parentId?: string
-}
-
 export class UpdateReelCommentActionDto extends UpdateReelUserActionDto {}
 
-export class PaginateReelCommentDto extends PaginatedParams {}
-export class PaginateReelCommenReplytDto extends PaginateReelCommentDto {}
+export class PaginateReelCommenReplytDto extends PaginatedParams {}
 
-export class CreateReelCommentReportDto {
+export class CreateReelReportDto {
 	@ApiProperty({
 		description: "Reason to report",
 		example: "Violent or repulsive content"
@@ -60,3 +42,20 @@ export class CreateReelCommentReportDto {
 	@IsString()
 	description: string
 }
+
+export class PaginateReportedReelDto extends PaginatedParams {
+	@ApiProperty({ description: "Text to search reel" })
+	@IsString()
+	@OptionalProp()
+	text: string
+
+	@ApiProperty({
+		description: "Sort options",
+		enum: REPORTED_REEL_SORT_OPTIONS
+	})
+	@IsEnum(REPORTED_REEL_SORT_OPTIONS)
+	@OptionalProp()
+	sortBy: REPORTED_REEL_SORT_OPTIONS
+}
+
+export class PaginateReelReportsDto extends PaginatedParams {}

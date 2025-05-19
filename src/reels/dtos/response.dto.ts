@@ -1,9 +1,10 @@
 import { ApiProperty, PickType } from "@nestjs/swagger"
 import { Paginate } from "@root/dtos/common.dto"
 import { S3Upload } from "@root/dtos/file.dto"
-import { ReelCommentItem } from "@root/dtos/reel-comment.dto"
+import { ReelReport } from "@root/dtos/reel-report.dto"
 import { Reel } from "@root/dtos/reel.dto"
 import { Token } from "@root/dtos/token.dto"
+import { User } from "@root/dtos/user.dto"
 import { Expose, Type } from "class-transformer"
 
 export class CreateReelResponse {
@@ -28,21 +29,53 @@ export class PaginateReelResponse extends Paginate<Reel> {
 	data: Reel[]
 }
 
+export class ReportedReelCreator extends PickType(User, [
+	"id",
+	"username",
+	"avatarUrl"
+]) {}
+
+class ReelReporter extends ReportedReelCreator {}
+
+export class ReelReportDetail extends ReelReport {
+	@ApiProperty({ description: "Data of reporter" })
+	@Expose()
+	@Type(() => ReelReporter)
+	reporter: ReelReporter
+}
+
+export class ReportedReel extends Reel {
+	@ApiProperty({ description: "Data of creator" })
+	@Expose()
+	@Type(() => ReportedReelCreator)
+	creator: ReportedReelCreator
+
+	@ApiProperty({ description: "List reel report", isArray: true })
+	@Expose()
+	@Type(() => ReelReportDetail)
+	reelReports: ReelReportDetail
+}
+
+export class PaginateReelReportsResponse extends Paginate<ReelReportDetail> {
+	@ApiProperty({ type: [ReelReportDetail] })
+	@Type(() => ReelReportDetail)
+	@Expose()
+	data: ReelReportDetail[]
+}
+
+export class PaginateReportedReelResponse extends Paginate<ReportedReel> {
+	@ApiProperty({ type: [ReportedReel] })
+	@Type(() => ReportedReel)
+	@Expose()
+	data: ReportedReel[]
+}
+
 export class UpdateReelUserActionResponse {
 	@ApiProperty({
 		description: "Message"
 	})
 	@Expose()
 	message: string
-}
-
-export class UpdateReelCommentActionResponse extends UpdateReelUserActionResponse {}
-
-export class PaginateReelCommentResponse extends Paginate<ReelCommentItem> {
-	@ApiProperty({ type: [ReelCommentItem] })
-	@Type(() => ReelCommentItem)
-	@Expose()
-	data: ReelCommentItem[]
 }
 
 class ReelDetailUserStatus {
@@ -98,6 +131,20 @@ export class GetDetailReelResponse extends Reel {
 	})
 	@Expose()
 	totalDislike: number
+
+	@ApiProperty({
+		description: "ID of the previous reel, if available",
+		nullable: true
+	})
+	@Expose()
+	prevReelId?: string
+
+	@ApiProperty({
+		description: "ID of the next reel, if available",
+		nullable: true
+	})
+	@Expose()
+	nextReelId?: string
 
 	@ApiProperty({
 		description: "Token on the reel"

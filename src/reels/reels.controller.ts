@@ -13,51 +13,44 @@ import {
 	SerializeOptions,
 	UseInterceptors
 } from "@nestjs/common"
-import {
-	ApiBearerAuth,
-	ApiOperation,
-	ApiResponse,
-	ApiTags
-} from "@nestjs/swagger"
-import { Auth } from "@root/_shared/utils/decorators"
+import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
+import { Auth, Public, Roles } from "@root/_shared/utils/decorators"
 import { Claims } from "@root/auth/auth.service"
-import {
-	ReelCommentReportItem,
-	ReelCommentReport as ReelCommentReportResponse
-} from "@root/dtos/reel-comment-report.dto"
-import { ReelComment as ReelCommentResponse } from "@root/dtos/reel-comment.dto"
+import { ReelReport as ReelReportResponse } from "@root/dtos/reel-report.dto"
 import { Reel as ReelResponse } from "@root/dtos/reel.dto"
 import { User } from "@root/users/user.decorator"
 import {
-	CreateReelCommentDto,
-	CreateReelCommentReportDto,
 	CreateReelDto,
+	CreateReelReportDto,
 	PaginateListReelParams,
-	PaginateReelCommenReplytDto,
-	PaginateReelCommentDto,
-	UpdateReelCommentActionDto,
+	PaginateReelReportsDto,
+	PaginateReportedReelDto,
 	UpdateReelUserActionDto
 } from "./dtos/payload.dto"
 import {
 	CreateReelResponse,
 	GetDetailReelResponse,
-	PaginateReelCommentResponse,
+	PaginateReelReportsResponse,
 	PaginateReelResponse,
-	UpdateReelCommentActionResponse,
+	PaginateReportedReelResponse,
 	UpdateReelUserActionResponse
 } from "./dtos/response.dto"
+import { ReelReportsService } from "./reel-reports.service"
 import { ReelsService } from "./reels.service"
 
 @Controller("reels")
+@Auth()
 @ApiTags("reels")
-@ApiResponse({ status: 400, description: "Invalid token data" })
+@ApiResponse({ status: 400, description: "Invalid token or reel data" })
 @ApiResponse({ status: 401, description: "Unauthorized" })
 @ApiResponse({ status: 500, description: "Internal server error" })
 @UseInterceptors(ClassSerializerInterceptor)
 export class ReelsController {
-	constructor(private readonly reelsService: ReelsService) {}
+	constructor(
+		private readonly reelsService: ReelsService,
+		private readonly reelReportsService: ReelReportsService
+	) {}
 
-	@Auth()
 	@Post("tokens/:tokenId")
 	@ApiOperation({ summary: "Create a new reel by creator token" })
 	@HttpCode(HttpStatus.CREATED)
@@ -84,6 +77,7 @@ export class ReelsController {
 	}
 
 	@Get("tokens/:tokenId")
+	@Public()
 	@ApiOperation({ summary: "Paginate list reel in a token" })
 	@ApiResponse({
 		status: 200,
@@ -102,7 +96,6 @@ export class ReelsController {
 		return this.reelsService.paginate({ ...query, tokenId })
 	}
 
-	@Auth()
 	@Post(":id/express")
 	@ApiOperation({ summary: "User expresses action a reel as like, dislike" })
 	@ApiResponse({
@@ -124,150 +117,75 @@ export class ReelsController {
 		return { message }
 	}
 
-	@Get(":id/comments")
-	@ApiOperation({ summary: "Paginate comments (exclude replies) in a reel" })
+	@Roles("Admin")
+	@Get("reported")
+	@ApiOperation({ summary: "List paginated reported reel by admin or creator" })
 	@ApiResponse({
 		status: 200,
-		description: "Paginated comment in a reel successfully",
-		type: PaginateReelCommentResponse
+		description: "Paginated reported reel by admin or creator successfully",
+		type: PaginateReportedReelResponse
 	})
-	@ApiBearerAuth()
 	@SerializeOptions({
-		type: PaginateReelCommentResponse,
-		excludeExtraneousValues: true
+		type: PaginateReportedReelResponse,
+		excludeExtraneousValues: true,
+		enableImplicitConversion: true
 	})
-	paginateComment(
-		@Param("id", ParseUUIDPipe) reelId: string,
-		@Query() query: PaginateReelCommentDto,
-		@User() user: Claims | undefined
-	) {
-		return this.reelsService.paginateComment({
-			...query,
-			reelId,
-			userId: user?.id
-		})
+	paginateReportedReels(@Query() query: PaginateReportedReelDto) {
+		return this.reelsService.paginateReportedReels(query)
 	}
 
-	@Auth()
-	@Post(":id/comments")
-	@ApiOperation({ summary: "Create comment in a reel" })
+	@Get(":id/reports")
+	@ApiOperation({
+		summary: "List reel reports in a reel by creator or admin"
+	})
 	@ApiResponse({
 		status: 200,
-		description: "Created comment in a reel successfully",
-		type: ReelCommentResponse
+		description: "Get list reel reports in a reel successfully",
+		type: PaginateReelReportsResponse
 	})
 	@SerializeOptions({
-		type: ReelCommentResponse,
-		excludeExtraneousValues: true
+		type: PaginateReelReportsResponse,
+		excludeExtraneousValues: true,
+		enableImplicitConversion: true
 	})
-	createComment(
-		@Param("id", ParseUUIDPipe) reelId: string,
+	getListReelReport(
+		@Param("id", ParseUUIDPipe) id: string,
 		@User() user: Claims,
-		@Body() body: CreateReelCommentDto
+		@Query() query: PaginateReelReportsDto
 	) {
-		return this.reelsService.createComment({
-			...body,
-			reelId,
+		return this.reelReportsService.paginateReelReportsByReelId({
+			...query,
+			reelId: id,
 			userId: user.id
 		})
 	}
 
-	@Auth()
-	@Post("comments/:id/express")
-	@ApiOperation({
-		summary: "User expresses action with a comment in reel as like, dislike"
-	})
+	@Post(":id/reports")
+	@ApiOperation({ summary: "User report a reel" })
 	@ApiResponse({
 		status: 200,
-		description: "User expressed action with a comment in reel successfully",
-		type: UpdateReelCommentActionResponse,
-		example: { message: "Like reel successfully" }
+		description: "Reported a reel successfully",
+		type: ReelReportResponse
 	})
 	@SerializeOptions({
-		type: UpdateReelCommentActionResponse,
+		type: ReelReportResponse,
 		excludeExtraneousValues: true
 	})
-	async updateReelCommentAction(
-		@Param("id", ParseUUIDPipe) commentId: string,
+	async reportReel(
+		@Param("id", ParseUUIDPipe) reelId: string,
 		@User() user: Claims,
-		@Body() body: UpdateReelCommentActionDto
+		@Body() body: CreateReelReportDto
 	) {
-		const message = await this.reelsService.updateReelCommentAction({
-			action: body.action,
-			commentId,
-			userId: user.id
-		})
-		return { message }
-	}
-
-	@Get("comments/:id/replies")
-	@ApiOperation({
-		summary: "Paginate comment to reply other comment"
-	})
-	@ApiResponse({
-		status: 200,
-		description: "Paginated comment in a reel successfully",
-		type: PaginateReelCommentResponse
-	})
-	@SerializeOptions({
-		type: PaginateReelCommentResponse,
-		excludeExtraneousValues: true
-	})
-	@ApiBearerAuth()
-	paginateCommentReply(
-		@Query() query: PaginateReelCommenReplytDto,
-		@Param("id", ParseUUIDPipe) parentId: string,
-		@User() user: Claims | undefined
-	) {
-		return this.reelsService.paginateCommentReply({
-			...query,
-			parentId,
-			userId: user?.id
-		})
-	}
-
-	@Auth()
-	@Post("comment/:id/reports")
-	@ApiOperation({
-		summary: "Report comment in a reel"
-	})
-	@ApiResponse({ status: 200, type: ReelCommentReportResponse })
-	@SerializeOptions({
-		type: ReelCommentReportResponse,
-		excludeExtraneousValues: true
-	})
-	reportComment(
-		@Body() body: CreateReelCommentReportDto,
-		@User() user: Claims,
-		@Param("id", ParseUUIDPipe) commentId: string
-	) {
-		return this.reelsService.reportComment({
+		return this.reelReportsService.createReport({
 			description: body.description,
-			reelCommentId: commentId,
+			reelId,
 			userId: user.id
 		})
-	}
-
-	@Auth()
-	@Get("comment/:id/reports")
-	@ApiOperation({
-		summary: "Get list report in a reel comment"
-	})
-	@ApiResponse({
-		status: 200,
-		type: ReelCommentReportItem,
-		isArray: true
-	})
-	@SerializeOptions({
-		type: ReelCommentReportItem,
-		excludeExtraneousValues: true
-	})
-	getCommentReport(@Param("id", ParseUUIDPipe) commentId: string) {
-		return this.reelsService.getListCommentReport(commentId)
 	}
 
 	@Post(":id")
-	@ApiOperation({ summary: "Create a new reel by creator token" })
+	@Public()
+	@ApiOperation({ summary: "Increase view for a reel" })
 	@ApiResponse({
 		status: 200,
 		description: "Viewed reel successfully",
@@ -283,7 +201,7 @@ export class ReelsController {
 	}
 
 	@Get(":id")
-	@ApiBearerAuth()
+	@Public()
 	@ApiOperation({ summary: "Get detail new reel" })
 	@ApiResponse({
 		status: 200,
@@ -306,7 +224,6 @@ export class ReelsController {
 		})
 	}
 
-	@Auth()
 	@Delete(":id")
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@ApiOperation({ summary: "Delete reel by admin or creator token" })

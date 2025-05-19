@@ -8,24 +8,24 @@ datasource db {
 }
 
 model User {
-  id                  String  @id @default(uuid()) @db.Uuid
-  address             String  @unique @db.VarChar
-  username            String? @unique @db.VarChar
-  bio                 String? @db.VarChar
-  avatarUrl           String? @map("avatar_url") @db.VarChar
-  network             Network @default(Solana)
-  premium             Boolean @default(false)
-  backgroundUrl       String? @map("background_url") @db.VarChar
-  usernameChangeCount Float   @default(0) @map("username_change_count")
-  role                Role    @default(User)
-  tokens            Token[]
-  tokenOwners       TokenOwner[]
-  comments          Comment[]
-  commentLikes      CommentLike[]
-  tokenTransactions TokenTransaction[]
-  follower          UserConnection[]   @relation("follower")
-  following         UserConnection[]   @relation("following")
-  config            Config?
+  id                  String             @id @default(uuid()) @db.Uuid
+  address             String             @unique @db.VarChar
+  username            String?            @unique @db.VarChar
+  bio                 String?            @db.VarChar
+  avatarUrl           String?            @map("avatar_url") @db.VarChar
+  network             Network            @default(Solana)
+  premium             Boolean            @default(false)
+  backgroundUrl       String?            @map("background_url") @db.VarChar
+  usernameChangeCount Float              @default(0) @map("username_change_count")
+  role                Role               @default(User)
+  tokens              Token[]
+  tokenOwners         TokenOwner[]
+  comments            Comment[]
+  commentLikes        CommentLike[]
+  tokenTransactions   TokenTransaction[]
+  follower            UserConnection[]   @relation("follower")
+  following           UserConnection[]   @relation("following")
+  config              Config?
 
   createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime?           @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -39,6 +39,8 @@ model User {
   reelComments       ReelComment[]
   reelCommentActions ReelCommentAction[]
   reelCommentReports ReelCommentReport[]
+  reelReports        ReelReport[]
+  blockReelComments  BlockReelComment[]
 
   @@map("user")
 }
@@ -337,13 +339,28 @@ model Reel {
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt  DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  token           Token            @relation(fields: [tokenId], references: [id], onDelete: Cascade)
-  creator         User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  reelUserActions ReelUserAction[]
-  reelComments    ReelComment[]
+  token             Token              @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  creator           User               @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  reelUserActions   ReelUserAction[]
+  reelComments      ReelComment[]
+  reelReports       ReelReport[]
+  blockReelComments BlockReelComment[]
 
   @@index([tokenId])
   @@map("reel")
+}
+
+model ReelReport {
+  id          String   @id @default(uuid()) @db.Uuid
+  reelId      String   @map("reel_id") @db.Uuid
+  reporterId  String   @map("reporter_id") @db.Uuid
+  description String   @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  reel     Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@map("reel_report")
 }
 
 // Like or Dislike reels
@@ -380,6 +397,19 @@ model ReelComment {
 
   @@index([reelId])
   @@map("reel_comment")
+}
+
+model BlockReelComment {
+  reelId String @map("reel_id") @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reel Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@id([reelId, userId])
+  @@map("block_reel_comment")
 }
 
 // Like or Dislike comments in reels

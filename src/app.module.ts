@@ -11,6 +11,7 @@ import { IndexerModule } from "@root/indexer/indexer.module"
 import { UsersModule } from "@root/users/users.module"
 import { CommentModule } from "./comments/comment.module"
 import { NotificationsModule } from "./notifications/notifications.module"
+import { ReelCommentsModule } from "./reel-comments/reel-comments.module"
 import { ReelsModule } from "./reels/reels.module"
 import { StickersModule } from "./stickers/stickers.module"
 import { TokensModule } from "./tokens/tokens.module"
@@ -31,7 +32,8 @@ import { TokensModule } from "./tokens/tokens.module"
 		IndexerModule,
 		NotificationsModule,
 		StickersModule,
-		ReelsModule
+		ReelsModule,
+		ReelCommentsModule
 	],
 	controllers: [AppController],
 	providers: [AppService]

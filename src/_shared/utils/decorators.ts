@@ -1,5 +1,6 @@
 import {
 	ExecutionContext,
+	SetMetadata,
 	UseGuards,
 	applyDecorators,
 	createParamDecorator
@@ -11,9 +12,12 @@ import {
 	ApiPropertyOptional,
 	ApiPropertyOptions
 } from "@nestjs/swagger"
+import { Role } from "@prisma/client"
 import { AuthGuard } from "@root/auth/auth.guard"
 import { Transform, Type } from "class-transformer"
 import { IsBoolean, IsInt, IsNotEmpty, IsOptional } from "class-validator"
+import { IS_PUBLIC_KEY, ROLES_KEY } from "../constants/decorator-key"
+import { RolesGuard } from "../guards/roles.guard"
 
 export const IsBool = (target: object, propertyKey: string | symbol) => {
 	Transform(({ value }) => [true, "enabled", "true"].includes(value))(
@@ -78,3 +82,14 @@ export const JwtDecoded = createParamDecorator(
 		}
 	}
 )
+
+export const Roles = (...roles: Role[]) =>
+	applyDecorators(
+		SetMetadata(ROLES_KEY, roles),
+		UseGuards(AuthGuard, RolesGuard),
+		ApiBearerAuth()
+	)
+
+export const Admin = () => applyDecorators(Roles("Admin"))
+
+export const Public = () => SetMetadata(IS_PUBLIC_KEY, true)

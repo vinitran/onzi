@@ -4,6 +4,7 @@ import {
 	PaginateReelCommentPayload,
 	PaginateReelCommentReplyPayload
 } from "@root/_shared/types/reel"
+import { PaginateReportedReelCommentPayload } from "@root/reel-comments/reel-comments.service"
 import { PrismaService } from "../prisma.service"
 
 @Injectable()
@@ -70,11 +71,68 @@ export class ReelCommentRepository {
 		})
 	}
 
+	async paginateReported(payload: PaginateReportedReelCommentPayload) {
+		const { page, take, reelId } = payload
+		const skip = take * (page - 1)
+
+		const where: Prisma.ReelCommentWhereInput = {
+			reelId,
+			reelCommentReports: { some: {} }
+		}
+
+		const [data, total] = await Promise.all([
+			this.prisma.reelComment.findMany({
+				where,
+				include: {
+					author: {
+						select: {
+							id: true,
+							username: true,
+							avatarUrl: true
+						}
+					},
+					reelCommentReports: {
+						include: {
+							reporter: {
+								select: {
+									id: true,
+									username: true,
+									avatarUrl: true
+								}
+							}
+						},
+						orderBy: {
+							createdAt: "desc"
+						}
+					}
+				},
+				orderBy: {
+					reelCommentReports: {
+						_count: "desc"
+					}
+				},
+				skip,
+				take
+			}),
+			this.prisma.reelComment.count({ where })
+		])
+
+		return {
+			data,
+			total,
+			maxPage: Math.ceil(total / take)
+		}
+	}
+
 	getTotalByReelId(reelId: string) {
 		return this.prisma.reelComment.count({ where: { reelId } })
 	}
 
 	getTotalByParentId(parentId: string) {
 		return this.prisma.reelComment.count({ where: { parentId } })
+	}
+
+	delete(id: string) {
+		return this.prisma.reelComment.delete({ where: { id } })
 	}
 }

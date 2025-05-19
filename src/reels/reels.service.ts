@@ -4,9 +4,7 @@ import {
 	InternalServerErrorException,
 	NotFoundException
 } from "@nestjs/common"
-import { Prisma, Reel, UserActionStatus } from "@prisma/client"
-import { ReelCommentActionRepository } from "@root/_database/repositories/reel-comment-action.repository"
-import { ReelCommentReportRepository } from "@root/_database/repositories/reel-comment-report.repository"
+import { Reel, UserActionStatus } from "@prisma/client"
 import { ReelCommentRepository } from "@root/_database/repositories/reel-comment.repository"
 import { ReelUserActionRepository } from "@root/_database/repositories/reel-user-action.repository"
 import { ReelRepository } from "@root/_database/repositories/reel.repository"
@@ -14,29 +12,15 @@ import { TokenFavoriteRepository } from "@root/_database/repositories/token-favo
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import {
-	CreateCommentReelPayload,
 	CreateReelPayload,
+	GetDetailReelPayload,
 	PaginateListReelPayload,
-	PaginateReelCommentPayload,
-	PaginateReelCommentReplyPayload,
-	UpdateReelCommentActionPayload,
 	UpdateReelUserActionPayload
 } from "@root/_shared/types/reel"
 import { Paginate } from "@root/dtos/common.dto"
 import { S3Service } from "@root/file/file.service"
 import { v4 as uuidv4 } from "uuid"
-import { CreateReelCommentReportDto } from "./dtos/payload.dto"
-
-export type CreateReelCommentReportPayload = CreateReelCommentReportDto & {
-	userId: string
-	reelCommentId: string
-}
-
-export type GetDetailReelPayload = {
-	reelId: string
-	userId?: string
-	userAddress?: string
-}
+import { PaginateReportedReelDto } from "./dtos/payload.dto"
 
 @Injectable()
 export class ReelsService {
@@ -47,8 +31,6 @@ export class ReelsService {
 		private reel: ReelRepository,
 		private reelUserAction: ReelUserActionRepository,
 		private reelComment: ReelCommentRepository,
-		private reelCommentAction: ReelCommentActionRepository,
-		private reelCommentReport: ReelCommentReportRepository,
 		private user: UserRepository
 	) {}
 
@@ -83,7 +65,9 @@ export class ReelsService {
 		const reel = await this.reel.getDetail(reelId)
 		if (!reel) throw new NotFoundException("Not found reel")
 
-		const [totalComment, userActions] = await Promise.all([
+		const [prevReel, nextReel, totalComment, userActions] = await Promise.all([
+			this.reel.getPrevByTime(reel.id, reel.createdAt),
+			this.reel.getNextByTime(reel.id, reel.createdAt),
 			this.reelComment.getTotalByReelId(reelId),
 			this.reelUserAction.getActionsByReelId(reelId)
 		])
@@ -133,7 +117,9 @@ export class ReelsService {
 				isLikeReel: isUserLikeReel,
 				isDislikeReel: isUserDislikeReel,
 				isFavoriteToken: isUserFavouriteToken
-			}
+			},
+			prevReelId: prevReel?.id || null,
+			nextReelId: nextReel?.id || null
 		}
 	}
 
@@ -199,118 +185,25 @@ export class ReelsService {
 			throw new ForbiddenException("Not allow to delete reel")
 
 		await this.reel.delete(reelId)
+		await this.removeVideoS3(reel.videoUri)
 	}
 
-	// ===========================
-
-	/* Reel comment */
-	//   Create comment
-	async createComment(payload: CreateCommentReelPayload) {
-		const { content, reelId, userId, parentId } = payload
-
-		const reel = await this.reel.findById(reelId)
-		if (!reel) throw new NotFoundException("Not found reel")
-
-		const commentData: Prisma.ReelCommentCreateInput = {
-			content,
-			reel: { connect: reel },
-			author: { connect: { id: userId } }
-		}
-
-		// Case reply comment
-		if (parentId) {
-			const parentComment = await this.reelComment.findById(parentId)
-			if (!parentComment)
-				throw new NotFoundException("Not found comment to reply")
-			commentData.parent = { connect: parentComment }
-		}
-
-		const data = this.reelComment.create(commentData, {
-			author: { select: { id: true, username: true, avatarUrl: true } }
-		})
-		return data
+	async removeVideoS3(videoUri: string) {
+		try {
+			await this.s3Service.deleteFile(this.getKeyS3(videoUri))
+		} catch {}
 	}
 
-	//   Toggle user's action with comment in reel
-	async updateReelCommentAction(payload: UpdateReelCommentActionPayload) {
-		const { action, commentId, userId } = payload
+	async paginateReportedReels(payload: PaginateReportedReelDto) {
+		const { take, text } = payload
 
-		const comment = await this.reelComment.findById(commentId)
-		if (!comment) throw new NotFoundException("Not found comment")
-
-		const userAction = await this.reelCommentAction.findOne({
-			creatorId: userId,
-			reelCommentId: commentId
-		})
-
-		if (!userAction) {
-			await this.reelCommentAction.create({
-				creator: { connect: { id: userId } },
-				reelComment: { connect: comment },
-				status: action
+		const [data, total] = await Promise.all([
+			this.reel.paginateByReport(payload),
+			this.reel.getTotal({
+				caption: { contains: text },
+				reelReports: { some: {} }
 			})
-			return `${action} reel successfully`
-		}
-
-		if (userAction.status === action) {
-			await this.reelCommentAction.deleteById(userAction.id)
-			return `Remove ${action.toLowerCase()} reel successfully`
-		}
-
-		await this.reelCommentAction.updateActionById(userAction.id, action)
-		return `${action} reel successfully`
-	}
-
-	// Paginate comment in  reel (exlucde replies)
-	async paginateComment(payload: PaginateReelCommentPayload) {
-		const { reelId, take, userId } = payload
-		const [listComment, total] = await Promise.all([
-			this.reelComment.paginateByReelId(payload),
-			this.reelComment.getTotalByReelId(reelId)
 		])
-
-		const data = await Promise.all(
-			listComment.map(async comment => {
-				const {
-					id,
-					_count: { replies: totalReply }
-				} = comment
-				let isUserLiked = false
-				let isUserDisLiked = false
-
-				const [totalLike, totalDislike] = await Promise.all([
-					this.reelCommentAction.getTotalLikeByCommentId(id),
-					this.reelCommentAction.getTotalDisLikeByCommentId(id)
-				])
-
-				if (userId) {
-					const [userDislike, userLike] = await Promise.all([
-						this.reelCommentAction.findOne({
-							creatorId: userId,
-							reelCommentId: id,
-							status: "Dislike"
-						}),
-						this.reelCommentAction.findOne({
-							creatorId: userId,
-							reelCommentId: id,
-							status: "Like"
-						})
-					])
-
-					isUserDisLiked = !!userDislike
-					isUserLiked = !!userLike
-				}
-
-				return {
-					...comment,
-					totalLike,
-					totalDislike,
-					totalReply,
-					isUserLiked,
-					isUserDisLiked
-				}
-			})
-		)
 
 		return {
 			data,
@@ -319,85 +212,12 @@ export class ReelsService {
 		}
 	}
 
-	// Paginate comment reply in a parent comment
-	async paginateCommentReply(payload: PaginateReelCommentReplyPayload) {
-		const { parentId, take, userId } = payload
-
-		const [listComment, total] = await Promise.all([
-			this.reelComment.paginateByParentId(payload),
-			this.reelComment.getTotalByParentId(parentId)
-		])
-
-		const data = await Promise.all(
-			listComment.map(async comment => {
-				const {
-					id,
-					_count: { replies: totalReply }
-				} = comment
-				let isUserLiked = false
-				let isUserDisLiked = false
-
-				const [totalLike, totalDislike] = await Promise.all([
-					this.reelCommentAction.getTotalLikeByCommentId(id),
-					this.reelCommentAction.getTotalDisLikeByCommentId(id)
-				])
-
-				if (userId) {
-					const [userDislike, userLike] = await Promise.all([
-						this.reelCommentAction.findOne({
-							creatorId: userId,
-							reelCommentId: id,
-							status: "Dislike"
-						}),
-						this.reelCommentAction.findOne({
-							creatorId: userId,
-							reelCommentId: id,
-							status: "Like"
-						})
-					])
-
-					isUserDisLiked = !!userDislike
-					isUserLiked = !!userLike
-				}
-
-				return {
-					...comment,
-					totalLike,
-					totalDislike,
-					totalReply,
-					isUserLiked,
-					isUserDisLiked
-				}
-			})
-		)
-
-		return {
-			data,
-			total,
-			maxPage: Math.ceil(total / take)
-		}
+	//   Get key S3
+	getKeyS3(uri: string) {
+		const parts = uri.split("/")
+		return parts[parts.length - 1]
 	}
 
-	// Report comment
-	async reportComment(payload: CreateReelCommentReportPayload) {
-		const { reelCommentId, description, userId } = payload
-
-		const reelComment = await this.reelComment.findById(reelCommentId)
-		if (!reelComment) throw new NotFoundException("Not found comment in reel")
-
-		return this.reelCommentReport.create({
-			reelComment: { connect: reelComment },
-			reporter: { connect: { id: userId } },
-			description
-		})
-	}
-
-	//   Get list report in a comment
-	async getListCommentReport(commentId: string) {
-		return this.reelCommentReport.findByReelCommentId(commentId)
-	}
-
-	//   Get video url & authorize data to push video Aws3
 	async getVideoPresignedUrl(reelId: string) {
 		const key = `token-reel-${reelId}`
 		const { fields, url } = await this.s3Service.postPresignedSignedUrl(

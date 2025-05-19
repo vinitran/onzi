@@ -1,6 +1,10 @@
 import { Injectable } from "@nestjs/common"
 import { Prisma } from "@prisma/client"
-import { PaginateListReelParams } from "@root/reels/dtos/payload.dto"
+import { REPORTED_REEL_SORT_OPTIONS } from "@root/_shared/constants/reel"
+import {
+	PaginateListReelParams,
+	PaginateReportedReelDto
+} from "@root/reels/dtos/payload.dto"
 import { PrismaService } from "../prisma.service"
 
 @Injectable()
@@ -29,6 +33,38 @@ export class ReelRepository {
 		})
 	}
 
+	getPrevByTime(currentId: string, createdAt: Date) {
+		return this.prisma.reel.findFirst({
+			where: {
+				id: {
+					not: currentId
+				},
+				createdAt: {
+					lt: createdAt
+				}
+			},
+			orderBy: {
+				createdAt: "desc"
+			}
+		})
+	}
+
+	getNextByTime(currentId: string, createdAt: Date) {
+		return this.prisma.reel.findFirst({
+			where: {
+				id: {
+					not: currentId
+				},
+				createdAt: {
+					gt: createdAt
+				}
+			},
+			orderBy: {
+				createdAt: "asc"
+			}
+		})
+	}
+
 	paginateByTokenId(
 		payload: PaginateListReelParams & {
 			tokenId: string
@@ -46,6 +82,54 @@ export class ReelRepository {
 			skip,
 			take
 		})
+	}
+
+	paginateByReport(payload: PaginateReportedReelDto) {
+		const { page, take, text, sortBy } = payload
+		const skip = (page - 1) * take
+		let orderBy: Prisma.ReelOrderByWithRelationInput = {}
+
+		switch (sortBy) {
+			case REPORTED_REEL_SORT_OPTIONS.CREATED_AT:
+				orderBy = { createdAt: "desc" }
+				break
+			case REPORTED_REEL_SORT_OPTIONS.AMOUNT_REPORT:
+				orderBy = { reelReports: { _count: "desc" } }
+				break
+		}
+
+		return this.prisma.reel.findMany({
+			where: {
+				caption: { contains: text },
+				reelReports: { some: {} }
+			},
+			include: {
+				creator: {
+					select: { id: true, avatarUrl: true, username: true }
+				},
+				reelReports: {
+					include: {
+						reporter: {
+							select: {
+								id: true,
+								avatarUrl: true,
+								username: true
+							}
+						}
+					},
+					orderBy: {
+						createdAt: "desc"
+					}
+				}
+			},
+			orderBy,
+			take,
+			skip
+		})
+	}
+
+	getTotal(where: Prisma.ReelWhereInput) {
+		return this.prisma.reel.count({ where })
 	}
 
 	getTotalByTokenId(tokenId: string) {
