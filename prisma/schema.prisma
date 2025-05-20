@@ -8,27 +8,27 @@ datasource db {
 }
 
 model User {
-  id                  String             @id @default(uuid()) @db.Uuid
-  address             String             @unique @db.VarChar
-  username            String?            @unique @db.VarChar
-  bio                 String?            @db.VarChar
-  avatarUrl           String?            @map("avatar_url") @db.VarChar
-  network             Network            @default(Solana)
-  premium             Boolean            @default(false)
-  backgroundUrl       String?            @map("background_url") @db.VarChar
-  usernameChangeCount Float              @default(0) @map("username_change_count")
-  role                Role               @default(User)
-  tokens              Token[]
-  tokenOwners         TokenOwner[]
-  comments            Comment[]
-  commentLikes        CommentLike[]
-  tokenTransactions   TokenTransaction[]
-  follower            UserConnection[]   @relation("follower")
-  following           UserConnection[]   @relation("following")
-  config              Config?
+  id                  String    @id @default(uuid()) @db.Uuid
+  address             String    @unique @db.VarChar
+  username            String?   @unique @db.VarChar
+  bio                 String?   @db.VarChar
+  avatarUrl           String?   @map("avatar_url") @db.VarChar
+  network             Network   @default(Solana)
+  premium             Boolean   @default(false)
+  backgroundUrl       String?   @map("background_url") @db.VarChar
+  usernameChangeCount Float     @default(0) @map("username_change_count")
+  role                Role      @default(User)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt          DateTime?           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tokens             Token[]
+  tokenOwners        TokenOwner[]
+  comments           Comment[]
+  commentLikes       CommentLike[]
+  tokenTransactions  TokenTransaction[]
+  follower           UserConnection[]    @relation("follower")
+  following          UserConnection[]    @relation("following")
+  config             Config?
   tokenFavorite      TokenFavorite[]
   stickers           Sticker[]
   stickerOwners      StickerOwner[]
@@ -41,6 +41,7 @@ model User {
   reelCommentReports ReelCommentReport[]
   reelReports        ReelReport[]
   blockReelComments  BlockReelComment[]
+  blockUsers         BlockUser[]
 
   @@map("user")
 }
@@ -172,6 +173,9 @@ model Token {
   youtubeLink   String? @map("youtube_link") @db.VarChar
   tiktokLink    String? @map("tiktok_link") @db.VarChar
   onlyFansLink  String? @map("only_fans_link") @db.VarChar
+
+  highlightOrder Int?    @map("highlight_order") // By admin set in Popular section
+  headline       String? @map("headline") // By admin set
 
   bumpAt DateTime? @map("pump_at") @db.Timestamptz(3) // Time on chain
 
@@ -441,6 +445,21 @@ model ReelCommentReport {
   @@map("reel_comment_report")
 }
 
+// Document save block user with types (or reasons) for blocking
+model BlockUser {
+  id          String        @id @default(uuid()) @db.Uuid
+  userId      String        @map("user_id") @db.Uuid
+  type        BlockUserType @map("type")
+  isPermanent Boolean       @default(false) @map("is_permanent")
+  endAt       DateTime?     @map("end_at") @db.Timestamptz(3)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("block_user")
+}
+
 enum Network {
   Solana
 }
@@ -459,4 +478,10 @@ enum TransactionType {
 enum UserActionStatus {
   Like
   Dislike
+}
+
+enum BlockUserType {
+  CreateTokenComment
+  CreateTokenReel
+  CreateReelComment
 }

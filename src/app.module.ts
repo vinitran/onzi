@@ -9,6 +9,7 @@ import { AuthModule } from "@root/auth/auth.module"
 import { FileModule } from "@root/file/file.module"
 import { IndexerModule } from "@root/indexer/indexer.module"
 import { UsersModule } from "@root/users/users.module"
+import { AdminModule } from "./admin/admin.module"
 import { CommentModule } from "./comments/comment.module"
 import { NotificationsModule } from "./notifications/notifications.module"
 import { ReelCommentsModule } from "./reel-comments/reel-comments.module"
@@ -33,7 +34,8 @@ import { TokensModule } from "./tokens/tokens.module"
 		NotificationsModule,
 		StickersModule,
 		ReelsModule,
-		ReelCommentsModule
+		ReelCommentsModule,
+		AdminModule
 	],
 	controllers: [AppController],
 	providers: [AppService]

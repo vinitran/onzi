@@ -4,6 +4,8 @@ import {
 	NotFoundException
 } from "@nestjs/common"
 import { Prisma } from "@prisma/client"
+import { BlockReelCommentRepository } from "@root/_database/repositories/block-comment-reel.repository"
+import { BlockUserRepository } from "@root/_database/repositories/block-user.repository"
 import { ReelCommentActionRepository } from "@root/_database/repositories/reel-comment-action.repository"
 import { ReelCommentReportRepository } from "@root/_database/repositories/reel-comment-report.repository"
 import { ReelCommentRepository } from "@root/_database/repositories/reel-comment.repository"
@@ -31,7 +33,9 @@ export class ReelCommentsService {
 		private reel: ReelRepository,
 		private reelCommentAction: ReelCommentActionRepository,
 		private reelCommentReport: ReelCommentReportRepository,
-		private user: UserRepository
+		private blockReelComment: BlockReelCommentRepository,
+		private user: UserRepository,
+		private blockUser: BlockUserRepository
 	) {}
 
 	async createComment(payload: CreateCommentReelPayload) {
@@ -39,6 +43,23 @@ export class ReelCommentsService {
 
 		const reel = await this.reel.findById(reelId)
 		if (!reel) throw new NotFoundException("Not found reel")
+
+		const user = await this.user.findById(userId)
+		if (!user) throw new ForbiddenException("User is blocked global chat")
+
+		// Check if user is blocked global chat
+		const blockUser = await this.blockUser.isBlockedPermanentUserBy(
+			userId,
+			"CreateReelComment"
+		)
+		if (blockUser) throw new ForbiddenException("User is blocked global chat")
+
+		// Check if user is blocked in reel comment
+		const blockReelComment = await this.blockReelComment.findOne({
+			reelId,
+			userId
+		})
+		if (blockReelComment) throw new ForbiddenException("User is blocked chat")
 
 		const commentData: Prisma.ReelCommentCreateInput = {
 			content,

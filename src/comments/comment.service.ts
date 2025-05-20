@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common"
 import { Prisma } from "@prisma/client"
 import { BlockCommentRepository } from "@root/_database/repositories/block-comment.repository"
+import { BlockUserRepository } from "@root/_database/repositories/block-user.repository"
 import { CommentRepository } from "@root/_database/repositories/comment.repository"
 import { StickerOwnerRepository } from "@root/_database/repositories/sticker-owner.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
@@ -33,6 +34,7 @@ export class CommentService {
 		private stickerOwner: StickerOwnerRepository,
 		private blockComment: BlockCommentRepository,
 		private user: UserRepository,
+		private blockUser: BlockUserRepository,
 		private s3Service: S3Service
 	) {}
 
@@ -54,6 +56,19 @@ export class CommentService {
 			throw new NotFoundException("Not found token")
 		}
 
+		const user = await this.user.findById(userId)
+		if (!user) throw new ForbiddenException("User is blocked global chat")
+
+		// Validate status BLOCK global of user
+		const isBlockedGlobal = await this.blockUser.isBlockedPermanentUserBy(
+			userId,
+			"CreateTokenComment"
+		)
+		if (isBlockedGlobal) {
+			throw new ForbiddenException("User is blocked global chat")
+		}
+
+		// Validate block in specific token
 		const isBlocked = !!(await this.blockComment.findOne({ tokenId, userId }))
 
 		if (isBlocked)
@@ -299,7 +314,6 @@ export class CommentService {
 		if (!comment) throw new NotFoundException("Not found comment")
 
 		const user = await this.user.findByAddress(creatorAddress)
-
 		if (!user) throw new NotFoundException("Not found user")
 
 		if (

@@ -347,6 +347,17 @@ export class Token extends SocialToken {
 	@Expose()
 	isFavorite?: boolean
 
+	@ApiProperty({ description: "Headeline of token", example: "Token headline" })
+	@Expose()
+	headline?: string
+
+	@ApiProperty({
+		description: "Token is ordered for popular",
+		example: 1
+	})
+	@Expose()
+	highlightOrder?: number
+
 	@ApiProperty({
 		description: "Token creation timestamp",
 		example: "2024-03-19T10:15:00Z"

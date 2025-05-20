@@ -10,6 +10,7 @@ import {
 	ICreateTokenInCache,
 	ICreateTokenOffchain
 } from "@root/_shared/types/token"
+import { UpdateTokenItemDto } from "@root/admin/dtos/payload.dto"
 import {
 	FindTokenParams,
 	SickoModeParams,
@@ -459,6 +460,14 @@ export class TokenRepository {
 		})
 	}
 
+	findByIds(ids: string[]) {
+		return this.prisma.token.findMany({
+			where: {
+				id: { in: ids }
+			}
+		})
+	}
+
 	findWithPrivateKey(id: string) {
 		return this.prisma.token.findFirst({
 			where: {
@@ -779,6 +788,26 @@ export class TokenRepository {
 			},
 			data: {
 				bannerUri: value
+			}
+		})
+	}
+
+	async updateByAdmin(id: string, payload: Omit<UpdateTokenItemDto, "id">) {
+		return this.prisma.token.update({
+			where: {
+				id
+			},
+			data: {
+				headline: payload.headline,
+				highlightOrder: payload.order
+			},
+			select: {
+				id: true,
+				headline: true,
+				highlightOrder: true,
+				imageUri: true,
+				name: true,
+				address: true
 			}
 		})
 	}

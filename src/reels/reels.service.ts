@@ -5,6 +5,7 @@ import {
 	NotFoundException
 } from "@nestjs/common"
 import { Reel, UserActionStatus } from "@prisma/client"
+import { BlockUserRepository } from "@root/_database/repositories/block-user.repository"
 import { ReelCommentRepository } from "@root/_database/repositories/reel-comment.repository"
 import { ReelUserActionRepository } from "@root/_database/repositories/reel-user-action.repository"
 import { ReelRepository } from "@root/_database/repositories/reel.repository"
@@ -19,6 +20,7 @@ import {
 } from "@root/_shared/types/reel"
 import { Paginate } from "@root/dtos/common.dto"
 import { S3Service } from "@root/file/file.service"
+import { DateTime } from "luxon"
 import { v4 as uuidv4 } from "uuid"
 import { PaginateReportedReelDto } from "./dtos/payload.dto"
 
@@ -31,15 +33,41 @@ export class ReelsService {
 		private reel: ReelRepository,
 		private reelUserAction: ReelUserActionRepository,
 		private reelComment: ReelCommentRepository,
-		private user: UserRepository
+		private user: UserRepository,
+		private blockUser: BlockUserRepository
 	) {}
+
+	// Validate user is block create reel
+	async validateUserCreateReel(userId: string) {
+		const block = await this.blockUser.findByType(userId, "CreateTokenReel")
+		if (!block) return
+		if (block.isPermanent) {
+			throw new ForbiddenException("You are blocked to create reel")
+		}
+		const now = DateTime.now()
+		// Skip if block is not expired
+		if (!block.endAt) {
+			await this.blockUser.deleteById(block.id)
+			return
+		}
+		const endAt = DateTime.fromJSDate(block.endAt)
+		if (endAt.diff(now).toMillis() > 0) {
+			throw new ForbiddenException(
+				`You are blocked to create reel until ${endAt.toFormat("yyyy-MM-dd HH:mm:ss")}`
+			)
+		}
+		await this.blockUser.deleteById(block.id)
+	}
 
 	//   Create reel
 	async create(payload: CreateReelPayload) {
 		const { caption, tokenId, userId } = payload
 
-		const token = await this.token.findById(tokenId)
+		// Validate user is block create reel in global
+		await this.validateUserCreateReel(userId)
 
+		// Validate token
+		const token = await this.token.findById(tokenId)
 		if (!token) throw new NotFoundException("Not found token")
 		if (token.creator.id !== userId)
 			throw new ForbiddenException(

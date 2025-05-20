@@ -164,7 +164,9 @@ export class CommentController {
 	@Auth()
 	@Delete("/:tokenId/user/:userId")
 	@HttpCode(204)
-	@ApiOperation({ summary: "Delete comment from user by dev (token creator)" })
+	@ApiOperation({
+		summary: "Delete comment from user by dev (token creator) or admin"
+	})
 	@ApiResponse({
 		status: 204,
 		description: "Delete comment from user successfully"

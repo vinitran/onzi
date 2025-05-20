@@ -3,7 +3,9 @@ import { TokenChartRepository } from "@root/_database/repositories/token-candle.
 import { UserConnectionRepository } from "@root/_database/repositories/user-connection.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { PrismaService } from "./prisma.service"
+import { BlockReelCommentRepository } from "./repositories/block-comment-reel.repository"
 import { BlockCommentRepository } from "./repositories/block-comment.repository"
+import { BlockUserRepository } from "./repositories/block-user.repository"
 import { CommentRepository } from "./repositories/comment.repository"
 import { ReelCommentActionRepository } from "./repositories/reel-comment-action.repository"
 import { ReelCommentReportRepository } from "./repositories/reel-comment-report.repository"
@@ -37,7 +39,9 @@ const repositories = [
 	ReelCommentRepository,
 	ReelCommentActionRepository,
 	ReelCommentReportRepository,
-	ReelReportRepository
+	ReelReportRepository,
+	BlockReelCommentRepository,
+	BlockUserRepository
 ]
 
 @Global()

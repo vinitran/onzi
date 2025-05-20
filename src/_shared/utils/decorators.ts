@@ -17,6 +17,7 @@ import { AuthGuard } from "@root/auth/auth.guard"
 import { Transform, Type } from "class-transformer"
 import { IsBoolean, IsInt, IsNotEmpty, IsOptional } from "class-validator"
 import { IS_PUBLIC_KEY, ROLES_KEY } from "../constants/decorator-key"
+import { AdminGuard } from "../guards/admin.guard"
 import { RolesGuard } from "../guards/roles.guard"
 
 export const IsBool = (target: object, propertyKey: string | symbol) => {
@@ -90,6 +91,7 @@ export const Roles = (...roles: Role[]) =>
 		ApiBearerAuth()
 	)
 
-export const Admin = () => applyDecorators(Roles("Admin"))
+export const Admin = () =>
+	applyDecorators(UseGuards(AdminGuard), ApiBearerAuth())
 
 export const Public = () => SetMetadata(IS_PUBLIC_KEY, true)
