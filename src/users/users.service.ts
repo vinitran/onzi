@@ -8,7 +8,6 @@ import {
 
 import { Prisma } from "@prisma/client"
 import { CommentRepository } from "@root/_database/repositories/comment.repository"
-import { TokenOwnerRepository } from "@root/_database/repositories/token-owner.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserConnectionRepository } from "@root/_database/repositories/user-connection.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
@@ -28,7 +27,6 @@ export class UsersService {
 	constructor(
 		private userRepository: UserRepository,
 		private userConnectionRepository: UserConnectionRepository,
-		private tokenOwnerRepository: TokenOwnerRepository,
 		private token: TokenRepository,
 		private comment: CommentRepository,
 		private s3Service: S3Service,

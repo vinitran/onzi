@@ -1,4 +1,5 @@
 import { Global, Module } from "@nestjs/common"
+import { SettingRepository } from "@root/_database/repositories/setting.repository"
 import { TokenChartRepository } from "@root/_database/repositories/token-candle.repository"
 import { UserConnectionRepository } from "@root/_database/repositories/user-connection.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
@@ -37,6 +38,7 @@ const repositories = [
 	StickerOwnerRepository,
 	BlockCommentRepository,
 	ReelRepository,
+	SettingRepository
 	ReelUserActionRepository,
 	ReelCommentRepository,
 	ReelCommentActionRepository,

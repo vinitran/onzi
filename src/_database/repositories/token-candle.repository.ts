@@ -1,6 +1,6 @@
-import { BN } from "@coral-xyz/anchor"
 import { Injectable } from "@nestjs/common"
 import { Prisma } from "@prisma/client"
+import { Decimal } from "@prisma/client/runtime/library"
 import { RedisService } from "@root/_redis/redis.service"
 import { PrismaService } from "../prisma.service"
 
@@ -13,11 +13,14 @@ export class TokenChartRepository {
 
 	async upsertWithManySteps(
 		tokenId: string,
-		timestamp: number,
-		price: number,
-		newPrice: number,
-		amount: BN
+		timestamp: string,
+		price: string,
+		newPrice: string,
+		amount: string,
+		tx?: Prisma.TransactionClient
 	) {
+		const client = tx ?? this.prisma
+
 		// array of steps in seconds
 		const steps: number[] = [
 			60, // 1 minute
@@ -29,72 +32,46 @@ export class TokenChartRepository {
 			2592000 // 30 days
 		]
 
-		await this.prisma.$transaction(async tx => {
-			// Convert timestamp from milliseconds to seconds
-			const timestampSeconds = Math.floor(timestamp / 1000)
-			// Convert BN amount to number
-			const amountNumber = amount.toNumber()
+		// Convert BN amount to number
+		const amountNumber = BigInt(amount)
 
-			// Calculate all bucket starts first
-			const bucketStarts = steps.map(step => ({
-				step,
-				date: Math.floor(timestampSeconds / step) * step
-			}))
+		// Calculate all bucket starts first
+		const bucketStarts = steps.map(step => ({
+			step,
+			date: Math.floor(Number(timestamp) / step) * step
+		}))
 
-			// Fetch all existing records in one query
-			const existingRecords = await tx.tokenChart.findMany({
+		// Prepare all upsert operations
+		const upsertOperations = bucketStarts.map(({ step, date }) => {
+			return client.tokenChart.upsert({
 				where: {
-					AND: [
-						{ tokenId },
-						{
-							OR: bucketStarts.map(({ step, date }) => ({
-								AND: [{ step }, { date }]
-							}))
-						}
-					]
-				}
-			})
-
-			// Create a map for quick lookup
-			const existingMap = new Map(
-				existingRecords.map(record => [`${record.step}_${record.date}`, record])
-			)
-
-			// Prepare all upsert operations
-			const upsertOperations = bucketStarts.map(({ step, date }) => {
-				const key = `${step}_${date}`
-				const existing = existingMap.get(key)
-
-				return tx.tokenChart.upsert({
-					where: {
-						tokenId_step_date: {
-							tokenId,
-							step,
-							date
-						}
-					},
-					create: {
+					tokenId_step_date: {
 						tokenId,
 						step,
-						date,
-						open: price,
-						high: Math.max(price, newPrice),
-						low: Math.min(price, newPrice),
-						close: newPrice,
-						volume: amountNumber
-					},
-					update: {
-						high: { set: Math.max(newPrice, existing?.high ?? price) },
-						low: { set: Math.min(newPrice, existing?.low ?? price) },
-						close: newPrice,
-						volume: { increment: amountNumber }
+						date
 					}
-				})
+				},
+				create: {
+					tokenId,
+					step,
+					date,
+					open: price,
+					high: Decimal.max(new Decimal(price), new Decimal(newPrice)),
+					low: Decimal.min(new Decimal(price), new Decimal(newPrice)),
+					close: newPrice,
+					volume: amountNumber
+				},
+				update: {
+					high: Decimal.max(new Decimal(price), new Decimal(newPrice)),
+					low: Decimal.min(new Decimal(price), new Decimal(newPrice)),
+					close: newPrice,
+					volume: { increment: amountNumber }
+				}
 			})
-
-			// Execute all operations in parallel
-			await Promise.all(upsertOperations)
 		})
+
+		// Execute all operations in parallel
+		await Promise.all(upsertOperations)
 	}
 
 	async getChartData(id: string, step: number, from: number, to: number) {
@@ -127,21 +104,18 @@ export class TokenChartRepository {
 		)
 	}
 
-	async getLatestCandles(tokenId: string, date: number) {
+	async getLatestCandles(address: string, date: number) {
 		const steps = [60, 300, 1800, 3600, 86400, 604800, 2592000]
-
-		// Convert date from milliseconds to seconds
-		const timestampSeconds = Math.floor(date / 1000)
 
 		// Calculate bucket starts for each step
 		const bucketStarts = steps.map(step => ({
 			step,
-			date: Math.floor(timestampSeconds / step) * step
+			date: Math.floor(date / step) * step
 		}))
 
 		const latestCandles = await this.prisma.tokenChart.findMany({
 			where: {
-				tokenId,
+				token: { address },
 				OR: bucketStarts.map(({ step, date }) => ({
 					AND: [{ step }, { date }]
 				}))
@@ -154,7 +128,12 @@ export class TokenChartRepository {
 				high: true,
 				low: true,
 				close: true,
-				volume: true
+				volume: true,
+				token: {
+					select: {
+						id: true
+					}
+				}
 			}
 		})
 

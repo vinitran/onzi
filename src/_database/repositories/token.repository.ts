@@ -218,12 +218,14 @@ export class TokenRepository {
 		const tokenData = await Promise.all(
 			tokens.map(async token => {
 				const top10Total = token.tokenOwners.reduce(
-					(sum, owner) => sum.plus(owner.amount),
-					new Prisma.Decimal(0)
+					(sum, owner) => sum + owner.amount,
+					BigInt(0)
 				)
-				const top10Percentage = token.marketCapacity.gt(0)
-					? top10Total.div(token.totalSupply).mul(100)
-					: new Prisma.Decimal(0)
+
+				const top10Percentage =
+					token.marketCapacity > 0
+						? top10Total / token.totalSupply / BigInt(100)
+						: BigInt(0)
 
 				let isFavorite = false
 
@@ -248,7 +250,7 @@ export class TokenRepository {
 					}
 				}
 
-				let creatorAmount: Prisma.Decimal = new Prisma.Decimal(0)
+				let creatorAmount = BigInt(0)
 				const creatorInTop10 = token.tokenOwners.find(
 					owner => owner.userAddress === token.creatorAddress
 				)
@@ -267,10 +269,10 @@ export class TokenRepository {
 						}
 					})
 
-					creatorAmount = creator ? creator.amount : new Prisma.Decimal(0)
+					creatorAmount = creator ? creator.amount : BigInt(0)
 				}
 
-				const devHoldPersent = creatorAmount.div(token.totalSupply)
+				const devHoldPersent = creatorAmount / token.totalSupply
 
 				return {
 					...token,
@@ -446,7 +448,8 @@ export class TokenRepository {
 			select: {
 				id: true,
 				address: true,
-				bondingCurveTarget: true
+				bondingCurveTarget: true,
+				volumn: true
 			}
 		})
 	}
@@ -536,42 +539,56 @@ export class TokenRepository {
 		})
 	}
 
-	async updateTokenOnchain(address: string, data: Prisma.TokenUpdateInput) {
-		return this.prisma.$transaction(async tx => {
-			const token = await tx.token.update({
-				where: { address },
-				data,
-				include: {
-					tokenKey: true
+	async updateTokenOnchain(
+		address: string,
+		data: Prisma.TokenUpdateInput,
+		tx?: Prisma.TransactionClient
+	) {
+		const client = tx ?? this.prisma
+		const token = await client.token.update({
+			where: { address },
+			data,
+			include: {
+				tokenKey: true
+			}
+		})
+
+		if (token.tokenKey) {
+			await client.tokenKey.update({
+				where: { id: token.tokenKey.id },
+				data: {
+					privateKey: `cleared_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
 				}
 			})
+		}
 
-			if (token.tokenKey) {
-				await tx.tokenKey.update({
-					where: { id: token.tokenKey.id },
-					data: {
-						privateKey: `cleared_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
-					}
-				})
-			}
-
-			return token
-		})
+		return token
 	}
 
 	async findMaxMarketCap() {
-		return this.prisma.token.findFirst({
-			where: {
-				isCompletedBondingCurve: false
+		return this.redis.getOrSet(
+			"token-max-market-cap",
+			() => {
+				return this.prisma.token.findFirst({
+					where: {
+						isCompletedBondingCurve: false
+					},
+					orderBy: {
+						marketCapacity: Prisma.SortOrder.desc
+					}
+				})
 			},
-			orderBy: {
-				marketCapacity: Prisma.SortOrder.desc
-			}
-		})
+			5
+		)
 	}
 
-	async update(address: string, payload: Prisma.TokenUpdateInput) {
-		return this.prisma.token.update({
+	async update(
+		address: string,
+		payload: Prisma.TokenUpdateInput,
+		tx?: Prisma.TransactionClient
+	) {
+		const client = tx ?? this.prisma
+		return client.token.update({
 			where: {
 				address
 			},
@@ -703,7 +720,7 @@ export class TokenRepository {
 	}
 
 	//   Get 20 silimar market cap tokens
-	findSimilar(marketCapacity: number) {
+	findSimilar(marketCapacity: bigint) {
 		return this.prisma.token.findMany({
 			where: { marketCapacity: { lte: marketCapacity } },
 			orderBy: { createdAt: Prisma.SortOrder.desc },

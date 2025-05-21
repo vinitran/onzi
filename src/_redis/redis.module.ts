@@ -1,10 +1,10 @@
 import {
 	RedisModule as IoRedis,
 	RedisModuleOptions
-} from "@nestjs-modules/ioredis" // Tạo repository để thao tác với Redis
+} from "@nestjs-modules/ioredis"
 import { Global, Module } from "@nestjs/common"
 import { ENV_TOKEN, Env, EnvModule } from "@root/_env/env.module"
-import { RedisService } from "./redis.service" // Tạo một service để quản lý kết nối Redis
+import { RedisService } from "@root/_redis/redis.service"
 
 @Global()
 @Module({

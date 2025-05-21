@@ -13,6 +13,9 @@ export type Env = {
 	REWARD_VAULT_ADDRESS: string
 	IS_TEST: string
 	COLLECT_FEE_PRIVATE_KEY: string
+	PONZ_DEPLOYED_SIGNATURE: string
+	RABBITMQ_URL: string
+	RABBITMQ_QUEUE: string
 }
 
 export const InjectEnv = () => Inject(ENV_TOKEN)
@@ -34,6 +37,11 @@ const provider: Provider = {
 		const COLLECT_FEE_PRIVATE_KEY = configService.get<string>(
 			"COLLECT_FEE_PRIVATE_KEY"
 		)
+		const PONZ_DEPLOYED_SIGNATURE = configService.get<string>(
+			"PONZ_DEPLOYED_SIGNATURE"
+		)
+		const RABBITMQ_URL = configService.get<string>("RABBITMQ_URL")
+		const RABBITMQ_QUEUE = configService.get<string>("RABBITMQ_QUEUE")
 
 		if (!DATABASE_URL) throw new Error("missing DATABASE_URL env")
 		if (!JWT_SECRET) throw new Error("missing JWT_SECRET env")
@@ -47,6 +55,10 @@ const provider: Provider = {
 		if (!IS_TEST) throw new Error("missing IS_TEST env")
 		if (!COLLECT_FEE_PRIVATE_KEY)
 			throw new Error("missing COLLECT_FEE_PRIVATE_KEY env")
+		if (!PONZ_DEPLOYED_SIGNATURE)
+			throw new Error("missing PONZ_DEPLOYED_SIGNATURE env")
+		if (!RABBITMQ_URL) throw new Error("missing RABBITMQ_URL env")
+		if (!RABBITMQ_QUEUE) throw new Error("missing RABBITMQ_QUEUE env")
 
 		return {
 			JWT_SECRET,
@@ -57,7 +69,10 @@ const provider: Provider = {
 			REDIS_URL,
 			REWARD_VAULT_ADDRESS,
 			IS_TEST,
-			COLLECT_FEE_PRIVATE_KEY
+			COLLECT_FEE_PRIVATE_KEY,
+			PONZ_DEPLOYED_SIGNATURE,
+			RABBITMQ_URL,
+			RABBITMQ_QUEUE
 		} satisfies Env
 	},
 	inject: [ConfigService]

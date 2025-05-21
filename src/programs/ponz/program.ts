@@ -10,7 +10,6 @@ import {
 } from "@coral-xyz/anchor"
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system"
 import { Injectable, InternalServerErrorException } from "@nestjs/common"
-import { Prisma } from "@prisma/client"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { TokenMetadataArgs } from "@root/programs/ponz/events"
 import idl from "@root/programs/ponz/ponz_sc.json"
@@ -211,44 +210,38 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		return this.eventParser.parseLogs(logs)
 	}
 
-	public async calculateMarketcap(mint: PublicKey) {
-		const bondingCurve = this.getBondingCurve(mint)
+	public async calculateMarketcap(mint: string) {
+		const bondingCurve = this.getBondingCurve(new PublicKey(mint))
 
 		try {
 			const marketcapAccount =
 				await this.account.bondingCurve.fetch(bondingCurve)
 
-			const solReserves = new Prisma.Decimal(
-				marketcapAccount.solReserves.toString()
-			)
-			const initVirtualSol = new Prisma.Decimal(
-				marketcapAccount.initVirtualSol.toString()
-			)
-
-			// Compute total with BN arithmetic
-			const totalSol = initVirtualSol.add(solReserves)
-
-			return totalSol
+			const solReserves = BigInt(marketcapAccount.solReserves)
+			const initVirtualSol = BigInt(marketcapAccount.initVirtualSol)
+			return solReserves + initVirtualSol
 		} catch (error) {
 			throw new InternalServerErrorException(`can not get marketCap: ${error}`)
 		}
 	}
 
-	public async getLockData(mint: PublicKey) {
-		const poolLock = this.getTokenPoolLockPDA(mint)
+	public async getLockData(mint: string) {
+		const poolLock = this.getTokenPoolLockPDA(new PublicKey(mint))
 
 		const poolLockInfor = await this.connection.getAccountInfo(poolLock)
 		if (!poolLockInfor) return
 
 		try {
 			const [timeUnlock, lockAmount] = await Promise.all([
-				this.account.bondingCurve.fetch(this.getBondingCurve(mint)),
+				this.account.bondingCurve.fetch(
+					this.getBondingCurve(new PublicKey(mint))
+				),
 				this.connection.getTokenAccountBalance(poolLock)
 			])
 
 			return {
 				unlockAt: timeUnlock.unlockTime,
-				lockAmount: Number(lockAmount.value.amount)
+				lockAmount: BigInt(lockAmount.value.amount)
 			}
 		} catch (error) {
 			throw new InternalServerErrorException(`can not get lock data: ${error}`)

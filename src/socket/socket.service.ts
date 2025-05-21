@@ -34,13 +34,6 @@ export class SocketService {
 		}
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <it's ok>
-	emitNewTokenDetail(mint: string, data: any) {
-		if (this.serverInstance) {
-			this.serverInstance.emit(`token-update-${mint}`, data)
-		}
-	}
-
 	emitNewTransactionCause({
 		address,
 		mint,
@@ -62,13 +55,6 @@ export class SocketService {
 				network,
 				tokenName
 			})
-		}
-	}
-
-	// biome-ignore lint/suspicious/noExplicitAny: <it's ok>
-	emitNewTokenCreation(data: any) {
-		if (this.serverInstance) {
-			this.serverInstance.emit("new-token", data)
 		}
 	}
 }

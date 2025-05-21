@@ -27,9 +27,7 @@ export class CommentGateway
 
 	constructor(private readonly authWsService: AuthWebSocketService) {}
 
-	afterInit(_server: Server) {
-		console.log("Socket instance of comment started")
-	}
+	afterInit(_server: Server) {}
 
 	async handleConnection(@ConnectedSocket() client: Socket) {
 		try {

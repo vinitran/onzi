@@ -60,7 +60,14 @@ export class RedisService {
 		const result = await func()
 
 		// Store the result in the cache with the specified expiration time
-		await this.redis.set(key, JSON.stringify(result), "EX", seconds)
+		await this.redis.set(
+			key,
+			JSON.stringify(result, (_, value) =>
+				typeof value === "bigint" ? value.toString() : value
+			),
+			"EX",
+			seconds
+		)
 
 		// Return the result from the function
 		return result

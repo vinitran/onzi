@@ -101,7 +101,8 @@ export class TokenOwnerRepository {
 	async createTokenOwner(
 		userAddress: string,
 		tokenAddress: string,
-		amount: BN
+		amount: BN,
+		_tx?: Prisma.TransactionClient
 	) {
 		return this.prisma.tokenOwner.create({
 			data: {
@@ -115,9 +116,10 @@ export class TokenOwnerRepository {
 	async updateTokenOwner(
 		userAddress: string,
 		tokenAddress: string,
-		amount: BN
+		amount: string,
+		_tx?: Prisma.TransactionClient
 	) {
-		if (amount.toNumber() > 0) {
+		if (BigInt(amount) > 0) {
 			return this.prisma.tokenOwner.update({
 				where: {
 					userAddress_tokenAddress: {
@@ -126,7 +128,7 @@ export class TokenOwnerRepository {
 					}
 				},
 				data: {
-					amount: amount.toString()
+					amount: BigInt(amount)
 				}
 			})
 		}
@@ -141,24 +143,34 @@ export class TokenOwnerRepository {
 		})
 	}
 
-	async updateBalance(data: {
-		userAddress: string
-		tokenAddress: string
-		amount: BN
-		type: string
-	}) {
+	async updateBalance(
+		data: {
+			userAddress: string
+			tokenAddress: string
+			amount: string
+			type: string
+		},
+		tx?: Prisma.TransactionClient
+	) {
 		const { userAddress, tokenAddress, amount, type } = data
 
 		const tokenOwner = await this.findTokenOwner(userAddress, tokenAddress)
 
 		if (!tokenOwner) {
-			return this.createTokenOwner(userAddress, tokenAddress, amount)
+			return this.createTokenOwner(userAddress, tokenAddress, amount, tx)
 		}
-		const dbAmountBN = new BN(tokenOwner.amount.toString())
+		const dbAmountBN = BigInt(tokenOwner.amount)
 
 		const newAmount =
-			type === "Sell" ? dbAmountBN.sub(amount) : dbAmountBN.add(amount)
+			type === "Sell"
+				? dbAmountBN - BigInt(amount)
+				: dbAmountBN - BigInt(amount)
 
-		return this.updateTokenOwner(userAddress, tokenAddress, newAmount)
+		return this.updateTokenOwner(
+			userAddress,
+			tokenAddress,
+			newAmount.toString(),
+			tx
+		)
 	}
 }

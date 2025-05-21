@@ -1,4 +1,3 @@
-import { BN, web3 } from "@coral-xyz/anchor"
 import { Injectable } from "@nestjs/common"
 import { Network, Prisma, TransactionType } from "@prisma/client"
 import { RedisService } from "@root/_redis/redis.service"
@@ -7,15 +6,15 @@ import { DateTime } from "luxon"
 import { PrismaService } from "../prisma.service"
 
 type CreateTokenTransactionParams = {
-	signer: web3.PublicKey
-	address: web3.PublicKey
+	signer: string
+	address: string
 	date: DateTime
-	amount: BN
-	lamports: BN
+	amount: string
+	lamports: string
 	type: TransactionType
 	signature: string
-	price: number
-	newPrice: number
+	price: string
+	newPrice: string
 	network: Network
 }
 
@@ -26,16 +25,18 @@ export class TokenTransactionRepository {
 		private redis: RedisService
 	) {}
 
-	create(params: CreateTokenTransactionParams) {
-		return this.prisma.tokenTransaction.create({
+	create(params: CreateTokenTransactionParams, tx?: Prisma.TransactionClient) {
+		const client = tx ?? this.prisma
+
+		return client.tokenTransaction.create({
 			data: {
-				amount: params.amount.toString(),
+				amount: BigInt(params.amount),
 				date: params.date.toJSDate(),
 				type: params.type,
-				lamports: params.lamports.toString(),
-				tokenAddress: params.address.toBase58(),
+				lamports: BigInt(params.lamports),
+				tokenAddress: params.address,
 				signature: params.signature,
-				signer: params.signer.toBase58(),
+				signer: params.signer,
 				price: params.price,
 				newPrice: params.newPrice,
 				network: params.network
@@ -167,6 +168,33 @@ export class TokenTransactionRepository {
 			data: transactions,
 			total,
 			maxPage: Math.ceil(total / query.take)
+		}
+	}
+
+	async findNonExistentSignatures(signatures: string[]): Promise<string[]> {
+		try {
+			if (!Array.isArray(signatures) || signatures.length === 0) {
+				return []
+			}
+
+			const existingTransactions = await this.prisma.tokenTransaction.findMany({
+				where: {
+					signature: {
+						in: signatures
+					}
+				},
+				select: {
+					signature: true
+				}
+			})
+
+			const existingSignatures = new Set(
+				existingTransactions.map(tx => tx.signature)
+			)
+			return signatures.filter(signature => !existingSignatures.has(signature))
+		} catch (error) {
+			console.error("Error in findNonExistentSignatures:", error)
+			throw new Error("Failed to check existing signatures")
 		}
 	}
 }

@@ -24,7 +24,7 @@ export class IndexerGateway
 
 	afterInit(server: Server) {
 		this.serverInstance = server
-		console.log("Socket instance of indexer started", server.sockets)
+		this.logger.log("Socket instance of indexer started")
 	}
 
 	async handleConnection(@ConnectedSocket() client: Socket) {
@@ -34,7 +34,8 @@ export class IndexerGateway
 				client.join(room)
 				this.logger.log(`Client ${client.id} subscribed to ${room}`)
 			})
-		} catch {
+		} catch (error) {
+			this.logger.error(`Error in handleConnection: ${error}`)
 			client.disconnect()
 		}
 	}
@@ -46,13 +47,35 @@ export class IndexerGateway
 	}
 
 	handleTx(data: TokenTransaction) {
-		const room = `transaction:${data.token?.id}`
-		this.serverInstance.to(room).emit(TX_GATEWAY_EMIT_EVENTS.NEW_TX, data)
+		try {
+			if (!this.serverInstance) {
+				this.logger.error("Server instance not initialized")
+				return
+			}
+			if (!data.token) {
+				this.logger.warn("Transaction data missing token information")
+				return
+			}
+			const room = `transaction:${data.token.id}`
+			this.serverInstance.to(room).emit(TX_GATEWAY_EMIT_EVENTS.NEW_TX, data)
+		} catch (error) {
+			this.logger.error(`Error in handleTx: ${error}`)
+		}
 	}
 
 	handleTokenCreation(data: TokenCreationDto) {
-		const room = `transaction:${data.address}`
-		this.serverInstance.to(room).emit(TX_GATEWAY_EMIT_EVENTS.CREATE_TOKEN, data)
+		try {
+			if (!this.serverInstance) {
+				this.logger.error("Server instance not initialized")
+				return
+			}
+			const room = `transaction:${data.address}`
+			this.serverInstance
+				.to(room)
+				.emit(TX_GATEWAY_EMIT_EVENTS.CREATE_TOKEN, data)
+		} catch (error) {
+			this.logger.error(`Error in handleTokenCreation: ${error}`)
+		}
 	}
 }
 
@@ -68,7 +91,6 @@ export class ChartGateway
 
 	afterInit(server: Server) {
 		this.serverInstance = server
-		console.log("Socket instance of chart started", server.sockets)
 	}
 
 	async handleConnection(@ConnectedSocket() client: Socket) {

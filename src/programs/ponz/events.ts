@@ -1,46 +1,47 @@
-import { BN, web3 } from "@coral-xyz/anchor"
-import { PublicKey } from "@solana/web3.js"
+import { BN } from "@coral-xyz/anchor"
 
 export type BuyTokensEvent = {
-	mint: web3.PublicKey
-	buyer: web3.PublicKey
-	amount: BN
-	lamports: BN
-	previousPrice: number
-	newPrice: number
+	mint: string
+	buyer: string
+	amount: string
+	lamports: string
+	previousPrice: string
+	newPrice: string
+	timestamp: string
 }
 
 export type CreateTokenEventDto = {
-	creator: PublicKey
-	pubkey: PublicKey
+	creator: string
+	pubkey: string
 	name: string
 	symbol: string
 	uri: string
-	timestamp: BN
+	timestamp: string
 }
 
 export type CreateTokenEvent = {
-	creator: web3.PublicKey
-	mint: web3.PublicKey
+	creator: string
+	mint: string
 	name: string
 	symbol: string
 	uri: string
+	timestamp: string
 }
 
 export type SellTokensEvent = {
-	seller: web3.PublicKey
-	mint: web3.PublicKey
-	amount: BN
-	lamports: BN
-	previousPrice: number
-	newPrice: number
+	seller: string
+	mint: string
+	amount: string
+	lamports: string
+	previousPrice: string
+	newPrice: string
+	timestamp: string
 }
 
 export const EVENTS = {
 	CreateToken: "createTokenEvent",
-	BuyTokens: "buyTokensEvent",
-	SellTokens: "sellTokensEvent",
-	ClaimEvent: "claimTicketEvent"
+	BuyTokens: "buyEvent",
+	SellTokens: "sellEvent"
 } as const
 
 export type TokenMetadataArgs = {

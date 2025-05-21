@@ -2,12 +2,11 @@ import { Module } from "@nestjs/common"
 import { JwtModule } from "@nestjs/jwt"
 import { DatabaseModule } from "@root/_database/database.module"
 import { EnvModule } from "@root/_env/env.module"
-import { RedisModule } from "@root/_redis/redis.module"
+import { RabbitMQModule } from "@root/_rabbitmq/rabbitmq.module"
 import { AppController } from "@root/app.controller"
 import { AppService } from "@root/app.service"
 import { AuthModule } from "@root/auth/auth.module"
 import { FileModule } from "@root/file/file.module"
-import { IndexerModule } from "@root/indexer/indexer.module"
 import { UsersModule } from "@root/users/users.module"
 import { AdminModule } from "./admin/admin.module"
 import { CommentModule } from "./comments/comment.module"
@@ -30,11 +29,10 @@ import { TokensModule } from "./tokens/tokens.module"
 			global: true
 		}),
 		FileModule,
-		RedisModule,
-		IndexerModule,
 		NotificationsModule,
 		StickersModule,
 		ReelsModule,
+		RabbitMQModule
 		ReelCommentsModule,
 		AdminModule,
 		TokenReportsModule

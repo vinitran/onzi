@@ -135,7 +135,7 @@ model Token {
   id                      String    @id @default(uuid()) @db.Uuid
   address                 String    @unique @db.VarChar
   name                    String    @db.VarChar
-  price                   Float?    @default(0)
+  price                   Decimal   @default(0)
   uri                     String    @db.VarChar
   imageUri                String    @db.VarChar
   bannerUri               String?   @map("banner_uri") @db.VarChar
@@ -144,16 +144,16 @@ model Token {
   description             String    @db.Text
   isHighlight             Boolean   @default(false) @map("is_highlight")
   network                 Network   @default(Solana)
-  bondingCurveTarget      Decimal   @default(150000000000) @map("bonding_curve_target") // amount to complete curve target (fetch from Contract)
+  bondingCurveTarget      BigInt    @default(150000000000) @map("bonding_curve_target") // amount to complete curve target (fetch from Contract)
   isCompletedBondingCurve Boolean   @default(false) @map("is_completed_bonding_curve")
   createdAtBondingCurve   DateTime? @map("created_at_bonding_curve")
   isCompletedKingOfHill   Boolean   @default(false) @map("is_completed_king_of_hill") // True => having marketCapacity is gte the highest marketCapacity of token (not ever bonding curve => isCompxletedBondingCurve = false) AND greater than 70% its bondingCurveTarget
   createdAtKingOfHill     DateTime? @map("created_at_king_of_hill")
   bump                    Boolean?  @default(false) // on chain
   creatorAddress          String    @map("creator_address") @db.VarChar
-  marketCapacity          Decimal   @default("80000000000") @map("market_capacity")
-  volumn                  Float     @default(0)
-  totalSupply             Decimal   @default("1000000000000000") @map("total_supply")
+  marketCapacity          BigInt    @default(80000000000) @map("market_capacity")
+  volumn                  BigInt    @default(0)
+  totalSupply             BigInt    @default(1000000000000000) @map("total_supply")
   hallOfFame              Boolean   @default(false) @map("hall_of_fame")
   tax                     Float     @default(0)
   rewardTax               Float     @default(0) @map("reward_tax")
@@ -164,7 +164,7 @@ model Token {
   jackpotPending Float @default(0) @map("jackpot_pending")
   taxPending     Float @default(0) @map("tax_pending")
 
-  lockAmount Float?    @map("lock_amount")
+  lockAmount BigInt?   @map("lock_amount")
   unlockAt   DateTime? @map("unlock_at") @db.Timestamptz(3)
 
   telegramLink  String? @map("telegram_link") @db.VarChar
@@ -217,10 +217,10 @@ model TokenKey {
 }
 
 model TokenOwner {
-  id           String  @id @default(uuid()) @db.Uuid
-  userAddress  String  @map("user_address") @db.VarChar
-  tokenAddress String  @map("token_address") @db.VarChar
-  amount       Decimal @db.Decimal(20, 0)
+  id           String @id @default(uuid()) @db.Uuid
+  userAddress  String @map("user_address") @db.VarChar
+  tokenAddress String @map("token_address") @db.VarChar
+  amount       BigInt
 
   token Token @relation(fields: [tokenAddress], references: [address], onDelete: Cascade)
   user  User  @relation(fields: [userAddress], references: [address], onDelete: Cascade)
@@ -272,9 +272,9 @@ model Config {
 model TokenTransaction {
   id           String          @id @default(uuid()) @db.Uuid
   signature    String          @unique @db.VarChar
-  amount       Decimal         @db.Decimal(20, 0)
+  amount       BigInt
   tokenAddress String          @map("token_address") @db.VarChar
-  lamports     Decimal         @db.Decimal(20, 0) // amout of solana coin
+  lamports     BigInt
   date         DateTime        @db.Timestamptz(3)
   signer       String          @db.VarChar
   price        Decimal         @db.Decimal(20, 20)
@@ -326,15 +326,15 @@ model StickerOwner {
 }
 
 model TokenChart {
-  id      String @id @default(uuid()) @db.Uuid
-  tokenId String @map("token_id") @db.Uuid
-  step    Int // milliseconds, e.g. 60000 for 1 min
-  date    Int    @map("bucket_start") // timestamp in ms
-  open    Float
-  high    Float
-  low     Float
-  close   Float
-  volume  Float
+  id      String  @id @default(uuid()) @db.Uuid
+  tokenId String  @map("token_id") @db.Uuid
+  step    Int
+  date    BigInt
+  open    Decimal @db.Decimal(20, 10)
+  high    Decimal @db.Decimal(20, 10)
+  low     Decimal @db.Decimal(20, 10)
+  close   Decimal @db.Decimal(20, 10)
+  volume  BigInt
 
   token Token @relation(fields: [tokenId], references: [id], onDelete: Cascade)
 
