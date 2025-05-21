@@ -32,7 +32,7 @@ import { TokensModule } from "./tokens/tokens.module"
 		NotificationsModule,
 		StickersModule,
 		ReelsModule,
-		RabbitMQModule
+		RabbitMQModule,
 		ReelCommentsModule,
 		AdminModule,
 		TokenReportsModule

@@ -38,7 +38,7 @@ const repositories = [
 	StickerOwnerRepository,
 	BlockCommentRepository,
 	ReelRepository,
-	SettingRepository
+	SettingRepository,
 	ReelUserActionRepository,
 	ReelCommentRepository,
 	ReelCommentActionRepository,
