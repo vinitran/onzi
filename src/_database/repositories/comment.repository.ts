@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common"
-import { Prisma } from "@prisma/client"
+import { Comment, Prisma } from "@prisma/client"
 import { PaginatedParams } from "@root/dtos/common.dto"
 import { PrismaService } from "../prisma.service"
 
@@ -151,7 +151,7 @@ export class CommentRepository {
 		}
 	}
 
-	async findMany(query: Prisma.CommentFindManyArgs) {
+	findMany(query: Prisma.CommentFindManyArgs) {
 		return this.prisma.comment.findMany({
 			...query,
 			include: {
@@ -163,6 +163,22 @@ export class CommentRepository {
 				}
 			}
 		})
+	}
+
+	//   Find distinct comments with created_at with range time
+	findDistinctWithCreatedAt(
+		tokenId: string,
+		startDate: string | null,
+		endEnDate: string | null
+	): Promise<Comment[]> {
+		return this.prisma.$queryRaw<Comment[]>`
+		SELECT DISTINCT ON (Date(created_at)) *
+		FROM "comment"
+		WHERE "token_id" = ${tokenId}::uuid 
+		AND "parent_id" IS NULL
+		AND "created_at" BETWEEN ${startDate}::timestamptz AND ${endEnDate}::timestamptz
+		ORDER BY Date(created_at) DESC, "created_at" ASC
+	`
 	}
 
 	deleteById(id: string) {

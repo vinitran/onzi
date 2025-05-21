@@ -1,6 +1,7 @@
 import {
 	Body,
 	Controller,
+	Delete,
 	Get,
 	Param,
 	ParseUUIDPipe,
@@ -340,6 +341,23 @@ export class TokensController {
 		return plainToInstance(ToggleFavoriteTokenResponse, data, {
 			excludeExtraneousValues: true
 		})
+	}
+
+	@Delete(":id/banner")
+	@Auth()
+	@ApiOperation({ summary: "Delete banner of token" })
+	@ApiResponse({
+		status: 204,
+		description: "Banner deleted successfully"
+	})
+	async deleteBanner(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) tokenId: string,
+		@User() user: Claims
+	) {
+		await this.tokensService.deleteBanner(tokenId, user.address)
+		return {
+			message: "Delete banner successfully"
+		}
 	}
 
 	@Get(":id")

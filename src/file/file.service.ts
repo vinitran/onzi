@@ -122,4 +122,10 @@ export class S3Service {
 			throw new InternalServerErrorException(error)
 		}
 	}
+
+	//   Get key S3
+	getKeyS3(uri: string) {
+		const parts = uri.split("/")
+		return parts[parts.length - 1]
+	}
 }

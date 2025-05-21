@@ -6,7 +6,6 @@ import {
 } from "@nestjs/common"
 import { CommentRepository } from "@root/_database/repositories/comment.repository"
 import { TokenKeyRepository } from "@root/_database/repositories/token-key.repository"
-import { TokenOwnerRepository } from "@root/_database/repositories/token-owner.repository"
 import { TokenTransactionRepository } from "@root/_database/repositories/token-transaction.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
@@ -48,7 +47,6 @@ export class TokensService {
 	constructor(
 		private token: TokenRepository,
 		private tokenKey: TokenKeyRepository,
-		private tokenOwner: TokenOwnerRepository,
 		private tokenFavorite: TokenFavoriteRepository,
 		private comment: CommentRepository,
 		private user: UserRepository,
@@ -479,6 +477,18 @@ export class TokensService {
 			fields,
 			url
 		}
+	}
+
+	// Delete banner
+	async deleteBanner(tokenId: string, userAddress: string) {
+		const token = await this.token.findById(tokenId)
+		if (!token) throw new NotFoundException("Not found token")
+		if (token.creatorAddress !== userAddress)
+			throw new ForbiddenException("Only token creator allows to delete banner")
+		if (!token.bannerUri) throw new NotFoundException("Not found banner uri")
+		await this.token.deleteBanner(tokenId)
+		// Delete image in s3
+		await this.s3Service.deleteFile(this.s3Service.getKeyS3(token.bannerUri))
 	}
 
 	//   Get image url & authorize data to push image Aws3

@@ -18,6 +18,7 @@ import { StickerRepository } from "./repositories/sticker.repository"
 import { TokenFavoriteRepository } from "./repositories/token-favorite.repository"
 import { TokenKeyRepository } from "./repositories/token-key.repository"
 import { TokenOwnerRepository } from "./repositories/token-owner.repository"
+import { TokenReportRepository } from "./repositories/token-report.repository"
 import { TokenTransactionRepository } from "./repositories/token-transaction.repository"
 import { TokenRepository } from "./repositories/token.repository"
 
@@ -31,6 +32,7 @@ const repositories = [
 	TokenTransactionRepository,
 	TokenFavoriteRepository,
 	TokenChartRepository,
+	TokenReportRepository,
 	StickerRepository,
 	StickerOwnerRepository,
 	BlockCommentRepository,

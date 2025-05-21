@@ -97,7 +97,7 @@ export class StickersService {
 			throw new ForbiddenException("Not allow delete")
 
 		await this.sticker.delete(id)
-		await this.s3Service.deleteFile(this.getKeyS3(sticker.uri))
+		await this.s3Service.deleteFile(this.s3Service.getKeyS3(sticker.uri))
 	}
 
 	// Add sticker to become owner
@@ -119,12 +119,6 @@ export class StickersService {
 			throw new ForbiddenException("Not permission!")
 		}
 		return this.stickerOwner.delete(payload)
-	}
-
-	//   Get key S3
-	getKeyS3(uri: string) {
-		const parts = uri.split("/")
-		return parts[parts.length - 1]
 	}
 
 	//   Get uri

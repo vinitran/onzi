@@ -218,7 +218,7 @@ export class ReelsService {
 
 	async removeVideoS3(videoUri: string) {
 		try {
-			await this.s3Service.deleteFile(this.getKeyS3(videoUri))
+			await this.s3Service.deleteFile(this.s3Service.getKeyS3(videoUri))
 		} catch {}
 	}
 
@@ -240,10 +240,21 @@ export class ReelsService {
 		}
 	}
 
-	//   Get key S3
-	getKeyS3(uri: string) {
-		const parts = uri.split("/")
-		return parts[parts.length - 1]
+	//   Toggle pin reel by creator
+	async togglePinReelByCreator(reelId: string, userId: string) {
+		const reel = await this.reel.findById(reelId)
+		if (!reel) throw new NotFoundException("Not found reel")
+
+		if (reel.creatorId !== userId)
+			throw new ForbiddenException("Not allow to pin reel")
+
+		if (reel.pinnedAt) {
+			await this.reel.unpin(reelId)
+			return "Unpin reel successfully"
+		}
+		const pinnedAt = DateTime.now().toJSDate()
+		await this.reel.pin(reelId, pinnedAt)
+		return "Pin reel successfully"
 	}
 
 	async getVideoPresignedUrl(reelId: string) {

@@ -1,5 +1,6 @@
 import {
 	Body,
+	ClassSerializerInterceptor,
 	Controller,
 	Delete,
 	Get,
@@ -8,7 +9,9 @@ import {
 	ParseUUIDPipe,
 	Post,
 	Put,
-	Query
+	Query,
+	SerializeOptions,
+	UseInterceptors
 } from "@nestjs/common"
 import {
 	ApiBearerAuth,
@@ -26,6 +29,7 @@ import {
 import {
 	CreateCommentResponse,
 	GetBlockedUserCommentResponse,
+	PaginatedCommentResponse,
 	ToggleLikeResponse
 } from "@root/comments/dtos/response.dto"
 import { Comment as CommentResponse } from "@root/dtos/comment.dto"
@@ -47,30 +51,27 @@ export class CommentController {
 
 	@Get(":tokenId")
 	@ApiBearerAuth()
-	@ApiPaginatedResponse(CommentResponse)
 	@ApiOperation({ summary: "Get paginated comments for a token" })
 	@ApiResponse({
 		status: 200,
-		description: "Comments retrieved successfully"
+		description: "Comments retrieved successfully",
+		type: PaginatedCommentResponse
+	})
+	@UseInterceptors(ClassSerializerInterceptor)
+	@SerializeOptions({
+		type: PaginatedCommentResponse,
+		excludeExtraneousValues: true
 	})
 	async getComments(
 		@Param("tokenId", new ParseUUIDPipe({ version: "4" })) tokenId: string,
 		@Query() query: GetCommentsParams,
 		@User() user: Claims | undefined
 	) {
-		const { total, maxPage, data } = await this.commentService.getComments({
+		return this.commentService.getComments({
 			...query,
 			tokenId,
 			userId: user?.id
 		})
-
-		return plainToInstance(
-			PaginatedResponse<CommentResponse>,
-			new PaginatedResponse(data, total, maxPage),
-			{
-				excludeExtraneousValues: true
-			}
-		)
 	}
 
 	@Get(":tokenId/pin")

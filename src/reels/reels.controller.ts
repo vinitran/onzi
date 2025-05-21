@@ -9,6 +9,7 @@ import {
 	Param,
 	ParseUUIDPipe,
 	Post,
+	Put,
 	Query,
 	SerializeOptions,
 	UseInterceptors
@@ -33,6 +34,7 @@ import {
 	PaginateReelReportsResponse,
 	PaginateReelResponse,
 	PaginateReportedReelResponse,
+	TogglePinReelResponse,
 	UpdateReelUserActionResponse
 } from "./dtos/response.dto"
 import { ReelReportsService } from "./reel-reports.service"
@@ -198,6 +200,26 @@ export class ReelsController {
 	})
 	increaseView(@Param("id", ParseUUIDPipe) id: string) {
 		return this.reelsService.updateView(id)
+	}
+
+	@Put(":id/pin")
+	@ApiOperation({ summary: "Pin a reel by creator" })
+	@ApiResponse({
+		status: 200,
+		description: "Pinned reel successfully",
+		type: TogglePinReelResponse
+	})
+	@SerializeOptions({
+		type: TogglePinReelResponse,
+		enableImplicitConversion: true,
+		excludeExtraneousValues: true
+	})
+	async togglePinReel(
+		@Param("id", ParseUUIDPipe) id: string,
+		@User() user: Claims
+	) {
+		const message = await this.reelsService.togglePinReelByCreator(id, user.id)
+		return { message }
 	}
 
 	@Get(":id")

@@ -71,14 +71,19 @@ export class ReelRepository {
 			orderBy?: Prisma.ReelOrderByWithRelationInput
 		}
 	) {
-		const { page, take, tokenId, orderBy = { createdAt: "desc" } } = payload
+		const { page, take, tokenId } = payload
 		const skip = take * (page - 1)
 
 		return this.prisma.reel.findMany({
 			where: {
 				tokenId
 			},
-			orderBy,
+			orderBy: {
+				pinnedAt: {
+					sort: "desc",
+					nulls: "last"
+				}
+			},
 			skip,
 			take
 		})
@@ -147,6 +152,24 @@ export class ReelRepository {
 				viewAmount: {
 					increment: 1
 				}
+			}
+		})
+	}
+
+	pin(id: string, pinnedAt: Date) {
+		return this.prisma.reel.update({
+			where: { id },
+			data: {
+				pinnedAt
+			}
+		})
+	}
+
+	unpin(id: string) {
+		return this.prisma.reel.update({
+			where: { id },
+			data: {
+				pinnedAt: null
 			}
 		})
 	}

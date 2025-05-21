@@ -1,6 +1,7 @@
-import { ApiProperty } from "@nestjs/swagger"
+import { ApiProperty, OmitType } from "@nestjs/swagger"
 import { BlockComment } from "@root/dtos/block-comment.dto"
 import { Comment } from "@root/dtos/comment.dto"
+import { Paginate } from "@root/dtos/common.dto"
 import { S3Upload } from "@root/dtos/file.dto"
 import { Expose, Type } from "class-transformer"
 
@@ -54,4 +55,23 @@ export class GetBlockedUserCommentResponse extends BlockComment {
 	@Expose()
 	@Type(() => BlockedUser)
 	user: BlockedUser
+}
+
+export class PaginatedCommentItemResponse extends OmitType(Comment, [
+	"attachment",
+	"replies"
+]) {
+	@ApiProperty({
+		description: "Indicates if this comment is the first one of the day",
+		example: false
+	})
+	@Expose()
+	isFirstOfDay: boolean
+}
+
+export class PaginatedCommentResponse extends Paginate<PaginatedCommentItemResponse> {
+	@ApiProperty({ type: [PaginatedCommentItemResponse] })
+	@Expose()
+	@Type(() => PaginatedCommentItemResponse)
+	data: PaginatedCommentItemResponse[]
 }

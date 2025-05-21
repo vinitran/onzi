@@ -168,7 +168,7 @@ export class CommentService {
 
 	// get comments.dtos.ts
 	async getComments(payload: IPaginateComments) {
-		const { tokenId, userId, page, take, sortCreatedAt } = payload
+		const { tokenId, page, take, sortCreatedAt } = payload
 
 		// Get data & total
 		// Only get comment level 1
@@ -186,24 +186,42 @@ export class CommentService {
 		const getTotal = this.comment.countByTokenId({ where: whereConditions })
 		const [comments, total] = await Promise.all([getComments, getTotal])
 
-		// Format data
-		const data = await Promise.all(
-			comments.map(async comment => {
-				const [userLiked, totalLike, totalReply] = await Promise.all([
-					userId
-						? this.comment.isLiked(comment.id, userId)
-						: Promise.resolve(null),
-					this.comment.countLike(comment.id),
-					this.comment.countReply(comment.id)
-				])
-				return {
-					...comment,
-					totalLike,
-					totalReply,
-					isLiked: !!userLiked
-				}
-			})
+		// Get list comment distinct by createdAt with unique start date
+		const listDistinctCreatedAt = [
+			...new Set(
+				comments.map(comment =>
+					DateTime.fromJSDate(comment.createdAt).startOf("day").toISO()
+				)
+			)
+		].filter(date => date !== null)
+
+		const minDistinctCreatedAt = DateTime.fromMillis(
+			Math.min(...listDistinctCreatedAt.map(date => Date.parse(date)))
+		).toISO()
+
+		const maxDistinctCreatedAt = DateTime.fromMillis(
+			Math.max(...listDistinctCreatedAt.map(date => Date.parse(date)))
 		)
+			.endOf("day")
+			.toISO()
+
+		//   List comment distinct by createdAt from MIN to MAX
+		const listCommentDistinctByCreatedAt =
+			await this.comment.findDistinctWithCreatedAt(
+				tokenId,
+				minDistinctCreatedAt,
+				maxDistinctCreatedAt
+			)
+
+		// Format data
+		const data = comments.map(comment => {
+			return {
+				...comment,
+				isFirstOfDay: listCommentDistinctByCreatedAt.some(
+					item => item.id === comment.id
+				)
+			}
+		})
 
 		return {
 			total,

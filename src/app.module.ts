@@ -15,6 +15,7 @@ import { NotificationsModule } from "./notifications/notifications.module"
 import { ReelCommentsModule } from "./reel-comments/reel-comments.module"
 import { ReelsModule } from "./reels/reels.module"
 import { StickersModule } from "./stickers/stickers.module"
+import { TokenReportsModule } from "./token-reports/token-reports.module"
 import { TokensModule } from "./tokens/tokens.module"
 
 @Module({
@@ -35,7 +36,8 @@ import { TokensModule } from "./tokens/tokens.module"
 		StickersModule,
 		ReelsModule,
 		ReelCommentsModule,
-		AdminModule
+		AdminModule,
+		TokenReportsModule
 	],
 	controllers: [AppController],
 	providers: [AppService]

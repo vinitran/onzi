@@ -28,6 +28,10 @@ export class Reel {
 	tokenId: string
 
 	@Expose()
+	@ApiProperty({ description: "Timestamp when the reel was pinned" })
+	pinnedAt: Date
+
+	@Expose()
 	@ApiProperty({ description: "Timestamp when the reel was created" })
 	createdAt: Date
 

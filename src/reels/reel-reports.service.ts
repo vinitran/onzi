@@ -10,6 +10,7 @@ import {
 	CreateReelReportPayload,
 	PaginateReelReportsPayload
 } from "@root/_shared/types/reel"
+import { DateTime } from "luxon"
 
 @Injectable()
 export class ReelReportsService {
@@ -26,13 +27,18 @@ export class ReelReportsService {
 
 		if (!reel) throw new NotFoundException("Not found reel")
 
-		// const reportByUser = await this.reelReport.findOne({
-		//   reporterId: userId,
-		//   reelId,
-		// });
+		const reportByUser = await this.reelReport.findLatestByUser(reelId, userId)
 
-		// if (reportByUser)
-		//   throw new ForbiddenException('User has reported this reel');
+		if (reportByUser) {
+			const now = DateTime.now()
+			const reportDate = DateTime.fromJSDate(reportByUser.createdAt)
+			const diffMinutes = now.diff(reportDate, "minutes").minutes
+			if (diffMinutes < 60) {
+				throw new ForbiddenException(
+					"You can only report a reel once every hour"
+				)
+			}
+		}
 
 		return this.reelReport.create({
 			reel: { connect: reel },

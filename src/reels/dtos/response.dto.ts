@@ -15,8 +15,7 @@ export class CreateReelResponse {
 	reel: Reel
 
 	@ApiProperty({
-		description: "Presigned URL data for attachment upload",
-		required: false
+		description: "Presigned URL data for attachment upload"
 	})
 	@Expose()
 	attachment: S3Upload
@@ -159,4 +158,12 @@ export class GetDetailReelResponse extends Reel {
 	@Expose()
 	@Type(() => ReelDetailUserStatus)
 	userStatus: ReelDetailUserStatus
+}
+
+export class TogglePinReelResponse {
+	@ApiProperty({
+		description: "Message"
+	})
+	@Expose()
+	message: string
 }

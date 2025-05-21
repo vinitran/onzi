@@ -792,6 +792,18 @@ export class TokenRepository {
 		})
 	}
 
+	// Delete banner
+	async deleteBanner(tokenId: string) {
+		return this.prisma.token.update({
+			where: {
+				id: tokenId
+			},
+			data: {
+				bannerUri: null
+			}
+		})
+	}
+
 	async updateByAdmin(id: string, payload: Omit<UpdateTokenItemDto, "id">) {
 		return this.prisma.token.update({
 			where: {

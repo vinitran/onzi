@@ -17,6 +17,13 @@ export class ReelReportRepository {
 		})
 	}
 
+	findLatestByUser(reelId: string, reporterId: string) {
+		return this.prisma.reelReport.findFirst({
+			where: { reelId, reporterId },
+			orderBy: { createdAt: "desc" }
+		})
+	}
+
 	async paginateByReelId(payload: Omit<PaginateReelReportsPayload, "userId">) {
 		const { page, reelId, take } = payload
 		const where: Prisma.ReelReportWhereInput = {
