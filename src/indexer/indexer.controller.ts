@@ -15,11 +15,6 @@ interface EventMessage<T> {
 	type: "scan" | "socket"
 }
 
-interface CandleMessage {
-	address: string
-	date: number
-}
-
 @Controller()
 export class IndexerController {
 	constructor(
@@ -77,24 +72,6 @@ export class IndexerController {
 			channel.ack(originalMsg, false)
 		} catch (error) {
 			channel.nack(originalMsg, false, false)
-			throw error
-		}
-	}
-
-	@EventPattern("new-candle")
-	async socketNewCandle(
-		@Payload() data: CandleMessage,
-		@Ctx() context: RmqContext
-	) {
-		const channel = context.getChannelRef()
-		const originalMsg = context.getMessage()
-		channel.prefetch(1, false)
-
-		try {
-			await this.indexerService.socketNewCandle(data.address, data.date)
-			channel.ack(originalMsg, false)
-		} catch (error) {
-			channel.ack(originalMsg, false)
 			throw error
 		}
 	}

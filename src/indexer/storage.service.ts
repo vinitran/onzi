@@ -5,8 +5,9 @@ import {
 	Logger,
 	NotFoundException
 } from "@nestjs/common"
-import { Network, Prisma, PrismaClient } from "@prisma/client"
+import { Network, Prisma } from "@prisma/client"
 import { Decimal } from "@prisma/client/runtime/library"
+import { PrismaService } from "@root/_database/prisma.service"
 import { TokenChartRepository } from "@root/_database/repositories/token-candle.repository"
 import { TokenOwnerRepository } from "@root/_database/repositories/token-owner.repository"
 import { TokenTransactionRepository } from "@root/_database/repositories/token-transaction.repository"
@@ -15,7 +16,6 @@ import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
 import { getTokenMetaData } from "@root/_shared/helpers/get-token-metadata"
-import { ChartGateway } from "@root/indexer/indexer.gateway"
 import {
 	BuyTokensEvent,
 	CreateTokenEvent,
@@ -38,9 +38,7 @@ export class StorageIndexerService {
 		private readonly tokenTxRepository: TokenTransactionRepository,
 		private readonly tokenOwner: TokenOwnerRepository,
 		private readonly tokenChart: TokenChartRepository,
-		private readonly tokenChartRepository: TokenChartRepository,
-		private prisma: PrismaClient,
-		private readonly chartSocket: ChartGateway,
+		private prisma: PrismaService,
 		private readonly rabbitMQService: RabbitMQService
 	) {}
 
@@ -339,25 +337,6 @@ export class StorageIndexerService {
 
 		// If the current token has the highest marketCapacity, update it as the "King of Hill".
 		return true
-	}
-
-	async socketNewCandle(address: string, date: number) {
-		const newCandle = await this.tokenChartRepository.getLatestCandles(
-			address,
-			date
-		)
-		for (const candle of newCandle) {
-			this.chartSocket.emitNewCandle({
-				tokenId: candle.token.id,
-				step: candle.step,
-				date: candle.date.toString(),
-				open: candle.open.toString(),
-				high: candle.high.toString(),
-				low: candle.low.toString(),
-				close: candle.close.toString(),
-				volume: candle.volume.toString()
-			})
-		}
 	}
 
 	private async getTimeFromSignature(signature: string) {

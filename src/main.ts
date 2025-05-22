@@ -1,10 +1,24 @@
 import { ValidationPipe } from "@nestjs/common"
 import { NestFactory } from "@nestjs/core"
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger"
+import { rabbitMQConfig } from "@root/_rabbitmq/rabbitmq.options"
 import { AppModule } from "@root/app.module"
 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule)
+
+	try {
+		app.connectMicroservice({
+			...rabbitMQConfig(),
+			options: {
+				...rabbitMQConfig().options,
+				noAck: false
+			}
+		})
+	} catch (error) {
+		console.error("Failed to connect to RabbitMQ:", error)
+		process.exit(1)
+	}
 
 	app.enableCors({
 		origin: true,
@@ -36,10 +50,11 @@ async function bootstrap() {
 	})
 
 	try {
+		await app.startAllMicroservices()
 		await app.listen(8000)
-		console.log("Server is running on port 8000")
+		console.log("Schedule service is running on port 8000")
 	} catch (error) {
-		console.error("Failed to start server:", error)
+		console.error("Failed to start schedule service:", error)
 		process.exit(1)
 	}
 }

@@ -39,6 +39,7 @@ import {
 	ListTransactionResponse,
 	SickoModeResponse
 } from "@root/tokens/dtos/response.dto"
+import { ChartGateway } from "@root/tokens/token.gateway"
 import { PublicKey } from "@solana/web3.js"
 import { plainToInstance } from "class-transformer"
 
@@ -54,6 +55,7 @@ export class TokensService {
 		private tokenTransaction: TokenTransactionRepository,
 		private tokenChart: TokenChartRepository,
 		private ponz: Ponz,
+		private chartSocket: ChartGateway,
 		@InjectConnection() private connection: web3.Connection
 	) {}
 
@@ -503,6 +505,22 @@ export class TokensService {
 			bannerUri,
 			url,
 			fields
+		}
+	}
+
+	async socketNewCandle(address: string, date: number) {
+		const newCandle = await this.tokenChart.getLatestCandles(address, date)
+		for (const candle of newCandle) {
+			this.chartSocket.emitNewCandle({
+				tokenId: candle.token.id,
+				step: candle.step,
+				date: candle.date.toString(),
+				open: candle.open.toString(),
+				high: candle.high.toString(),
+				low: candle.low.toString(),
+				close: candle.close.toString(),
+				volume: candle.volume.toString()
+			})
 		}
 	}
 }

@@ -3,6 +3,7 @@ import { ScheduleModule } from "@nestjs/schedule"
 import { DatabaseModule } from "@root/_database/database.module"
 import { EnvModule } from "@root/_env/env.module"
 import { RedisModule } from "@root/_redis/redis.module"
+import { IndexerController } from "@root/indexer/indexer.controller"
 import { IndexerModule } from "@root/indexer/indexer.module"
 import { IndexerService } from "@root/indexer/indexer.service"
 import { ScannerJobs } from "@root/jobs/scanner/scanner.job"
@@ -19,6 +20,7 @@ import { TokenJobs } from "./tokens/token.job"
 		DatabaseModule,
 		IndexerModule
 	],
+	controllers: [IndexerController],
 
 	providers: [IndexerService, TokenJobs, ScannerJobs]
 })

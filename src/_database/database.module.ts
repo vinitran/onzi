@@ -24,6 +24,7 @@ import { TokenTransactionRepository } from "./repositories/token-transaction.rep
 import { TokenRepository } from "./repositories/token.repository"
 
 const repositories = [
+	PrismaService,
 	UserRepository,
 	UserConnectionRepository,
 	CommentRepository,
@@ -50,7 +51,7 @@ const repositories = [
 
 @Global()
 @Module({
-	providers: [PrismaService, ...repositories],
+	providers: repositories,
 	exports: repositories
 })
 export class DatabaseModule {}
