@@ -250,9 +250,9 @@ export class IndexerService {
 					break
 				}
 
-				const signatures = result.map(
-					(tx: { signature: string }) => tx.signature
-				)
+				const signatures = result
+					.map((tx: { signature: string }) => tx.signature)
+					.reverse()
 
 				const nonExistentSignatures =
 					await this.tokenTransactionRepository.findNonExistentSignatures(
@@ -264,7 +264,7 @@ export class IndexerService {
 				}
 
 				// Update the latest signature scanned
-				const latestSignature = result[result.length - 1].signature
+				const latestSignature = signatures[signatures.length - 1]
 				await this.settingRepository.set(
 					SETTING_KEYS.LATEST_SIGNATURE_SCANNED,
 					latestSignature
@@ -318,7 +318,6 @@ export class IndexerService {
 
 				const logData = Array.from(this.ponz.parseLogs(result.meta.logMessages))
 				await this.handlePonzEvents(logData, signature)
-				console.log("handler", signature)
 			} catch (error) {
 				console.error(`Error processing signature ${signature}:`, error)
 			}
