@@ -21,12 +21,6 @@ import { PublicKey, SYSVAR_RENT_PUBKEY } from "@solana/web3.js"
 import { InjectConnection } from "../programs.module"
 import { PonzSc } from "./idl"
 
-const _MARKETCAP_SEEDS = Buffer.from("marketcap")
-
-const _MASTER_SEEDS = Buffer.from("king_meme_master")
-
-const _TICKET_SEEDS = Buffer.from("king_meme_ticket")
-
 export type BuyTokenType = {
 	amountSol: string
 	minTokenOut: string
@@ -40,7 +34,9 @@ export class Ponz extends SolanaProgram<PonzSc> {
 	public program: Program<PonzSc>
 	public globalConfiguration: web3.PublicKey
 	public rewardVault: web3.PublicKey
+	public tokenMintAuthorityWallet: web3.PublicKey
 	public feePool: web3.PublicKey
+	public heldAuthority: web3.PublicKey
 
 	constructor(
 		@InjectConnection() public connection: web3.Connection,
@@ -55,6 +51,10 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		this.eventParser = new EventParser(this.programId, new BorshCoder(this.idl))
 
 		this.rewardVault = new web3.PublicKey(env.REWARD_VAULT_ADDRESS)
+		this.tokenMintAuthorityWallet = new web3.PublicKey(
+			env.TOKEN_MINT_AUTHORITY_WALLET
+		)
+		this.heldAuthority = new web3.PublicKey(env.HELD_AUTHORITY)
 		this.globalConfiguration = web3.PublicKey.findProgramAddressSync(
 			[Buffer.from("global_config")],
 			this.programId
@@ -101,14 +101,12 @@ export class Ponz extends SolanaProgram<PonzSc> {
 				tokenPool: this.getTokenPool(mint),
 				psrvTokenPool: this.getRewardVaultTokenPool(mint),
 				ponzScRewardVault: this.rewardVault,
-				ponzTokenMintAuthorityWallet: new PublicKey(
-					"FMQGZ4KUHYt2uhvCDfm8NEoouvcWAzXfb8nT3sHafXEj"
-				),
+				ponzTokenMintAuthorityWallet: this.tokenMintAuthorityWallet,
 				payer: user,
+				withheldAuthority: this.heldAuthority,
 				tokenProgram: TOKEN_2022_PROGRAM_ID,
 				rent: SYSVAR_RENT_PUBKEY,
-				systemProgram: SYSTEM_PROGRAM_ID,
-				associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID
+				systemProgram: SYSTEM_PROGRAM_ID
 			})
 			.instruction()
 
@@ -163,14 +161,12 @@ export class Ponz extends SolanaProgram<PonzSc> {
 				tokenPool: this.getTokenPool(mint),
 				psrvTokenPool: this.getRewardVaultTokenPool(mint),
 				ponzScRewardVault: this.rewardVault,
-				ponzTokenMintAuthorityWallet: new PublicKey(
-					"FMQGZ4KUHYt2uhvCDfm8NEoouvcWAzXfb8nT3sHafXEj"
-				),
+				ponzTokenMintAuthorityWallet: this.tokenMintAuthorityWallet,
+				withheldAuthority: this.heldAuthority,
 				payer: user,
 				tokenProgram: TOKEN_2022_PROGRAM_ID,
 				rent: SYSVAR_RENT_PUBKEY,
-				systemProgram: SYSTEM_PROGRAM_ID,
-				associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID
+				systemProgram: SYSTEM_PROGRAM_ID
 			})
 			.instruction()
 

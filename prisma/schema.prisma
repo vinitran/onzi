@@ -144,14 +144,14 @@ model Token {
   description             String    @db.Text
   isHighlight             Boolean   @default(false) @map("is_highlight")
   network                 Network   @default(Solana)
-  bondingCurveTarget      BigInt    @default(150000000000) @map("bonding_curve_target") // amount to complete curve target (fetch from Contract)
+  bondingCurveTarget      BigInt    @default(99000000000) @map("bonding_curve_target") // amount to complete curve target (fetch from Contract)
   isCompletedBondingCurve Boolean   @default(false) @map("is_completed_bonding_curve")
   createdAtBondingCurve   DateTime? @map("created_at_bonding_curve")
   isCompletedKingOfHill   Boolean   @default(false) @map("is_completed_king_of_hill") // True => having marketCapacity is gte the highest marketCapacity of token (not ever bonding curve => isCompxletedBondingCurve = false) AND greater than 70% its bondingCurveTarget
   createdAtKingOfHill     DateTime? @map("created_at_king_of_hill")
   bump                    Boolean?  @default(false) // on chain
   creatorAddress          String    @map("creator_address") @db.VarChar
-  marketCapacity          BigInt    @default(80000000000) @map("market_capacity")
+  marketCapacity          BigInt    @default(30000000000) @map("market_capacity")
   volumn                  BigInt    @default(0)
   totalSupply             BigInt    @default(1000000000000000) @map("total_supply")
   hallOfFame              Boolean   @default(false) @map("hall_of_fame")

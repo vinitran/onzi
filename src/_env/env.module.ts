@@ -16,6 +16,8 @@ export type Env = {
 	PONZ_DEPLOYED_SIGNATURE: string
 	RABBITMQ_URL: string
 	RABBITMQ_QUEUE: string
+	TOKEN_MINT_AUTHORITY_WALLET: string
+	HELD_AUTHORITY: string
 }
 
 export const InjectEnv = () => Inject(ENV_TOKEN)
@@ -42,6 +44,10 @@ const provider: Provider = {
 		)
 		const RABBITMQ_URL = configService.get<string>("RABBITMQ_URL")
 		const RABBITMQ_QUEUE = configService.get<string>("RABBITMQ_QUEUE")
+		const TOKEN_MINT_AUTHORITY_WALLET = configService.get<string>(
+			"TOKEN_MINT_AUTHORITY_WALLET"
+		)
+		const HELD_AUTHORITY = configService.get<string>("HELD_AUTHORITY")
 
 		if (!DATABASE_URL) throw new Error("missing DATABASE_URL env")
 		if (!JWT_SECRET) throw new Error("missing JWT_SECRET env")
@@ -59,6 +65,9 @@ const provider: Provider = {
 			throw new Error("missing PONZ_DEPLOYED_SIGNATURE env")
 		if (!RABBITMQ_URL) throw new Error("missing RABBITMQ_URL env")
 		if (!RABBITMQ_QUEUE) throw new Error("missing RABBITMQ_QUEUE env")
+		if (!TOKEN_MINT_AUTHORITY_WALLET)
+			throw new Error("missing TOKEN_MINT_AUTHORITY_WALLET env")
+		if (!HELD_AUTHORITY) throw new Error("missing HELD_AUTHORITY env")
 
 		return {
 			JWT_SECRET,
@@ -72,7 +81,9 @@ const provider: Provider = {
 			COLLECT_FEE_PRIVATE_KEY,
 			PONZ_DEPLOYED_SIGNATURE,
 			RABBITMQ_URL,
-			RABBITMQ_QUEUE
+			RABBITMQ_QUEUE,
+			TOKEN_MINT_AUTHORITY_WALLET,
+			HELD_AUTHORITY
 		} satisfies Env
 	},
 	inject: [ConfigService]

@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/ponz_sc.json`.
  */
 export type PonzSc = {
-	address: "ponzri7KiVKYv1NdUgUVC2VDxW43SSeKSRJwBiEKLtA"
+	address: "eY81YmFUTDFjsWBQ998rL7JtefdUWnKZPvD7Xotponz"
 	metadata: {
 		name: "ponzSc"
 		version: "0.1.0"
@@ -16,44 +16,6 @@ export type PonzSc = {
 		{
 			name: "acceptUpdateOwnerWallet"
 			discriminator: [61, 36, 100, 184, 133, 247, 21, 145]
-			accounts: [
-				{
-					name: "globalConfiguration"
-					writable: true
-					pda: {
-						seeds: [
-							{
-								kind: "const"
-								value: [
-									103,
-									108,
-									111,
-									98,
-									97,
-									108,
-									95,
-									99,
-									111,
-									110,
-									102,
-									105,
-									103
-								]
-							}
-						]
-					}
-				},
-				{
-					name: "signer"
-					writable: true
-					signer: true
-				}
-			]
-			args: []
-		},
-		{
-			name: "acceptUpdatePonzRewardSystemWallet"
-			discriminator: [230, 134, 87, 153, 128, 158, 142, 15]
 			accounts: [
 				{
 					name: "globalConfiguration"
@@ -612,8 +574,11 @@ export type PonzSc = {
 					name: "ponzTokenMintAuthorityWallet"
 				},
 				{
+					name: "withheldAuthority"
+				},
+				{
 					name: "ponzScRewardVault"
-					address: "ponzck6ebvetjDHZW9rXQ6SNdYqBbbEes812LHGALuV"
+					address: "AJ55esKqR5YJuKrk3f3rtquC1KxYX959DMyAuzsponz"
 				},
 				{
 					name: "tokenProgram"
@@ -622,10 +587,6 @@ export type PonzSc = {
 				{
 					name: "systemProgram"
 					address: "11111111111111111111111111111111"
-				},
-				{
-					name: "associatedTokenProgram"
-					address: "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
 				},
 				{
 					name: "rent"
@@ -748,76 +709,6 @@ export type PonzSc = {
 			args: []
 		},
 		{
-			name: "initPremiumFeePool"
-			discriminator: [76, 96, 123, 69, 6, 114, 144, 17]
-			accounts: [
-				{
-					name: "globalConfiguration"
-					pda: {
-						seeds: [
-							{
-								kind: "const"
-								value: [
-									103,
-									108,
-									111,
-									98,
-									97,
-									108,
-									95,
-									99,
-									111,
-									110,
-									102,
-									105,
-									103
-								]
-							}
-						]
-					}
-				},
-				{
-					name: "premiumFeePool"
-					writable: true
-					pda: {
-						seeds: [
-							{
-								kind: "const"
-								value: [
-									112,
-									114,
-									101,
-									109,
-									105,
-									117,
-									109,
-									95,
-									102,
-									101,
-									101,
-									95,
-									112,
-									111,
-									111,
-									108
-								]
-							}
-						]
-					}
-				},
-				{
-					name: "payer"
-					writable: true
-					signer: true
-				},
-				{
-					name: "systemProgram"
-					address: "11111111111111111111111111111111"
-				}
-			]
-			args: []
-		},
-		{
 			name: "initUpdateOwnerWallet"
 			discriminator: [66, 215, 192, 92, 46, 196, 161, 115]
 			accounts: [
@@ -856,49 +747,6 @@ export type PonzSc = {
 			args: [
 				{
 					name: "newOwner"
-					type: "pubkey"
-				}
-			]
-		},
-		{
-			name: "initUpdatePonzRewardSystemWallet"
-			discriminator: [179, 67, 164, 24, 253, 82, 17, 206]
-			accounts: [
-				{
-					name: "globalConfiguration"
-					writable: true
-					pda: {
-						seeds: [
-							{
-								kind: "const"
-								value: [
-									103,
-									108,
-									111,
-									98,
-									97,
-									108,
-									95,
-									99,
-									111,
-									110,
-									102,
-									105,
-									103
-								]
-							}
-						]
-					}
-				},
-				{
-					name: "signer"
-					writable: true
-					signer: true
-				}
-			]
-			args: [
-				{
-					name: "newPonzRewardSystemWallet"
 					type: "pubkey"
 				}
 			]
@@ -1319,56 +1167,6 @@ export type PonzSc = {
 			]
 		},
 		{
-			name: "subscribePremium"
-			discriminator: [204, 229, 74, 94, 119, 139, 183, 13]
-			accounts: [
-				{
-					name: "payer"
-					writable: true
-					signer: true
-				},
-				{
-					name: "premiumFeePool"
-					writable: true
-					pda: {
-						seeds: [
-							{
-								kind: "const"
-								value: [
-									112,
-									114,
-									101,
-									109,
-									105,
-									117,
-									109,
-									95,
-									102,
-									101,
-									101,
-									95,
-									112,
-									111,
-									111,
-									108
-								]
-							}
-						]
-					}
-				},
-				{
-					name: "systemProgram"
-					address: "11111111111111111111111111111111"
-				}
-			]
-			args: [
-				{
-					name: "amount"
-					type: "u64"
-				}
-			]
-		},
-		{
 			name: "updateConfiguration"
 			discriminator: [156, 68, 173, 185, 72, 133, 242, 232]
 			accounts: [
@@ -1461,76 +1259,6 @@ export type PonzSc = {
 							{
 								kind: "const"
 								value: [102, 101, 101, 95, 112, 111, 111, 108]
-							}
-						]
-					}
-				},
-				{
-					name: "systemProgram"
-					address: "11111111111111111111111111111111"
-				}
-			]
-			args: []
-		},
-		{
-			name: "withdrawPremiumFee"
-			discriminator: [131, 21, 247, 96, 87, 15, 23, 179]
-			accounts: [
-				{
-					name: "globalConfiguration"
-					pda: {
-						seeds: [
-							{
-								kind: "const"
-								value: [
-									103,
-									108,
-									111,
-									98,
-									97,
-									108,
-									95,
-									99,
-									111,
-									110,
-									102,
-									105,
-									103
-								]
-							}
-						]
-					}
-				},
-				{
-					name: "payer"
-					writable: true
-					signer: true
-				},
-				{
-					name: "premiumFeePool"
-					writable: true
-					pda: {
-						seeds: [
-							{
-								kind: "const"
-								value: [
-									112,
-									114,
-									101,
-									109,
-									105,
-									117,
-									109,
-									95,
-									102,
-									101,
-									101,
-									95,
-									112,
-									111,
-									111,
-									108
-								]
 							}
 						]
 					}
@@ -1725,10 +1453,6 @@ export type PonzSc = {
 		{
 			name: "initializeConfiguration"
 			discriminator: [100, 69, 154, 202, 176, 44, 253, 185]
-		},
-		{
-			name: "premiumFeePool"
-			discriminator: [79, 96, 15, 231, 101, 8, 92, 125]
 		}
 	]
 	events: [
@@ -1761,16 +1485,8 @@ export type PonzSc = {
 			discriminator: [62, 47, 55, 10, 165, 3, 220, 42]
 		},
 		{
-			name: "subscribePremiumEvent"
-			discriminator: [12, 254, 132, 21, 62, 222, 215, 212]
-		},
-		{
 			name: "withdrawFeePoolEvent"
 			discriminator: [20, 253, 195, 73, 93, 232, 177, 171]
-		},
-		{
-			name: "withdrawPremiumFeeEvent"
-			discriminator: [230, 124, 52, 224, 148, 243, 108, 13]
 		}
 	]
 	errors: [
@@ -1791,8 +1507,8 @@ export type PonzSc = {
 		},
 		{
 			code: 6003
-			name: "insufficientPremiumFeeToWithdraw"
-			msg: "No premium fee to withdraw"
+			name: "bondingCurveCompleted"
+			msg: "Bonding Curve completed"
 		},
 		{
 			code: 6004
@@ -1811,48 +1527,68 @@ export type PonzSc = {
 		},
 		{
 			code: 6007
-			name: "notPonzRewardSystemWallet"
-			msg: "Not the Ponz Reward System Wallet"
-		},
-		{
-			code: 6008
 			name: "notPonzTokenMintAuthorityWallet"
 			msg: "Not the Ponz Token Mint Authority Wallet"
 		},
 		{
-			code: 6009
+			code: 6008
 			name: "notPendingOwnerWallet"
 			msg: "Not the Pending Owner Wallet"
 		},
 		{
-			code: 6010
+			code: 6009
 			name: "notPendingPonzSystemWallet"
 			msg: "Not the Pending Ponz System Wallet"
 		},
 		{
-			code: 6011
-			name: "notPendingPonzRewardSystemWallet"
-			msg: "Not the Pending Ponz Reward System Wallet"
-		},
-		{
-			code: 6012
+			code: 6010
 			name: "notPendingPonzTokenMintAuthorityWallet"
 			msg: "Not the Pending Ponz Mint Authority Wallet"
 		},
 		{
-			code: 6013
+			code: 6011
 			name: "emptyWallet"
 			msg: "Empty wallet"
 		},
 		{
-			code: 6014
+			code: 6012
+			name: "unAuthorized"
+			msg: "You are not the Ponz SYSTEM Wallet or Ponz OWNER Wallet"
+		},
+		{
+			code: 6013
 			name: "invalidSwapFee"
 			msg: "Invalid swap fee"
 		},
 		{
-			code: 6015
+			code: 6014
 			name: "tokenPoolLockNotExpired"
 			msg: "Token pool lock not expired"
+		},
+		{
+			code: 6015
+			name: "zeroLamportsInputAmount"
+			msg: "Zero lamports input amount"
+		},
+		{
+			code: 6016
+			name: "zeroTokenInputAmount"
+			msg: "Zero token input amount"
+		},
+		{
+			code: 6017
+			name: "mathOverflow"
+			msg: "Math Overflow"
+		},
+		{
+			code: 6018
+			name: "invalidLockTime"
+			msg: "Invalid Lock Time"
+		},
+		{
+			code: 6019
+			name: "invalidLockPercent"
+			msg: "Invalid Lock Percent"
 		}
 	]
 	types: [
@@ -1890,12 +1626,16 @@ export type PonzSc = {
 						type: "u64"
 					},
 					{
-						name: "kParam"
-						type: "u128"
+						name: "complete"
+						type: "bool"
 					},
 					{
 						name: "unlockTime"
 						type: "i64"
+					},
+					{
+						name: "prevPrice"
+						type: "f64"
 					}
 				]
 			}
@@ -2037,10 +1777,6 @@ export type PonzSc = {
 						type: "pubkey"
 					},
 					{
-						name: "ponzRewardSystemWallet"
-						type: "pubkey"
-					},
-					{
 						name: "ponzTokenMintAuthorityWallet"
 						type: "pubkey"
 					},
@@ -2052,12 +1788,6 @@ export type PonzSc = {
 					},
 					{
 						name: "pendingPonzSystemWallet"
-						type: {
-							option: "pubkey"
-						}
-					},
-					{
-						name: "pendingPonzRewardSystemWallet"
 						type: {
 							option: "pubkey"
 						}
@@ -2115,10 +1845,6 @@ export type PonzSc = {
 						type: "pubkey"
 					},
 					{
-						name: "ponzRewardSystemWallet"
-						type: "pubkey"
-					},
-					{
 						name: "ponzTokenMintAuthorityWallet"
 						type: "pubkey"
 					},
@@ -2141,18 +1867,6 @@ export type PonzSc = {
 					{
 						name: "createPoolFeeLamports"
 						type: "u64"
-					}
-				]
-			}
-		},
-		{
-			name: "premiumFeePool"
-			type: {
-				kind: "struct"
-				fields: [
-					{
-						name: "bump"
-						type: "u8"
 					}
 				]
 			}
@@ -2214,26 +1928,6 @@ export type PonzSc = {
 			}
 		},
 		{
-			name: "subscribePremiumEvent"
-			type: {
-				kind: "struct"
-				fields: [
-					{
-						name: "user"
-						type: "pubkey"
-					},
-					{
-						name: "amount"
-						type: "u64"
-					},
-					{
-						name: "subscriptionTime"
-						type: "i64"
-					}
-				]
-			}
-		},
-		{
 			name: "tokenMetadataArgs"
 			type: {
 				kind: "struct"
@@ -2279,10 +1973,6 @@ export type PonzSc = {
 						type: "u64"
 					},
 					{
-						name: "initialVirtualToken"
-						type: "u64"
-					},
-					{
 						name: "createPoolFeeLamports"
 						type: "u64"
 					}
@@ -2291,22 +1981,6 @@ export type PonzSc = {
 		},
 		{
 			name: "withdrawFeePoolEvent"
-			type: {
-				kind: "struct"
-				fields: [
-					{
-						name: "withdrawer"
-						type: "pubkey"
-					},
-					{
-						name: "lamports"
-						type: "u64"
-					}
-				]
-			}
-		},
-		{
-			name: "withdrawPremiumFeeEvent"
 			type: {
 				kind: "struct"
 				fields: [
