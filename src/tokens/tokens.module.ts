@@ -6,7 +6,7 @@ import { Ponz } from "@root/programs/ponz/program"
 import { ProgramsModule } from "@root/programs/programs.module"
 import { AuthWebSocketService } from "@root/socket/auth-ws.service"
 import { TokenSocketController } from "@root/tokens/indexer.socket.controller"
-import { ChartGateway, TokeGateway } from "./token.gateway"
+import { ChartGateway, TokeGateway, TransactionGateway } from "./token.gateway"
 import { TokensController } from "./tokens.controller"
 import { TokensService } from "./tokens.service"
 
@@ -15,6 +15,7 @@ import { TokensService } from "./tokens.service"
 	controllers: [TokensController, TokenSocketController],
 	providers: [
 		ChartGateway,
+		TransactionGateway,
 		TokensService,
 		S3Service,
 		TokeGateway,

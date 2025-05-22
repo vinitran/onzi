@@ -7,6 +7,7 @@ import { AppController } from "@root/app.controller"
 import { AppService } from "@root/app.service"
 import { AuthModule } from "@root/auth/auth.module"
 import { FileModule } from "@root/file/file.module"
+import { JobsModule } from "@root/jobs/job.module"
 import { UsersModule } from "@root/users/users.module"
 import { AdminModule } from "./admin/admin.module"
 import { CommentModule } from "./comments/comment.module"
@@ -35,7 +36,8 @@ import { TokensModule } from "./tokens/tokens.module"
 		RabbitMQModule,
 		ReelCommentsModule,
 		AdminModule,
-		TokenReportsModule
+		TokenReportsModule,
+		JobsModule
 	],
 	controllers: [AppController],
 	providers: [AppService]

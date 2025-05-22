@@ -17,12 +17,19 @@ import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
 import { getTokenMetaData } from "@root/_shared/helpers/get-token-metadata"
 import {
+	TokenTransaction,
+	TransactionType
+} from "@root/dtos/token-transaction.dto"
+import { Token } from "@root/dtos/token.dto"
+import { User } from "@root/dtos/user.dto"
+import {
 	BuyTokensEvent,
 	CreateTokenEvent,
 	SellTokensEvent
 } from "@root/programs/ponz/events"
 import { Ponz } from "@root/programs/ponz/program"
 import { InjectConnection } from "@root/programs/programs.module"
+import { plainToInstance } from "class-transformer"
 import { DateTime } from "luxon"
 
 @Injectable()
@@ -170,6 +177,25 @@ export class StorageIndexerService {
 			address: event.mint,
 			date: Number(event.timestamp)
 		})
+
+		const transaction = {
+			type: TransactionType.BUY,
+			date: DateTime.fromSeconds(Number(event.timestamp)).toJSDate(),
+			signature,
+			amount: event.amount,
+			lamports: event.lamports,
+			tokenAddress: event.mint,
+			signer: event.buyer,
+			price: event.previousPrice,
+			newPrice: event.newPrice,
+			token: plainToInstance(Token, token),
+			createdBy: plainToInstance(User, user)
+		}
+
+		await this.rabbitMQService.emit(
+			"new-transaction",
+			plainToInstance(TokenTransaction, transaction)
+		)
 	}
 
 	async handlerSellToken({
@@ -231,6 +257,30 @@ export class StorageIndexerService {
 			}
 			throw new InternalServerErrorException("Failed to handle sell token")
 		}
+
+		const transaction = {
+			type: TransactionType.SELL,
+			date: DateTime.fromSeconds(Number(event.timestamp)).toJSDate(),
+			signature,
+			amount: event.amount,
+			lamports: event.lamports,
+			tokenAddress: event.mint,
+			signer: event.seller,
+			price: event.previousPrice,
+			newPrice: event.newPrice,
+			token: plainToInstance(Token, token),
+			createdBy: plainToInstance(User, user)
+		}
+
+		await this.rabbitMQService.emit("new-candle", {
+			address: event.mint,
+			date: Number(event.timestamp)
+		})
+
+		await this.rabbitMQService.emit(
+			"new-transaction",
+			plainToInstance(TokenTransaction, transaction)
+		)
 	}
 
 	private async updateToken(

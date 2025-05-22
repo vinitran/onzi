@@ -10,7 +10,7 @@ export class ScannerJobs implements OnModuleInit {
 		this.indexer.connectToWebSocketSolana()
 	}
 
-	@Cron(CronExpression.EVERY_5_MINUTES)
+	@Cron(CronExpression.EVERY_MINUTE)
 	async run() {
 		await this.indexer.scannerSolana()
 	}

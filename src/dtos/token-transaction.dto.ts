@@ -37,6 +37,7 @@ export class TokenTransaction {
 
 	@ApiProperty({ description: "Transaction date" })
 	@Expose()
+	@Type(() => Date)
 	date: Date
 
 	@ApiProperty({ description: "Transaction signer" })

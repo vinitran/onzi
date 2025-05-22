@@ -12,7 +12,9 @@ import {
 	TOKEN_GATEWAY_EMIT_EVENTS,
 	TOKEN_GATEWAY_LISTEN_EVENTS
 } from "@root/_shared/constants/token"
+import { TX_GATEWAY_EMIT_EVENTS } from "@root/_shared/constants/transaction"
 import { ICreateTokenResponse } from "@root/_shared/types/token"
+import { TokenTransaction } from "@root/dtos/token-transaction.dto"
 import { CandleDto } from "@root/indexer/dtos/chart.dto"
 import { AuthWebSocketService } from "@root/socket/auth-ws.service"
 import { Server, Socket } from "socket.io"
@@ -86,5 +88,43 @@ export class ChartGateway
 	public emitNewCandle(candle: CandleDto) {
 		const room = `chart:${candle.tokenId}:${candle.step}`
 		this.serverInstance.to(room).emit("candle:update", candle)
+	}
+}
+
+@WebSocketGateway({
+	cors: { origin: "*" },
+	namespace: "/transaction"
+})
+export class TransactionGateway
+	implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
+	private readonly logger = new Logger("transaction")
+	private serverInstance: Server
+
+	afterInit(server: Server) {
+		this.serverInstance = server
+	}
+
+	async handleConnection(@ConnectedSocket() client: Socket) {
+		try {
+			client.on("subscribe", tokenId => {
+				const room = `transaction:${tokenId}`
+				client.join(room)
+				this.logger.log(`Client ${client.id} subscribed to ${room}`)
+			})
+		} catch {
+			client.disconnect()
+		}
+	}
+
+	handleDisconnect(client: Socket) {
+		this.logger.log(
+			`Client disconnected: ${client.nsp.name} - ID: ${client.id}`
+		)
+	}
+
+	handleTx(data: TokenTransaction) {
+		const room = `transaction:${data.token?.id}`
+		this.serverInstance.to(room).emit(TX_GATEWAY_EMIT_EVENTS.NEW_TX, data)
 	}
 }
