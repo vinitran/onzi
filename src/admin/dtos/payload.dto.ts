@@ -1,9 +1,10 @@
 import { ApiProperty } from "@nestjs/swagger"
+import { OptionalProp, Prop } from "@root/_shared/utils/decorators"
 import { Type } from "class-transformer"
 import {
 	IsArray,
 	IsEnum,
-	IsPositive,
+	IsNumber,
 	IsString,
 	IsUUID,
 	Length,
@@ -52,13 +53,15 @@ export class UpdateTokenItemDto {
 		example: "1"
 	})
 	@IsUUID()
+	@Prop()
 	id: string
 
 	@ApiProperty({
 		description: "Token order",
 		example: 1
 	})
-	@IsPositive()
+	@OptionalProp()
+	@IsNumber()
 	order: number
 
 	@ApiProperty({
@@ -85,7 +88,8 @@ export class UpdateTokensDto {
 				headline: "Token 2"
 			}
 		],
-		isArray: true
+		isArray: true,
+		type: UpdateTokenItemDto
 	})
 	@IsArray()
 	@ValidateNested({ each: true })

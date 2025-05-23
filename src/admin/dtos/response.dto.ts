@@ -31,3 +31,5 @@ export class UpdateTokensResponse extends PickType(Token, [
 	"imageUri",
 	"name"
 ]) {}
+
+export class AdminPopularTokenResponse extends UpdateTokensResponse {}

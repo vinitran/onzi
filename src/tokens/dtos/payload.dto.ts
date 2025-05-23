@@ -496,6 +496,14 @@ export class FindTokenParams extends PaginatedParams {
 	@IsOptional()
 	@EmptyStringToTrue()
 	lightning?: string
+
+	@ApiProperty({
+		description: "Filter by popular",
+		required: false
+	})
+	@IsOptional()
+	@EmptyStringToTrue()
+	popular?: string
 }
 
 export class FindTokenByTextParams extends PaginatedParams {

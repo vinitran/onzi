@@ -417,8 +417,7 @@ export class TokensService {
 
 	async getTrendingTopics() {
 		const listToken = await this.token.findLatest(100)
-		if (!listToken || listToken.length === 0)
-			throw new NotFoundException("not found tokens")
+		if (!listToken || listToken.length === 0) return { data: [] }
 
 		const wordCount: Record<string, number> = {}
 

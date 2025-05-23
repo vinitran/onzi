@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger"
+import { Role } from "@prisma/client"
 import { UserSocial } from "@root/dtos/user-social.dto"
 import { Expose } from "class-transformer"
 
@@ -59,6 +60,14 @@ export class User {
 	})
 	@Expose()
 	premium: string
+
+	@ApiProperty({
+		description: "User's role",
+		example: "user",
+		enum: Role
+	})
+	@Expose()
+	role: Role
 
 	@ApiProperty({
 		description: "User social",

@@ -107,4 +107,8 @@ export class AdminService {
 
 		return Promise.all(updateTokens)
 	}
+
+	async getListPopularTokens() {
+		return this.token.findPopular()
+	}
 }

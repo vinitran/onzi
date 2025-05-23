@@ -2,6 +2,7 @@ import {
 	Body,
 	ClassSerializerInterceptor,
 	Controller,
+	Get,
 	Param,
 	ParseUUIDPipe,
 	Post,
@@ -18,6 +19,7 @@ import {
 	UpdateTokensDto
 } from "./dtos/payload.dto"
 import {
+	AdminPopularTokenResponse,
 	ToggleBlockUserChatResponse,
 	ToggleBlockUserCreateReelResponse,
 	UpdateTokensResponse
@@ -49,6 +51,25 @@ export class AdminController {
 	})
 	updateTokens(@Body() body: UpdateTokensDto) {
 		return this.adminService.updateTokens(body)
+	}
+
+	@Get("tokens")
+	@ApiOperation({
+		summary: "Get tokens for popular with order & headline"
+	})
+	@ApiResponse({
+		status: 200,
+		type: AdminPopularTokenResponse,
+		isArray: true,
+		description: "Update tokens"
+	})
+	@SerializeOptions({
+		type: AdminPopularTokenResponse,
+		enableImplicitConversion: true,
+		excludeExtraneousValues: true
+	})
+	getPopularTokens() {
+		return this.adminService.getListPopularTokens()
 	}
 
 	@Post(":userId/toggle-block-user-chat")

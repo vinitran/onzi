@@ -49,6 +49,7 @@ export class UsersController {
 	})
 	async me(@User() { id }: Claims) {
 		const user = await this.userService.getMe(id)
+
 		return plainToInstance(UserResponse, user, {
 			excludeExtraneousValues: true
 		})

@@ -36,7 +36,7 @@ export class TokenReportsService {
 			const diffMinutes = now.diff(reportDate, "minutes").minutes
 			if (diffMinutes < 60) {
 				throw new ForbiddenException(
-					"You can only report a token once every hour"
+					"You just can report a token once every hour"
 				)
 			}
 		}

@@ -319,6 +319,13 @@ export class TokenRepository {
 			}),
 			...(query.lightning && {
 				isCompletedBondingCurve: true
+			}),
+
+			...(query.popular && {
+				highlightOrder: {
+					not: null,
+					gt: 0
+				}
 			})
 		}
 
@@ -372,7 +379,8 @@ export class TokenRepository {
 				? [{ token24hChange: query.priceChange24h }]
 				: []),
 			...(query.priceChange7d ? [{ token7dChange: query.priceChange7d }] : []),
-			...(query.latest ? [{ createdAt: query.latest }] : [])
+			...(query.latest ? [{ createdAt: query.latest }] : []),
+			...(query.popular ? [{ highlightOrder: Prisma.SortOrder.desc }] : [])
 		]
 
 		const [tokens, total] = await Promise.all([
@@ -529,6 +537,20 @@ export class TokenRepository {
 			maxPage: Math.ceil(total / take),
 			data: coinCreated
 		}
+	}
+
+	findPopular() {
+		return this.prisma.token.findMany({
+			where: {
+				highlightOrder: {
+					not: null,
+					gt: 0
+				}
+			},
+			orderBy: {
+				highlightOrder: "asc"
+			}
+		})
 	}
 
 	async updateKingOfCoin(id: string) {
