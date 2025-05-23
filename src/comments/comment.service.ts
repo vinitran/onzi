@@ -371,7 +371,11 @@ export class CommentService {
 
 		const token = await this.token.findById(tokenId)
 		if (!token) throw new NotFoundException("Not found token")
-		if (token.creatorAddress !== creatorAddress)
+		const user = await this.user.findById(userId)
+
+		if (!user) throw new NotFoundException("Not found user")
+
+		if (token.creatorAddress !== creatorAddress && user.role !== "Admin")
 			throw new ForbiddenException(
 				"Only creator token just allow to (un)block user"
 			)

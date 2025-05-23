@@ -380,7 +380,7 @@ export class TokenRepository {
 				: []),
 			...(query.priceChange7d ? [{ token7dChange: query.priceChange7d }] : []),
 			...(query.latest ? [{ createdAt: query.latest }] : []),
-			...(query.popular ? [{ highlightOrder: Prisma.SortOrder.desc }] : [])
+			...(query.popular ? [{ highlightOrder: Prisma.SortOrder.asc }] : [])
 		]
 
 		const [tokens, total] = await Promise.all([
