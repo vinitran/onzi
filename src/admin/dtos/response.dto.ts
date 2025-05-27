@@ -1,6 +1,7 @@
-import { ApiProperty, PickType } from "@nestjs/swagger"
+import { ApiProperty, OmitType, PickType } from "@nestjs/swagger"
+import { Paginate } from "@root/dtos/common.dto"
 import { Token } from "@root/dtos/token.dto"
-import { Expose } from "class-transformer"
+import { Expose, Type } from "class-transformer"
 
 export class ToggleBlockUserChatResponse {
 	@ApiProperty({
@@ -33,3 +34,20 @@ export class UpdateTokensResponse extends PickType(Token, [
 ]) {}
 
 export class AdminPopularTokenResponse extends UpdateTokensResponse {}
+
+export class ReportedToken extends OmitType(Token, [
+	"tokenFavorite",
+	"tokenOwners",
+	"tokenCharts"
+]) {
+	@Expose()
+	totalReport: number
+}
+export class PaginateReportedTokensResponse extends Paginate<ReportedToken> {
+	@Type(() => ReportedToken)
+	@Expose()
+	@ApiProperty({
+		type: [ReportedToken]
+	})
+	data: ReportedToken[]
+}

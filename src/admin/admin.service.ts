@@ -5,6 +5,7 @@ import { UserRepository } from "@root/_database/repositories/user.repository"
 import { DateTime } from "luxon"
 import {
 	BlockUserCreateReelType,
+	PaginateReportedTokensDto,
 	ToggleBlockUserChatDto,
 	ToggleBlockUserCreateReelDto,
 	UpdateTokensDto
@@ -110,5 +111,22 @@ export class AdminService {
 
 	async getListPopularTokens() {
 		return this.token.findPopular()
+	}
+
+	async paginateReportedTokens(payload: PaginateReportedTokensDto) {
+		const { page, take } = payload
+
+		return this.token.paginateReportedTokens({
+			page,
+			take
+		})
+	}
+
+	async softDeleteToken(tokenId: string) {
+		const token = await this.token.findById(tokenId)
+		if (!token) throw new NotFoundException("Not found token")
+
+		// Soft delete token
+		await this.token.softDelete(tokenId)
 	}
 }

@@ -10,7 +10,10 @@ import {
 	ICreateTokenInCache,
 	ICreateTokenOffchain
 } from "@root/_shared/types/token"
-import { UpdateTokenItemDto } from "@root/admin/dtos/payload.dto"
+import {
+	PaginateReportedTokensDto,
+	UpdateTokenItemDto
+} from "@root/admin/dtos/payload.dto"
 import {
 	FindTokenParams,
 	SickoModeParams,
@@ -47,6 +50,7 @@ export class TokenRepository {
 
 	findLatest(take: number) {
 		return this.prisma.token.findMany({
+			where: { isDeleted: false },
 			orderBy: {
 				createdAt: Prisma.SortOrder.desc
 			},
@@ -64,6 +68,8 @@ export class TokenRepository {
 		let where: Prisma.TokenWhereInput = {}
 		where = {
 			AND: [
+				{ isDeleted: false },
+				{ bump: true },
 				...(query.volumnFrom ? [{ volumn: { gte: query.volumnFrom } }] : []),
 				...(query.volumnTo ? [{ volumn: { lte: query.volumnFrom } }] : []),
 				...(query.marketCapFrom
@@ -161,7 +167,6 @@ export class TokenRepository {
 				skip,
 				take: query.take,
 				where: {
-					bump: true,
 					...where
 				},
 				orderBy,
@@ -326,7 +331,8 @@ export class TokenRepository {
 					not: null,
 					gt: 0
 				}
-			})
+			}),
+			isDeleted: false
 		}
 
 		const include: Prisma.TokenInclude = {}
@@ -427,6 +433,7 @@ export class TokenRepository {
 
 		const [tokens, total] = await Promise.all([
 			this.prisma.token.findMany({
+				where: { isDeleted: false },
 				skip,
 				take,
 				orderBy: {
@@ -442,7 +449,7 @@ export class TokenRepository {
 					}
 				}
 			}),
-			this.prisma.token.count()
+			this.prisma.token.count({ where: { isDeleted: false } })
 		])
 
 		return {
@@ -455,7 +462,8 @@ export class TokenRepository {
 	async findOneByAddress(address: string) {
 		return this.prisma.token.findUnique({
 			where: {
-				address
+				address,
+				isDeleted: false
 			},
 			select: {
 				id: true,
@@ -469,7 +477,8 @@ export class TokenRepository {
 	findById(tokenId: string, include?: Prisma.TokenInclude<DefaultArgs>) {
 		return this.prisma.token.findFirst({
 			where: {
-				id: tokenId
+				id: tokenId,
+				isDeleted: false
 			},
 			include: { ...include, creator: true }
 		})
@@ -478,7 +487,8 @@ export class TokenRepository {
 	findByIds(ids: string[]) {
 		return this.prisma.token.findMany({
 			where: {
-				id: { in: ids }
+				id: { in: ids },
+				isDeleted: false
 			}
 		})
 	}
@@ -486,7 +496,8 @@ export class TokenRepository {
 	findWithPrivateKey(id: string) {
 		return this.prisma.token.findFirst({
 			where: {
-				id
+				id,
+				isDeleted: false
 			},
 			include: {
 				tokenKey: {
@@ -505,7 +516,8 @@ export class TokenRepository {
 		const where: Prisma.TokenWhereInput = {
 			creator: {
 				id: userId
-			}
+			},
+			isDeleted: false
 		}
 
 		const [total, coinCreated] = await Promise.all([
@@ -545,7 +557,8 @@ export class TokenRepository {
 				highlightOrder: {
 					not: null,
 					gt: 0
-				}
+				},
+				isDeleted: false
 			},
 			orderBy: {
 				highlightOrder: "asc"
@@ -597,7 +610,8 @@ export class TokenRepository {
 			() => {
 				return this.prisma.token.findFirst({
 					where: {
-						isCompletedBondingCurve: false
+						isCompletedBondingCurve: false,
+						isDeleted: false
 					},
 					orderBy: {
 						marketCapacity: Prisma.SortOrder.desc
@@ -728,7 +742,8 @@ export class TokenRepository {
 		return this.prisma.token.findFirst({
 			where: {
 				isCompletedBondingCurve: false,
-				isCompletedKingOfHill: true
+				isCompletedKingOfHill: true,
+				isDeleted: false
 			},
 			orderBy: { marketCapacity: Prisma.SortOrder.desc }
 		})
@@ -737,7 +752,7 @@ export class TokenRepository {
 	//   Find token by address
 	findByAddress(address: string, include?: Prisma.TokenInclude) {
 		return this.prisma.token.findUnique({
-			where: { address },
+			where: { address, isDeleted: false },
 			include: {
 				...include,
 				creator: true
@@ -748,7 +763,7 @@ export class TokenRepository {
 	//   Get 20 silimar market cap tokens
 	findSimilar(marketCapacity: bigint) {
 		return this.prisma.token.findMany({
-			where: { marketCapacity: { lte: marketCapacity } },
+			where: { marketCapacity: { lte: marketCapacity }, isDeleted: false },
 			orderBy: { createdAt: Prisma.SortOrder.desc },
 			take: 20
 		})
@@ -757,7 +772,7 @@ export class TokenRepository {
 	// Get latest on chain token
 	getLatestOnChain() {
 		return this.prisma.token.findFirst({
-			where: { bump: true, bumpAt: { not: null } },
+			where: { bump: true, bumpAt: { not: null }, isDeleted: false },
 			orderBy: { bumpAt: Prisma.SortOrder.desc },
 			select: {
 				id: true,
@@ -776,6 +791,7 @@ export class TokenRepository {
 		const { page, searchText, take = 20 } = payload
 		const skip = (page - 1) * take
 		const whereCondition: Prisma.TokenWhereInput = {
+			isDeleted: false,
 			OR: [
 				{
 					name: {
@@ -864,6 +880,64 @@ export class TokenRepository {
 				name: true,
 				address: true
 			}
+		})
+	}
+
+	async paginateReportedTokens(payload: PaginateReportedTokensDto) {
+		const { page, take } = payload
+		const skip = (page - 1) * take
+
+		const [tokens, total] = await Promise.all([
+			this.prisma.token.findMany({
+				where: {
+					isDeleted: false,
+					tokenReports: { some: {} }
+				},
+				skip,
+				take,
+				orderBy: {
+					//   tokenReports: {
+					//     _count: Prisma.SortOrder.desc,
+					//   },
+					createdAt: "desc"
+				},
+				include: {
+					creator: {
+						select: {
+							id: true,
+							address: true,
+							username: true,
+							avatarUrl: true
+						}
+					},
+					_count: {
+						select: { tokenReports: true }
+					},
+					tokenReports: true
+				}
+			}),
+			this.prisma.token.count({
+				where: {
+					isDeleted: false,
+					tokenReports: { some: {} }
+				}
+			})
+		])
+
+		return {
+			data: tokens.map(token => ({
+				...token,
+				totalReport: token._count.tokenReports
+			})),
+			total,
+			maxPage: Math.ceil(total / take)
+		}
+	}
+
+	async softDelete(id: string) {
+		return this.prisma.token.update({
+			where: { id },
+			data: { isDeleted: true }
 		})
 	}
 }

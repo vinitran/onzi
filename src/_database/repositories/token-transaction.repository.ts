@@ -91,7 +91,7 @@ export class TokenTransactionRepository {
 					}
 				},
 				createdBy: {
-					select: { username: true, address: true, avatarUrl: true }
+					select: { username: true, address: true, avatarUrl: true, id: true }
 				}
 			})
 		}

@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger"
 import { OptionalProp, Prop } from "@root/_shared/utils/decorators"
+import { PaginatedParams } from "@root/dtos/common.dto"
 import { Type } from "class-transformer"
 import {
 	IsArray,
@@ -96,3 +97,5 @@ export class UpdateTokensDto {
 	@Type(() => UpdateTokenItemDto)
 	tokens: UpdateTokenItemDto[]
 }
+
+export class PaginateReportedTokensDto extends PaginatedParams {}

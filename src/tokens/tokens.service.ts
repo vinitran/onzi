@@ -347,7 +347,8 @@ export class TokensService {
 						select: {
 							avatarUrl: true,
 							address: true,
-							username: true
+							username: true,
+							id: true
 						}
 					}
 				}

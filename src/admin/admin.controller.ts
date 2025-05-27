@@ -2,11 +2,14 @@ import {
 	Body,
 	ClassSerializerInterceptor,
 	Controller,
+	Delete,
 	Get,
+	HttpCode,
 	Param,
 	ParseUUIDPipe,
 	Post,
 	Put,
+	Query,
 	SerializeOptions,
 	UseInterceptors
 } from "@nestjs/common"
@@ -14,12 +17,14 @@ import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
 import { Admin } from "@root/_shared/utils/decorators"
 import { AdminService } from "./admin.service"
 import {
+	PaginateReportedTokensDto,
 	ToggleBlockUserChatDto,
 	ToggleBlockUserCreateReelDto,
 	UpdateTokensDto
 } from "./dtos/payload.dto"
 import {
 	AdminPopularTokenResponse,
+	PaginateReportedTokensResponse,
 	ToggleBlockUserChatResponse,
 	ToggleBlockUserCreateReelResponse,
 	UpdateTokensResponse
@@ -61,7 +66,7 @@ export class AdminController {
 		status: 200,
 		type: AdminPopularTokenResponse,
 		isArray: true,
-		description: "Update tokens"
+		description: "Get list popular tokens with order & headline"
 	})
 	@SerializeOptions({
 		type: AdminPopularTokenResponse,
@@ -70,6 +75,31 @@ export class AdminController {
 	})
 	getPopularTokens() {
 		return this.adminService.getListPopularTokens()
+	}
+
+	@Get("tokens/reported")
+	@ApiOperation({
+		summary: "Paginate reported tokens"
+	})
+	@ApiResponse({
+		status: 200,
+		type: PaginateReportedTokensResponse,
+		description: "Paginate reported tokens"
+	})
+	@SerializeOptions({
+		type: PaginateReportedTokensResponse,
+		enableImplicitConversion: true,
+		excludeExtraneousValues: true
+	})
+	paginateReportedTokens(@Query() query: PaginateReportedTokensDto) {
+		return this.adminService.paginateReportedTokens(query)
+	}
+
+	@Delete("tokens/reported/:tokenId")
+	@ApiOperation({ summary: "Soft delete reported token" })
+	@HttpCode(204)
+	deleteReportedToken(@Param("tokenId", ParseUUIDPipe) tokenId: string) {
+		return this.adminService.softDeleteToken(tokenId)
 	}
 
 	@Post(":userId/toggle-block-user-chat")
