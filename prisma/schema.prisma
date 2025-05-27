@@ -82,13 +82,13 @@ model UserConnection {
 
 model Comment {
   id            String        @id @default(uuid()) @db.Uuid
-  content       String        @db.Text
+  content       String?       @db.Text
   attachmentUrl String?       @map("attachment_url") @db.VarChar
   authorId      String        @map("author_id") @db.Uuid
   tokenId       String        @map("token_id") @db.Uuid
   parentId      String?       @map("parent_id") @db.Uuid
   stickerId     String?       @map("sticker_id") @db.Uuid
-  sticker       Sticker?      @relation(fields: [stickerId], references: [id], onDelete: SetNull)
+  sticker       Sticker?      @relation(fields: [stickerId], references: [id], onDelete: Cascade)
   replies       Comment[]     @relation("CommentReplies")
   likes         CommentLike[]
   parent        Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
