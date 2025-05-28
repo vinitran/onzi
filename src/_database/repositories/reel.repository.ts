@@ -65,6 +65,27 @@ export class ReelRepository {
 		})
 	}
 
+	async paginate({ page, take }: PaginateListReelParams) {
+		const skip = take * (page - 1)
+
+		const [data, total] = await Promise.all([
+			this.prisma.reel.findMany({
+				orderBy: {
+					createdAt: "desc"
+				},
+				skip,
+				take
+			}),
+			this.prisma.reel.count()
+		])
+
+		return {
+			data,
+			total,
+			maxPage: Math.ceil(total / take)
+		}
+	}
+
 	paginateByTokenId(
 		payload: PaginateListReelParams & {
 			tokenId: string
@@ -78,12 +99,17 @@ export class ReelRepository {
 			where: {
 				tokenId
 			},
-			orderBy: {
-				pinnedAt: {
-					sort: "desc",
-					nulls: "last"
+			orderBy: [
+				{
+					pinnedAt: {
+						sort: "desc",
+						nulls: "last"
+					}
+				},
+				{
+					createdAt: "desc"
 				}
-			},
+			],
 			skip,
 			take
 		})

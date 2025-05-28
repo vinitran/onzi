@@ -83,7 +83,7 @@ export class ReelsController {
 	@ApiOperation({ summary: "Paginate list reel in a token" })
 	@ApiResponse({
 		status: 200,
-		description: "Paginate reels successfully",
+		description: "Paginate reels in a token successfully",
 		type: PaginateReelResponse
 	})
 	@SerializeOptions({
@@ -91,11 +91,11 @@ export class ReelsController {
 		enableImplicitConversion: true,
 		excludeExtraneousValues: true
 	})
-	paginate(
+	paginateByToken(
 		@Param("tokenId", ParseUUIDPipe) tokenId: string,
 		@Query() query: PaginateListReelParams
 	) {
-		return this.reelsService.paginate({ ...query, tokenId })
+		return this.reelsService.paginateByToken({ ...query, tokenId })
 	}
 
 	@Post(":id/express")

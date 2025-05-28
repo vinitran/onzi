@@ -22,7 +22,10 @@ import { Paginate } from "@root/dtos/common.dto"
 import { S3Service } from "@root/file/file.service"
 import { DateTime } from "luxon"
 import { v4 as uuidv4 } from "uuid"
-import { PaginateReportedReelDto } from "./dtos/payload.dto"
+import {
+	PaginateListReelParams,
+	PaginateReportedReelDto
+} from "./dtos/payload.dto"
 
 @Injectable()
 export class ReelsService {
@@ -158,9 +161,17 @@ export class ReelsService {
 		return this.reel.increaseView(reelId)
 	}
 
-	//   Paginate reel
-	async paginate(payload: PaginateListReelPayload): Promise<Paginate<Reel>> {
+	//   Paginate all
+	async paginate(payload: PaginateListReelParams) {
+		return this.reel.paginate(payload)
+	}
+
+	//   Paginate reel in a token
+	async paginateByToken(
+		payload: PaginateListReelPayload
+	): Promise<Paginate<Reel>> {
 		const { tokenId, take } = payload
+
 		const [data, total] = await Promise.all([
 			this.reel.paginateByTokenId(payload),
 			this.reel.getTotalByTokenId(tokenId)
