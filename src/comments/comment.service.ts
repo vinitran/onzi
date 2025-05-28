@@ -57,7 +57,7 @@ export class CommentService {
 		}
 
 		const user = await this.user.findById(userId)
-		if (!user) throw new ForbiddenException("User is blocked global chat")
+		if (!user) throw new ForbiddenException("Not found user")
 
 		// Validate status BLOCK global of user
 		const isBlockedGlobal = await this.blockUser.isBlockedPermanentUserBy(
@@ -65,7 +65,18 @@ export class CommentService {
 			"CreateTokenComment"
 		)
 		if (isBlockedGlobal) {
-			throw new ForbiddenException("User is blocked global chat")
+			throw new ForbiddenException("User is globally blocked from chat")
+		}
+
+		const blockedCommentByAdmin = await this.blockUser.findByType(
+			userId,
+			"CreateTokenComment"
+		)
+
+		if (blockedCommentByAdmin?.endAt) {
+			throw new ForbiddenException(
+				`User is blocked until ${DateTime.fromJSDate(blockedCommentByAdmin.endAt).toFormat("yyyy LLL dd HH:mm")}`
+			)
 		}
 
 		// Validate block in specific token
@@ -371,8 +382,8 @@ export class CommentService {
 
 		const token = await this.token.findById(tokenId)
 		if (!token) throw new NotFoundException("Not found token")
-		const user = await this.user.findById(userId)
 
+		const user = await this.user.findById(userId)
 		if (!user) throw new NotFoundException("Not found user")
 
 		if (token.creatorAddress !== creatorAddress && user.role !== "Admin")
@@ -384,6 +395,15 @@ export class CommentService {
 
 		if (blockedUser) {
 			await this.blockComment.delete({ tokenId, userId })
+
+			//   Case: Admin blocked user globaly before
+			const existBlock = await this.blockUser.findByType(
+				userId,
+				"CreateTokenComment"
+			)
+			if (existBlock) {
+				await this.blockUser.deleteById(existBlock.id)
+			}
 		} else {
 			await this.blockComment.create({
 				token: { connect: { id: tokenId } },

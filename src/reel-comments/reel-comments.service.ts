@@ -45,21 +45,23 @@ export class ReelCommentsService {
 		if (!reel) throw new NotFoundException("Not found reel")
 
 		const user = await this.user.findById(userId)
-		if (!user) throw new ForbiddenException("User is blocked global chat")
+		if (!user) throw new ForbiddenException("Not found user")
 
 		// Check if user is blocked global chat
 		const blockUser = await this.blockUser.isBlockedPermanentUserBy(
 			userId,
 			"CreateReelComment"
 		)
-		if (blockUser) throw new ForbiddenException("User is blocked global chat")
+		if (blockUser)
+			throw new ForbiddenException("User is globally blocked from chat")
 
 		// Check if user is blocked in reel comment
 		const blockReelComment = await this.blockReelComment.findOne({
 			reelId,
 			userId
 		})
-		if (blockReelComment) throw new ForbiddenException("User is blocked chat")
+		if (blockReelComment)
+			throw new ForbiddenException("User is blocked from chat")
 
 		const commentData: Prisma.ReelCommentCreateInput = {
 			content,

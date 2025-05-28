@@ -104,7 +104,8 @@ export class AdminController {
 
 	@Post(":userId/toggle-block-user-chat")
 	@ApiOperation({
-		summary: "Toggle block user create chat in all platform(token, reel)"
+		summary:
+			"Toggle block user create chat in platforms(token, reel). And options Permanent or Temporary (3 days)"
 	})
 	@ApiResponse({
 		status: 200,
@@ -120,6 +121,7 @@ export class AdminController {
 	) {
 		return this.adminService.toggleBlockUserChat({
 			listType: body.listType,
+			option: body.option,
 			userId
 		})
 	}

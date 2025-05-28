@@ -17,7 +17,7 @@ export enum BlockUserChatType {
 	CreateTokenComment = "CreateTokenComment"
 }
 
-export enum BlockUserCreateReelType {
+export enum BlockUserType {
 	Permanent = "Permanent",
 	Temporary = "Temporary"
 }
@@ -33,19 +33,30 @@ export class ToggleBlockUserChatDto {
 		]
 	})
 	@IsArray()
+	@Prop()
 	@IsEnum(BlockUserChatType, { each: true })
 	listType: BlockUserChatType[]
+
+	@ApiProperty({
+		description:
+			"Block user create reel with options Permanent or Temporary. Temporary is default 3 days",
+		example: BlockUserType.Permanent,
+		enum: BlockUserType
+	})
+	@OptionalProp()
+	@IsEnum(BlockUserType)
+	option?: BlockUserType
 }
 
 export class ToggleBlockUserCreateReelDto {
 	@ApiProperty({
 		description:
 			"Block user create reel with options Permanent or Temporary. Temporary is default 3 days",
-		example: BlockUserCreateReelType.Permanent,
-		enum: BlockUserCreateReelType
+		example: BlockUserType.Permanent,
+		enum: BlockUserType
 	})
-	@IsEnum(BlockUserCreateReelType)
-	type: BlockUserCreateReelType
+	@IsEnum(BlockUserType)
+	type: BlockUserType
 }
 
 export class UpdateTokenItemDto {

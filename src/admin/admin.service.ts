@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException } from "@nestjs/common"
+import { BlockCommentRepository } from "@root/_database/repositories/block-comment.repository"
 import { BlockUserRepository } from "@root/_database/repositories/block-user.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { DateTime } from "luxon"
 import {
-	BlockUserCreateReelType,
+	BlockUserType,
 	PaginateReportedTokensDto,
 	ToggleBlockUserChatDto,
 	ToggleBlockUserCreateReelDto,
@@ -24,6 +25,7 @@ export class AdminService {
 	constructor(
 		private user: UserRepository,
 		private blockUser: BlockUserRepository,
+		private blockComment: BlockCommentRepository,
 		private token: TokenRepository
 	) {}
 
@@ -31,7 +33,7 @@ export class AdminService {
 	// - Block user chat in token comment
 	// - Block user chat in reel comment
 	async toggleBlockUserChat(payload: ToggleBlockUserChatPayload) {
-		const { userId, listType } = payload
+		const { userId, listType, option } = payload
 		const user = await this.user.findById(userId)
 		if (!user) throw new NotFoundException("Not found user")
 
@@ -43,12 +45,35 @@ export class AdminService {
 					return `Unblock user ${type} successfully`
 				}
 
-				await this.blockUser.create({
-					type,
-					user: { connect: { id: userId } },
-					isPermanent: true
-				})
-				return `Block user ${type} successfully`
+				if (option === BlockUserType.Permanent) {
+					await this.blockUser.create({
+						type: type,
+						user: { connect: { id: userId } },
+						isPermanent: true
+					})
+
+					return `Block user ${option} successfully`
+				}
+
+				if (option === BlockUserType.Temporary) {
+					const now = DateTime.now()
+					const BLOCK_DAYS = 3
+					const endAt = now.plus({ days: BLOCK_DAYS }).toJSDate()
+					await this.blockUser.create({
+						type: type,
+						user: { connect: { id: userId } },
+						isPermanent: false,
+						endAt
+					})
+					return `Block user ${option} in ${BLOCK_DAYS} days successfully`
+				}
+
+				// await this.blockUser.create({
+				//   type,
+				//   user: { connect: { id: userId } },
+				//   isPermanent: true,
+				// });
+				// return `Block user ${type} successfully`;
 			})
 		)
 
@@ -69,7 +94,7 @@ export class AdminService {
 			return "Unlock user create reel successfully"
 		}
 
-		if (type === BlockUserCreateReelType.Permanent) {
+		if (type === BlockUserType.Permanent) {
 			await this.blockUser.create({
 				type: "CreateTokenReel",
 				user: { connect: { id: userId } },
@@ -78,7 +103,7 @@ export class AdminService {
 			return "Block user create reel permanent successfully"
 		}
 
-		if (type === BlockUserCreateReelType.Temporary) {
+		if (type === BlockUserType.Temporary) {
 			const now = DateTime.now()
 			const BLOCK_DAYS = 3
 			const endAt = now.plus({ days: BLOCK_DAYS }).toJSDate()
