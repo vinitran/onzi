@@ -49,41 +49,55 @@ export class StorageIndexerService {
 		private readonly rabbitMQService: RabbitMQService
 	) {}
 
-	async handlerCreateToken({
-		event,
-		signature
-	}: { event: CreateTokenEvent; signature: string }) {
-		const tokenBySig = await this.tokenTxRepository.findBySignature(signature)
-
-		if (tokenBySig) {
-			return
-		}
-
-		const token = await this.tokenRepository.findOneByAddress(event.mint)
+	async handlerCreateToken(data: CreateTokenEvent) {
+		const [token, tokenTx] = await Promise.all([
+			this.tokenRepository.findOneByAddress(data.mint),
+			this.tokenTxRepository.findBySignature(data.signature, data.type)
+		])
 		if (!token) {
 			return
 		}
 
-		const date = await this.getTimeFromSignature(signature)
+		if (tokenTx) {
+			return
+		}
+
+		const date = await this.getTimeFromSignature(data.signature)
+		console.log("start create")
 
 		try {
 			await this.prisma.$transaction(
 				async tx => {
+					const txCreateInput: Prisma.TokenTransactionCreateInput = {
+						signature: data.signature,
+						network: "Solana",
+						type: "Create",
+						date: date.toJSDate(),
+						token: {
+							connect: {
+								address: data.mint
+							}
+						},
+						price: 0,
+						newPrice: 0
+					}
+					await this.tokenTxRepository.create(txCreateInput, tx)
+
 					await this.tokenRepository.updateTokenOnchain(
-						event.mint,
+						data.mint,
 						{
-							metadata: await getTokenMetaData(event.uri),
+							metadata: await getTokenMetaData(data.uri),
 							bumpAt: date.toJSDate(),
-							name: event.name,
-							uri: event.uri,
-							ticker: event.symbol,
+							name: data.name,
+							uri: data.uri,
+							ticker: data.symbol,
 							network: Network.Solana,
 							bump: true
 						},
 						tx
 					)
 
-					await this.updateToken(event.mint, undefined, tx)
+					await this.updateToken(data.mint, undefined, tx)
 				},
 				{
 					maxWait: 5000, // 5s
@@ -92,11 +106,7 @@ export class StorageIndexerService {
 				}
 			)
 		} catch (e) {
-			// @ts-ignore
-			if (e.code === "P2002" && e.meta?.target?.includes("signature")) {
-				Logger.warn(`Duplicate signature: ${signature}, skipping.`)
-				return
-			}
+			Logger.log(e)
 			throw new InternalServerErrorException("Failed to handle create token")
 		}
 	}
@@ -113,50 +123,53 @@ export class StorageIndexerService {
 		])
 	}
 
-	async handlerBuyToken({
-		event,
-		signature
-	}: { event: BuyTokensEvent; signature: string }) {
-		event.amount = BigInt(`0x${event.amount}`).toString()
-		event.timestamp = BigInt(`0x${event.timestamp}`).toString()
-		event.lamports = BigInt(`0x${event.lamports}`).toString()
+	async handlerBuyToken(data: BuyTokensEvent) {
+		data.amount = BigInt(`0x${data.amount}`).toString()
+		data.timestamp = BigInt(`0x${data.timestamp}`).toString()
+		data.lamports = BigInt(`0x${data.lamports}`).toString()
 
-		const [tokenBySig, token, user] = await Promise.all([
-			this.tokenTxRepository.findBySignature(signature),
-			this.tokenRepository.findOneByAddress(event.mint),
+		const [token, tokenTx, user] = await Promise.all([
+			this.tokenRepository.findOneByAddress(data.mint),
+			this.tokenTxRepository.findBySignature(data.signature, data.type),
 			this.userRepository.createIfNotExist({
-				address: event.buyer
+				address: data.buyer
 			})
 		])
 
-		if (tokenBySig) {
+		if (!token || !user) {
 			return
 		}
 
-		if (!token || !user) {
+		if (tokenTx) {
 			return
 		}
 
 		try {
 			await this.prisma.$transaction(
 				async tx => {
-					await this.updateTokenAfterTransaction(event.mint, event, tx)
-
-					await this.tokenTxRepository.create(
-						{
-							address: event.mint,
-							date: DateTime.fromSeconds(Number(event.timestamp)),
-							amount: event.amount,
-							lamports: event.lamports,
-							type: "Buy",
-							signer: event.buyer,
-							price: event.previousPrice,
-							newPrice: event.newPrice,
-							network: "Solana",
-							signature: signature
+					await this.updateTokenAfterTransaction(data.mint, data, tx)
+					const txCreateInput: Prisma.TokenTransactionCreateInput = {
+						signature: data.signature,
+						network: "Solana",
+						type: "Buy",
+						date: DateTime.fromSeconds(Number(data.timestamp)).toJSDate(),
+						token: {
+							connect: {
+								address: data.mint
+							}
 						},
-						tx
-					)
+						price: data.previousPrice,
+						newPrice: data.newPrice,
+						amount: BigInt(data.amount),
+						lamports: BigInt(data.lamports),
+						createdBy: {
+							connect: {
+								address: data.buyer
+							}
+						}
+					}
+
+					await this.tokenTxRepository.create(txCreateInput, tx)
 				},
 				{
 					maxWait: 5000, // 5s
@@ -165,29 +178,25 @@ export class StorageIndexerService {
 				}
 			)
 		} catch (e) {
-			// @ts-ignore
-			if (e.code === "P2002" && e.meta?.target?.includes("signature")) {
-				Logger.warn(`Duplicate signature: ${signature}, skipping.`)
-				return
-			}
+			Logger.log(e)
 			throw new InternalServerErrorException("Failed to handle buy token")
 		}
 
 		await this.rabbitMQService.emit("new-candle", {
-			address: event.mint,
-			date: Number(event.timestamp)
+			address: data.mint,
+			date: Number(data.timestamp)
 		})
 
 		const transaction = {
 			type: TransactionType.BUY,
-			date: DateTime.fromSeconds(Number(event.timestamp)).toJSDate(),
-			signature,
-			amount: event.amount,
-			lamports: event.lamports,
-			tokenAddress: event.mint,
-			signer: event.buyer,
-			price: event.previousPrice,
-			newPrice: event.newPrice,
+			date: DateTime.fromSeconds(Number(data.timestamp)).toJSDate(),
+			signature: data.signature,
+			amount: data.amount,
+			lamports: data.lamports,
+			tokenAddress: data.mint,
+			signer: data.buyer,
+			price: data.previousPrice,
+			newPrice: data.newPrice,
 			token: plainToInstance(Token, token),
 			createdBy: plainToInstance(User, user)
 		}
@@ -198,50 +207,54 @@ export class StorageIndexerService {
 		)
 	}
 
-	async handlerSellToken({
-		event,
-		signature
-	}: { event: SellTokensEvent; signature: string }) {
-		event.amount = BigInt(`0x${event.amount}`).toString()
-		event.timestamp = BigInt(`0x${event.timestamp}`).toString()
-		event.lamports = BigInt(`0x${event.lamports}`).toString()
+	async handlerSellToken(data: SellTokensEvent) {
+		data.amount = BigInt(`0x${data.amount}`).toString()
+		data.timestamp = BigInt(`0x${data.timestamp}`).toString()
+		data.lamports = BigInt(`0x${data.lamports}`).toString()
 
-		const [tokenBySig, token, user] = await Promise.all([
-			this.tokenTxRepository.findBySignature(signature),
-			this.tokenRepository.findOneByAddress(event.mint),
+		const [token, tokenTx, user] = await Promise.all([
+			this.tokenRepository.findOneByAddress(data.mint),
+			this.tokenTxRepository.findBySignature(data.signature, data.type),
 			this.userRepository.createIfNotExist({
-				address: event.seller
+				address: data.seller
 			})
 		])
 
-		if (tokenBySig) {
+		if (!token || !user) {
 			return
 		}
 
-		if (!token || !user) {
+		if (tokenTx) {
 			return
 		}
 
 		try {
 			await this.prisma.$transaction(
 				async tx => {
-					await this.updateTokenAfterTransaction(event.mint, event, tx)
+					await this.updateTokenAfterTransaction(data.mint, data, tx)
 
-					await this.tokenTxRepository.create(
-						{
-							type: "Sell",
-							date: DateTime.fromSeconds(Number(event.timestamp)),
-							signature,
-							amount: event.amount,
-							lamports: event.lamports,
-							address: event.mint,
-							signer: event.seller,
-							price: event.previousPrice,
-							newPrice: event.newPrice,
-							network: "Solana"
+					const txCreateInput: Prisma.TokenTransactionCreateInput = {
+						signature: data.signature,
+						network: "Solana",
+						type: "Sell",
+						date: DateTime.fromSeconds(Number(data.timestamp)).toJSDate(),
+						token: {
+							connect: {
+								address: data.mint
+							}
 						},
-						tx
-					)
+						price: data.previousPrice,
+						newPrice: data.newPrice,
+						amount: BigInt(data.amount),
+						lamports: BigInt(data.lamports),
+						createdBy: {
+							connect: {
+								address: data.seller
+							}
+						}
+					}
+
+					await this.tokenTxRepository.create(txCreateInput, tx)
 				},
 				{
 					maxWait: 5000, // 5s
@@ -250,31 +263,27 @@ export class StorageIndexerService {
 				}
 			)
 		} catch (e) {
-			// @ts-ignore
-			if (e.code === "P2002" && e.meta?.target?.includes("signature")) {
-				Logger.warn(`Duplicate signature: ${signature}, skipping.`)
-				return
-			}
+			Logger.log(e)
 			throw new InternalServerErrorException("Failed to handle sell token")
 		}
 
 		const transaction = {
 			type: TransactionType.SELL,
-			date: DateTime.fromSeconds(Number(event.timestamp)).toJSDate(),
-			signature,
-			amount: event.amount,
-			lamports: event.lamports,
-			tokenAddress: event.mint,
-			signer: event.seller,
-			price: event.previousPrice,
-			newPrice: event.newPrice,
+			date: DateTime.fromSeconds(Number(data.timestamp)).toJSDate(),
+			signature: data.signature,
+			amount: data.amount,
+			lamports: data.lamports,
+			tokenAddress: data.mint,
+			signer: data.seller,
+			price: data.previousPrice,
+			newPrice: data.newPrice,
 			token: plainToInstance(Token, token),
 			createdBy: plainToInstance(User, user)
 		}
 
 		await this.rabbitMQService.emit("new-candle", {
-			address: event.mint,
-			date: Number(event.timestamp)
+			address: data.mint,
+			date: Number(data.timestamp)
 		})
 
 		await this.rabbitMQService.emit(
@@ -314,12 +323,10 @@ export class StorageIndexerService {
 			}
 		}
 
-		const kingOfHill = await this.isKingOfHill(
+		updateTokenParams.isCompletedKingOfHill = await this.isKingOfHill(
 			marketCapacity.toString(),
 			token.bondingCurveTarget.toString()
 		)
-
-		updateTokenParams.isCompletedKingOfHill = kingOfHill
 
 		await this.tokenRepository.update(address, updateTokenParams, tx)
 	}

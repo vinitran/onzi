@@ -202,6 +202,31 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		return tx
 	}
 
+	public async removeLiquidity(
+		mint: PublicKey,
+		ponzSystemWallet: PublicKey
+	): Promise<web3.Transaction> {
+		const tx = await this.program.methods
+			.removeLiquidity()
+			.accountsStrict({
+				globalConfiguration: this.globalConfiguration,
+				payer: ponzSystemWallet,
+				mint: mint,
+				bondingCurve: this.getBondingCurve(mint),
+				tokenPool: this.getTokenPool(mint),
+				payerAta: this.getOwnerAta(ponzSystemWallet, mint),
+				tokenProgram: TOKEN_2022_PROGRAM_ID,
+				associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+				systemProgram: SYSTEM_PROGRAM_ID
+			})
+			.transaction()
+
+		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
+		tx.feePayer = ponzSystemWallet
+
+		return tx
+	}
+
 	public parseLogs(logs: string[]) {
 		return this.eventParser.parseLogs(logs)
 	}

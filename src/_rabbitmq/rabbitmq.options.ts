@@ -7,9 +7,13 @@ export const rabbitMQConfig = (): RmqOptions => ({
 		queue: process.env.RABBITMQ_QUEUE as string,
 		queueOptions: {
 			durable: true,
-			maxLength: 5000
+			maxLength: 5000,
+			arguments: {
+				"x-dead-letter-exchange": "",
+				"x-dead-letter-routing-key": `${process.env.RABBITMQ_QUEUE}_retry`
+			}
 		},
-		noAck: true,
-		prefetchCount: 1
+		prefetchCount: 1,
+		persistent: true
 	}
 })

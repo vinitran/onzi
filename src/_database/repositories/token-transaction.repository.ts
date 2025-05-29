@@ -1,22 +1,8 @@
 import { Injectable } from "@nestjs/common"
-import { Network, Prisma, TransactionType } from "@prisma/client"
+import { Prisma, TransactionType } from "@prisma/client"
 import { RedisService } from "@root/_redis/redis.service"
 import { ListTransactionParams } from "@root/tokens/dtos/payload.dto"
-import { DateTime } from "luxon"
 import { PrismaService } from "../prisma.service"
-
-type CreateTokenTransactionParams = {
-	signer: string
-	address: string
-	date: DateTime
-	amount: string
-	lamports: string
-	type: TransactionType
-	signature: string
-	price: string
-	newPrice: string
-	network: Network
-}
 
 @Injectable()
 export class TokenTransactionRepository {
@@ -25,37 +11,24 @@ export class TokenTransactionRepository {
 		private redis: RedisService
 	) {}
 
-	create(params: CreateTokenTransactionParams, tx?: Prisma.TransactionClient) {
+	create(
+		params: Prisma.TokenTransactionCreateInput,
+		tx?: Prisma.TransactionClient
+	) {
 		const client = tx ?? this.prisma
 
 		return client.tokenTransaction.create({
-			data: {
-				amount: BigInt(params.amount),
-				date: params.date.toJSDate(),
-				type: params.type,
-				lamports: BigInt(params.lamports),
-				tokenAddress: params.address,
-				signature: params.signature,
-				signer: params.signer,
-				price: params.price,
-				newPrice: params.newPrice,
-				network: params.network
-			}
+			data: params
 		})
 	}
 
-	findBySignature(signature: string) {
-		return this.redis.getOrSet(
-			`findBySignature:${signature}`,
-			async () => {
-				return this.prisma.tokenTransaction.findUnique({
-					where: {
-						signature
-					}
-				})
-			},
-			3
-		)
+	findBySignature(signature: string, type: TransactionType) {
+		return this.prisma.tokenTransaction.findFirst({
+			where: {
+				signature,
+				type
+			}
+		})
 	}
 
 	getLatest() {
@@ -77,6 +50,9 @@ export class TokenTransactionRepository {
 		const where: Prisma.TokenTransactionWhereInput = {
 			token: {
 				id
+			},
+			type: {
+				in: [TransactionType.Buy, TransactionType.Sell]
 			}
 		}
 

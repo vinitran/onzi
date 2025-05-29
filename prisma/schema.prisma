@@ -270,21 +270,22 @@ model Config {
 
 model TokenTransaction {
   id           String          @id @default(uuid()) @db.Uuid
-  signature    String          @unique @db.VarChar
-  amount       BigInt
+  signature    String          @db.VarChar
+  amount       BigInt          @default(0)
   tokenAddress String          @map("token_address") @db.VarChar
-  lamports     BigInt
+  lamports     BigInt          @default(0)
   date         DateTime        @db.Timestamptz(3)
-  signer       String          @db.VarChar
-  price        Decimal         @db.Decimal(20, 20)
-  newPrice     Decimal         @map("new_price") @db.Decimal(20, 20)
+  signer       String?         @db.VarChar
+  price        Decimal         @default(0) @db.Decimal(20, 20)
+  newPrice     Decimal         @default(0) @map("new_price") @db.Decimal(20, 20)
   type         TransactionType
   network      Network         @default(Solana)
   createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime?       @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdBy    User            @relation(fields: [signer], references: [address], onDelete: Cascade)
+  createdBy    User?           @relation(fields: [signer], references: [address], onDelete: Cascade)
   token        Token           @relation(fields: [tokenAddress], references: [address], onDelete: Cascade)
 
+  @@unique([signature, type])
   @@map("token_transaction")
 }
 
@@ -487,6 +488,8 @@ enum TransactionType {
   Buy
   Sell
   Create
+  CompleteBondingCurve
+  RemoveLiquidity
 }
 
 enum UserActionStatus {

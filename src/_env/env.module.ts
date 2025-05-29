@@ -18,6 +18,8 @@ export type Env = {
 	RABBITMQ_QUEUE: string
 	TOKEN_MINT_AUTHORITY_WALLET: string
 	HELD_AUTHORITY: string
+	SYSTEM_WALLET_PRIVATE_KEY: string
+	CREATE_POOL_FEE_PUBLIC_KEY: string
 }
 
 export const InjectEnv = () => Inject(ENV_TOKEN)
@@ -48,6 +50,12 @@ const provider: Provider = {
 			"TOKEN_MINT_AUTHORITY_WALLET"
 		)
 		const HELD_AUTHORITY = configService.get<string>("HELD_AUTHORITY")
+		const SYSTEM_WALLET_PRIVATE_KEY = configService.get<string>(
+			"SYSTEM_WALLET_PRIVATE_KEY"
+		)
+		const CREATE_POOL_FEE_PUBLIC_KEY = configService.get<string>(
+			"CREATE_POOL_FEE_PUBLIC_KEY"
+		)
 
 		if (!DATABASE_URL) throw new Error("missing DATABASE_URL env")
 		if (!JWT_SECRET) throw new Error("missing JWT_SECRET env")
@@ -68,6 +76,10 @@ const provider: Provider = {
 		if (!TOKEN_MINT_AUTHORITY_WALLET)
 			throw new Error("missing TOKEN_MINT_AUTHORITY_WALLET env")
 		if (!HELD_AUTHORITY) throw new Error("missing HELD_AUTHORITY env")
+		if (!SYSTEM_WALLET_PRIVATE_KEY)
+			throw new Error("missing SYSTEM_WALLET_PRIVATE_KEY env")
+		if (!CREATE_POOL_FEE_PUBLIC_KEY)
+			throw new Error("missing CREATE_POOL_FEE_PUBLIC_KEY env")
 
 		return {
 			JWT_SECRET,
@@ -83,7 +95,9 @@ const provider: Provider = {
 			RABBITMQ_URL,
 			RABBITMQ_QUEUE,
 			TOKEN_MINT_AUTHORITY_WALLET,
-			HELD_AUTHORITY
+			HELD_AUTHORITY,
+			SYSTEM_WALLET_PRIVATE_KEY,
+			CREATE_POOL_FEE_PUBLIC_KEY
 		} satisfies Env
 	},
 	inject: [ConfigService]

@@ -1,4 +1,4 @@
-import { ValidationPipe } from "@nestjs/common"
+import { Logger, ValidationPipe } from "@nestjs/common"
 import { NestFactory } from "@nestjs/core"
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger"
 import { rabbitMQConfig } from "@root/_rabbitmq/rabbitmq.options"
@@ -8,13 +8,15 @@ async function bootstrap() {
 	const app = await NestFactory.create(AppModule)
 
 	try {
-		app.connectMicroservice({
-			...rabbitMQConfig(),
-			options: {
-				...rabbitMQConfig().options,
-				noAck: false
-			}
-		})
+		app.connectMicroservice(
+			app.connectMicroservice({
+				...rabbitMQConfig(),
+				options: {
+					...rabbitMQConfig().options,
+					noAck: false
+				}
+			})
+		)
 	} catch (error) {
 		console.error("Failed to connect to RabbitMQ:", error)
 		process.exit(1)
@@ -52,9 +54,9 @@ async function bootstrap() {
 	try {
 		await app.startAllMicroservices()
 		await app.listen(8000)
-		console.log("Schedule service is running on port 8000")
+		Logger.log("Service is running on port 8000")
 	} catch (error) {
-		console.error("Failed to start schedule service:", error)
+		Logger.error("Failed to start schedule service:", error)
 		process.exit(1)
 	}
 }

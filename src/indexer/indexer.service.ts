@@ -1,5 +1,6 @@
 import { Event } from "@coral-xyz/anchor"
-import { Injectable } from "@nestjs/common"
+import { Injectable, Logger } from "@nestjs/common"
+import { TransactionType } from "@prisma/client"
 import { SettingRepository } from "@root/_database/repositories/setting.repository"
 import { TokenTransactionRepository } from "@root/_database/repositories/token-transaction.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
@@ -8,8 +9,10 @@ import { SETTING_KEYS } from "@root/_shared/constants/setting"
 import { TokenAccountResponse } from "@root/indexer/dtos/tokenAccount.dto"
 import {
 	BuyTokensEvent,
+	CompleteBondingCurveEvent,
 	CreateTokenEvent,
 	EVENTS,
+	RemoveLiquidityEvent,
 	SellTokensEvent
 } from "@root/programs/ponz/events"
 import { Ponz } from "@root/programs/ponz/program"
@@ -41,29 +44,67 @@ export class IndexerService {
 			for await (const log of logData) {
 				switch (log.name) {
 					case EVENTS.CreateToken: {
-						const event = log.data as CreateTokenEvent
-						await this.rabbitMQService.emit(EVENTS.CreateToken, {
-							event,
-							signature
-						})
+						const event = {
+							...log.data,
+							signature,
+							type: "Create"
+						} as CreateTokenEvent
+						if (await this.isExistEvent(signature, event.type)) {
+							break
+						}
+						await this.rabbitMQService.emit(EVENTS.CreateToken, event)
 						break
 					}
 
 					case EVENTS.BuyTokens: {
-						const event = log.data as BuyTokensEvent
-						await this.rabbitMQService.emit(EVENTS.BuyTokens, {
-							event,
-							signature
-						})
+						const event = {
+							...log.data,
+							signature,
+							type: "Buy"
+						} as BuyTokensEvent
+						if (await this.isExistEvent(signature, event.type)) {
+							break
+						}
+						await this.rabbitMQService.emit(EVENTS.BuyTokens, event)
 						break
 					}
 
 					case EVENTS.SellTokens: {
-						const event = log.data as SellTokensEvent
-						await this.rabbitMQService.emit(EVENTS.SellTokens, {
-							event,
-							signature
-						})
+						const event = {
+							...log.data,
+							signature,
+							type: "Sell"
+						} as SellTokensEvent
+						if (await this.isExistEvent(signature, event.type)) {
+							break
+						}
+						await this.rabbitMQService.emit(EVENTS.SellTokens, event)
+						break
+					}
+
+					case EVENTS.CompleteBondingCurve: {
+						const event = {
+							...log.data,
+							signature,
+							type: "CompleteBondingCurve"
+						} as CompleteBondingCurveEvent
+						if (await this.isExistEvent(signature, event.type)) {
+							break
+						}
+						await this.rabbitMQService.emit(EVENTS.CompleteBondingCurve, event)
+						break
+					}
+
+					case EVENTS.RemoveLiquidity: {
+						const event = {
+							...log.data,
+							signature,
+							type: "RemoveLiquidity"
+						} as RemoveLiquidityEvent
+						if (await this.isExistEvent(signature, event.type)) {
+							break
+						}
+						await this.rabbitMQService.emit(EVENTS.RemoveLiquidity, event)
 						break
 					}
 
@@ -73,7 +114,7 @@ export class IndexerService {
 				}
 			}
 		} catch (error) {
-			console.error(
+			Logger.error(
 				`Error processing Ponz events for signature ${signature}:`,
 				error
 			)
@@ -113,17 +154,17 @@ export class IndexerService {
 					await this.handlePonzEvents(logData, signature)
 				}
 			} catch (error) {
-				console.error("Error processing WebSocket message:", error)
+				Logger.error("Error processing WebSocket message:", error)
 			}
 		})
 
 		wsSolana.on("close", () => {
-			console.log("WebSocket connection closed. Reconnecting...")
+			Logger.log("WebSocket connection closed. Reconnecting...")
 			this.connectToWebSocketSolana()
 		})
 
 		wsSolana.on("error", error => {
-			console.error("WebSocket error:", error)
+			Logger.error("WebSocket error:", error)
 		})
 	}
 
@@ -215,6 +256,15 @@ export class IndexerService {
 			console.error("Error fetching token holders:", error)
 			throw error
 		}
+	}
+
+	private async isExistEvent(signature: string, type: TransactionType) {
+		const tokenBySig = await this.tokenTransactionRepository.findBySignature(
+			signature,
+			type
+		)
+
+		return !!tokenBySig
 	}
 
 	private async fetchSignatures(fromSignature: string) {

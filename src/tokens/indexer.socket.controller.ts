@@ -31,7 +31,7 @@ export class TokenSocketController {
 			await this.tokenService.socketNewCandle(data.address, data.date)
 			channel.ack(originalMsg, false)
 		} catch (error) {
-			channel.ack(originalMsg, false)
+			channel.ack(originalMsg, false, false)
 			throw error
 		}
 	}
@@ -49,7 +49,7 @@ export class TokenSocketController {
 			this.txGateway.handleTx(data)
 			channel.ack(originalMsg, false)
 		} catch (error) {
-			channel.ack(originalMsg, false)
+			channel.ack(originalMsg, false, false)
 			throw error
 		}
 	}

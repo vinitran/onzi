@@ -75,6 +75,7 @@ export class TokenChartRepository {
 	}
 
 	async getChartData(id: string, step: number, from: number, to: number) {
+		const floorFrom = Math.floor(from / step) * step
 		return this.redis.getOrSet(
 			`chart-data:${id}:${step}:${from}:${to}`,
 			async () => {
@@ -83,7 +84,7 @@ export class TokenChartRepository {
 						tokenId: id,
 						step,
 						date: {
-							gte: from,
+							gte: floorFrom,
 							lte: to
 						}
 					},
@@ -100,7 +101,7 @@ export class TokenChartRepository {
 					}
 				})
 			},
-			5
+			2
 		)
 	}
 
