@@ -90,15 +90,15 @@ export class ReelsService {
 	}
 
 	//   Get detail reel
-	async getDetail(payload: GetDetailReelPayload) {
+	async getDetailByToken(payload: GetDetailReelPayload) {
 		const { reelId, userAddress, userId } = payload
 
 		const reel = await this.reel.getDetail(reelId)
 		if (!reel) throw new NotFoundException("Not found reel")
 
 		const [prevReel, nextReel, totalComment, userActions] = await Promise.all([
-			this.reel.getPrevByTime(reel.id, reel.createdAt),
-			this.reel.getNextByTime(reel.id, reel.createdAt),
+			this.reel.getPrevInTokenByTime(reel),
+			this.reel.getNextInTokenByTime(reel),
 			this.reelComment.getTotalByReelId(reelId),
 			this.reelUserAction.getActionsByReelId(reelId)
 		])
@@ -259,10 +259,20 @@ export class ReelsService {
 		if (reel.creatorId !== userId)
 			throw new ForbiddenException("Not allow to pin reel")
 
+		// Unpin reel
 		if (reel.pinnedAt) {
 			await this.reel.unpin(reelId)
 			return "Unpin reel successfully"
 		}
+
+		// Pin reel
+		const LIMIT_AMOUNT = 3
+		const listPinnedReel = await this.reel.getListPin(reel.tokenId)
+		if (listPinnedReel.length >= LIMIT_AMOUNT)
+			throw new ForbiddenException(
+				`You can only pin up to ${LIMIT_AMOUNT} reels`
+			)
+
 		const pinnedAt = DateTime.now().toJSDate()
 		await this.reel.pin(reelId, pinnedAt)
 		return "Pin reel successfully"

@@ -235,11 +235,11 @@ export class ReelsController {
 		enableImplicitConversion: true,
 		excludeExtraneousValues: true
 	})
-	getDetail(
+	getDetailByToken(
 		@Param("id", ParseUUIDPipe) id: string,
 		@User() user: Claims | undefined
 	) {
-		return this.reelsService.getDetail({
+		return this.reelsService.getDetailByToken({
 			reelId: id,
 			userAddress: user?.address,
 			userId: user?.id

@@ -103,7 +103,8 @@ class ReelDetailToken extends PickType(Token, [
 	"name",
 	"imageUri",
 	"marketCapacity",
-	"description"
+	"description",
+	"ticker"
 ]) {}
 
 export class GetDetailReelResponse extends Reel {

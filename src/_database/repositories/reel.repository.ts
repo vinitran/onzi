@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common"
-import { Prisma } from "@prisma/client"
+import { Prisma, Reel } from "@prisma/client"
 import { REPORTED_REEL_SORT_OPTIONS } from "@root/_shared/constants/reel"
 import {
 	PaginateListReelParams,
@@ -26,42 +26,113 @@ export class ReelRepository {
 						name: true,
 						imageUri: true,
 						marketCapacity: true,
-						description: true
+						description: true,
+						ticker: true
 					}
 				}
 			}
 		})
 	}
 
-	getPrevByTime(currentId: string, createdAt: Date) {
+	async getPrevInTokenByTime(currentReel: Reel) {
+		const isPinned = currentReel.pinnedAt !== null
+
+		if (!isPinned) {
+			// 1. Find the next (newer) normal (unpinned) reel
+			const prevNormal = await this.prisma.reel.findFirst({
+				where: {
+					tokenId: currentReel.tokenId,
+					id: { not: currentReel.id },
+					pinnedAt: null,
+					createdAt: { gt: currentReel.createdAt }
+				},
+				orderBy: [{ createdAt: "asc" }]
+			})
+
+			if (prevNormal) return prevNormal
+
+			// 2. If there are no newer normal (unpinned) reels → get the newest pinned reel
+			const latestPinned = await this.prisma.reel.findFirst({
+				where: {
+					tokenId: currentReel.tokenId,
+					pinnedAt: { not: null }
+				},
+				orderBy: [{ pinnedAt: "asc" }]
+			})
+
+			return latestPinned ?? null
+		}
+
+		// If the reel is pinned → find the next (newer) pinned reel
 		return this.prisma.reel.findFirst({
 			where: {
-				id: {
-					not: currentId
+				tokenId: currentReel.tokenId,
+				id: { not: currentReel.id },
+				pinnedAt: {
+					gte: currentReel.pinnedAt!
 				},
-				createdAt: {
-					lt: createdAt
-				}
+				OR: [
+					{
+						pinnedAt: currentReel.pinnedAt!,
+						createdAt: { gt: currentReel.createdAt }
+					},
+					{
+						pinnedAt: { gt: currentReel.pinnedAt! }
+					}
+				]
 			},
-			orderBy: {
-				createdAt: "desc"
-			}
+			orderBy: [{ pinnedAt: "asc" }, { createdAt: "asc" }]
 		})
 	}
 
-	getNextByTime(currentId: string, createdAt: Date) {
+	async getNextInTokenByTime(currentReel: Reel) {
+		const isPinned = currentReel.pinnedAt !== null
+
+		if (isPinned) {
+			// 1. Find the next (older) pinned reel
+			const nextPinned = await this.prisma.reel.findFirst({
+				where: {
+					tokenId: currentReel.tokenId,
+					id: { not: currentReel.id },
+					pinnedAt: {
+						lte: currentReel.pinnedAt!
+					},
+					OR: [
+						{
+							pinnedAt: currentReel.pinnedAt!,
+							createdAt: { lt: currentReel.createdAt }
+						},
+						{
+							pinnedAt: { lt: currentReel.pinnedAt! }
+						}
+					]
+				},
+				orderBy: [{ pinnedAt: "desc" }, { createdAt: "desc" }]
+			})
+
+			if (nextPinned) return nextPinned
+
+			// 2. If there are no more pinned reels → get the newest normal (unpinned) reel
+			const nextNormal = await this.prisma.reel.findFirst({
+				where: {
+					tokenId: currentReel.tokenId,
+					pinnedAt: null
+				},
+				orderBy: [{ createdAt: "desc" }]
+			})
+
+			return nextNormal ?? null
+		}
+
+		// If it's a normal (unpinned) reel → find an older normal (unpinned) reel
 		return this.prisma.reel.findFirst({
 			where: {
-				id: {
-					not: currentId
-				},
-				createdAt: {
-					gt: createdAt
-				}
+				tokenId: currentReel.tokenId,
+				id: { not: currentReel.id },
+				pinnedAt: null,
+				createdAt: { lt: currentReel.createdAt }
 			},
-			orderBy: {
-				createdAt: "asc"
-			}
+			orderBy: [{ createdAt: "desc" }]
 		})
 	}
 
@@ -156,6 +227,27 @@ export class ReelRepository {
 			orderBy,
 			take,
 			skip
+		})
+	}
+
+	getListPin(tokenId: string) {
+		return this.prisma.reel.findMany({
+			where: {
+				tokenId,
+				pinnedAt: { not: null }
+			}
+		})
+	}
+
+	getLatestPinByToken(tokenId: string) {
+		return this.prisma.reel.findFirst({
+			where: {
+				tokenId,
+				pinnedAt: { not: null }
+			},
+			orderBy: {
+				createdAt: "desc"
+			}
 		})
 	}
 
