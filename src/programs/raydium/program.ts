@@ -252,9 +252,8 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 			})
 			.instruction()
 
-		const tx = await this.sendTransactionWithInstruction([ix], [owner])
+		await this.sendTransactionWithInstruction([ix], [owner])
 
-		console.log("init amm config tx: ", tx)
 		return address
 	}
 

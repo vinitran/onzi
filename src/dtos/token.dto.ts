@@ -122,6 +122,13 @@ export class Token extends SocialToken {
 	bannerUri: string
 
 	@ApiProperty({
+		description: "Token raydium status",
+		example: "NotListed"
+	})
+	@Expose()
+	raydiumStatus: string
+
+	@ApiProperty({
 		description: "Token metadata",
 		example: '{"attributes":[{"trait_type":"Rarity","value":"Legendary"}]}'
 	})

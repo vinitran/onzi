@@ -5,6 +5,7 @@ import {
 	Logger
 } from "@nestjs/common"
 import { Prisma } from "@prisma/client"
+import { RaydiumStatusType } from "@prisma/client"
 import { PrismaService } from "@root/_database/prisma.service"
 import { TokenTransactionRepository } from "@root/_database/repositories/token-transaction.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
@@ -43,6 +44,32 @@ export class IndexerClientService {
 			return
 		}
 
+		const systemWalletKeypair = Keypair.fromSecretKey(
+			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
+		)
+
+		const tx = await this.ponz.removeLiquidity(
+			new PublicKey(data.mint),
+			systemWalletKeypair.publicKey
+		)
+
+		tx.sign(systemWalletKeypair)
+
+		const simulationResult = await this.connection.simulateTransaction(tx)
+
+		if (simulationResult.value.err) {
+			throw new InternalServerErrorException(
+				`faild to simulate token:${simulationResult.value.err}`
+			)
+		}
+
+		const txSig = await this.connection.sendRawTransaction(tx.serialize(), {
+			skipPreflight: true,
+			maxRetries: 10
+		})
+
+		Logger.log(`Transaction RemoveLiquidity: ${txSig}`)
+
 		try {
 			await this.prisma.$transaction(
 				async prismatTx => {
@@ -65,45 +92,17 @@ export class IndexerClientService {
 
 					const tokenUpdateInput: Prisma.TokenUpdateInput = {
 						isCompletedBondingCurve: true,
-						createdAtBondingCurve: date.toJSDate()
+						createdAtBondingCurve: date.toJSDate(),
+						raydiumStatus: RaydiumStatusType.Pending
 					}
 					await this.tokenRepository.update(
 						data.mint,
 						tokenUpdateInput,
 						prismatTx
 					)
-
-					const systemWalletKeypair = Keypair.fromSecretKey(
-						bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
-					)
-
-					const tx = await this.ponz.removeLiquidity(
-						new PublicKey(data.mint),
-						systemWalletKeypair.publicKey
-					)
-
-					tx.sign(systemWalletKeypair)
-
-					const simulationResult = await this.connection.simulateTransaction(tx)
-
-					if (simulationResult.value.err) {
-						throw new InternalServerErrorException(
-							`faild to simulate token:${simulationResult.value.err}`
-						)
-					}
-
-					const txSig = await this.connection.sendRawTransaction(
-						tx.serialize(),
-						{
-							skipPreflight: true,
-							maxRetries: 10
-						}
-					)
-
-					Logger.log(`Transaction RemoveLiquidity: ${txSig}`)
 				},
 				{
-					maxWait: 5000, // 5s
+					maxWait: 120000, // 5s
 					timeout: 120000, // 10s
 					isolationLevel: Prisma.TransactionIsolationLevel.Serializable
 				}
@@ -127,6 +126,22 @@ export class IndexerClientService {
 			return
 		}
 
+		const systemWalletKeypair = Keypair.fromSecretKey(
+			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
+		)
+
+		const lamportsAmount = new BN(LAMPORTS_PER_SOL * 1) // sol amount - 65 SOL
+		const tokensAmount = new BN(1000000000) // token amount ~ 200_000_000 Tokens
+
+		const tx = await this.raydium.createNewPair(
+			systemWalletKeypair,
+			new PublicKey(data.mint),
+			lamportsAmount,
+			tokensAmount
+		)
+
+		Logger.log(`Transaction migration to raydium: ${tx.txSig}`)
+
 		try {
 			await this.prisma.$transaction(
 				async prismatTx => {
@@ -147,21 +162,14 @@ export class IndexerClientService {
 					}
 					await this.tokenTxRepository.create(txCreateInput, prismatTx)
 
-					const systemWalletKeypair = Keypair.fromSecretKey(
-						bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
+					const tokenUpdateInput: Prisma.TokenUpdateInput = {
+						raydiumStatus: RaydiumStatusType.Listed
+					}
+					await this.tokenRepository.update(
+						data.mint,
+						tokenUpdateInput,
+						prismatTx
 					)
-
-					const lamportsAmount = new BN(LAMPORTS_PER_SOL * 1) // sol amount - 65 SOL
-					const tokensAmount = new BN(1) // token amount ~ 200_000_000 Tokens
-
-					const tx = await this.raydium.createNewPair(
-						systemWalletKeypair,
-						new PublicKey(data.mint),
-						lamportsAmount,
-						tokensAmount
-					)
-
-					Logger.log(`Transaction migration to raydium: ${tx.txSig}`)
 				},
 				{
 					maxWait: 120000, // 5s

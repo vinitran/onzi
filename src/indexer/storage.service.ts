@@ -63,7 +63,6 @@ export class StorageIndexerService {
 		}
 
 		const date = await this.getTimeFromSignature(data.signature)
-		console.log("start create")
 
 		try {
 			await this.prisma.$transaction(

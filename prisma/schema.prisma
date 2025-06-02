@@ -186,6 +186,8 @@ model Token {
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  raydiumStatus RaydiumStatusType @default(NotListed)
+
   creator          User               @relation(fields: [creatorAddress], references: [address], onDelete: Cascade)
   tokenOwners      TokenOwner[]
   comments         Comment[]
@@ -501,4 +503,10 @@ enum BlockUserType {
   CreateTokenComment
   CreateTokenReel
   CreateReelComment
+}
+
+enum RaydiumStatusType {
+  NotListed
+  Listed
+  Pending
 }
