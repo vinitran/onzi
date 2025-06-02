@@ -15,6 +15,7 @@ import { UserRepository } from "@root/_database/repositories/user.repository"
 import {
 	CreateReelPayload,
 	GetDetailReelPayload,
+	GetLatestReelPayload,
 	PaginateListReelPayload,
 	UpdateReelUserActionPayload
 } from "@root/_shared/types/reel"
@@ -89,7 +90,7 @@ export class ReelsService {
 		return { reel, attachment: { fields, url } }
 	}
 
-	//   Get detail reel
+	//   Get detail reel in list reel of token
 	async getDetailByToken(payload: GetDetailReelPayload) {
 		const { reelId, userAddress, userId } = payload
 
@@ -97,8 +98,8 @@ export class ReelsService {
 		if (!reel) throw new NotFoundException("Not found reel")
 
 		const [prevReel, nextReel, totalComment, userActions] = await Promise.all([
-			this.reel.getPrevInTokenByTime(reel),
-			this.reel.getNextInTokenByTime(reel),
+			this.reel.getPrevInToken(reel),
+			this.reel.getNextInToken(reel),
 			this.reelComment.getTotalByReelId(reelId),
 			this.reelUserAction.getActionsByReelId(reelId)
 		])
@@ -152,6 +153,80 @@ export class ReelsService {
 			prevReelId: prevReel?.id || null,
 			nextReelId: nextReel?.id || null
 		}
+	}
+
+	// Get detail reel
+	async getDetail(payload: GetDetailReelPayload) {
+		const { reelId, userAddress, userId } = payload
+
+		const reel = await this.reel.getDetail(reelId)
+		if (!reel) throw new NotFoundException("Not found reel")
+
+		const [prevReel, nextReel, totalComment, userActions] = await Promise.all([
+			this.reel.getPrevByTime(reel),
+			this.reel.getNextByTime(reel),
+			this.reelComment.getTotalByReelId(reelId),
+			this.reelUserAction.getActionsByReelId(reelId)
+		])
+
+		const totalByAction = Object.values(UserActionStatus).reduce(
+			(acc, action) => {
+				const found = userActions.find(item => item.status === action)
+				acc[action as UserActionStatus] = found?._count._all ?? 0
+				return acc
+			},
+			{} as Record<UserActionStatus, number>
+		)
+
+		// User status with reel
+		let isUserFavouriteToken = false
+		let isUserLikeReel = false
+		let isUserDislikeReel = false
+		if (userId && userAddress) {
+			const [favorite, userActionsOfUser] = await Promise.all([
+				this.tokenFavorite.findOne({
+					tokenAddress: reel.token.address,
+					userAddress
+				}),
+				this.reelUserAction.getActionsOfUserByReelId(reelId, userId)
+			])
+
+			isUserFavouriteToken = !!favorite
+
+			const userActionMap = userActionsOfUser.reduce(
+				(acc, item) => {
+					acc[item.status] = (item._count?._all ?? 0) > 0
+					return acc
+				},
+				{} as Record<UserActionStatus, boolean>
+			)
+
+			isUserLikeReel = !!userActionMap.Like
+			isUserDislikeReel = !!userActionMap.Dislike
+		}
+
+		return {
+			...reel,
+			totalComment,
+			totalLike: totalByAction.Like,
+			totalDislike: totalByAction.Dislike,
+			userStatus: {
+				isLikeReel: isUserLikeReel,
+				isDislikeReel: isUserDislikeReel,
+				isFavoriteToken: isUserFavouriteToken
+			},
+			prevReelId: prevReel?.id || null,
+			nextReelId: nextReel?.id || null
+		}
+	}
+
+	//   Get latest detail reel
+	async getLatest({ userAddress, userId }: GetLatestReelPayload) {
+		const reel = await this.reel.getLatestByTime()
+
+		if (!reel) return null
+
+		return this.getDetail({ reelId: reel.id, userAddress, userId })
 	}
 
 	//   Increase view for a reel

@@ -107,4 +107,11 @@ export class ReelCommentItem extends ReelComment {
 	})
 	@Expose()
 	isUserDisLiked: boolean
+
+	@ApiProperty({
+		description: "Indicates if the user is the creator token",
+		example: false
+	})
+	@Expose()
+	isCreatorToken: boolean
 }

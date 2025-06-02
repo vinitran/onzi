@@ -519,7 +519,6 @@ export class TokensService {
 				}
 			})
 		)
-		console.log("tokens: ", tokens)
 
 		return tokens
 	}

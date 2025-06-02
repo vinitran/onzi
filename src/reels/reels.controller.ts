@@ -53,6 +53,29 @@ export class ReelsController {
 		private readonly reelReportsService: ReelReportsService
 	) {}
 
+	@Get("latest")
+	@Public()
+	@ApiOperation({
+		summary: "Get latest detail reel",
+		description: "Next reel is older time. Prev reel is newer time."
+	})
+	@ApiResponse({
+		status: 200,
+		description: "Get latest detail reel successfully",
+		type: GetDetailReelResponse
+	})
+	@SerializeOptions({
+		type: GetDetailReelResponse,
+		enableImplicitConversion: true,
+		excludeExtraneousValues: true
+	})
+	getLatest(@User() user: Claims | undefined) {
+		return this.reelsService.getLatest({
+			userAddress: user?.address,
+			userId: user?.id
+		})
+	}
+
 	@Post("tokens/:tokenId")
 	@ApiOperation({ summary: "Create a new reel by creator token" })
 	@HttpCode(HttpStatus.CREATED)
@@ -222,9 +245,9 @@ export class ReelsController {
 		return { message }
 	}
 
-	@Get(":id")
+	@Get(":id/tokens")
 	@Public()
-	@ApiOperation({ summary: "Get detail new reel" })
+	@ApiOperation({ summary: "Get detail reel in list reel of token" })
 	@ApiResponse({
 		status: 200,
 		description: "Get detail reel successfully",
@@ -251,5 +274,29 @@ export class ReelsController {
 	@ApiOperation({ summary: "Delete reel by admin or creator token" })
 	destroy(@Param("id", ParseUUIDPipe) id: string, @User() user: Claims) {
 		return this.reelsService.destroy(id, user.id)
+	}
+
+	@Get(":id")
+	@Public()
+	@ApiOperation({ summary: "Get detail reel" })
+	@ApiResponse({
+		status: 200,
+		description: "Get detail reel successfully",
+		type: GetDetailReelResponse
+	})
+	@SerializeOptions({
+		type: GetDetailReelResponse,
+		enableImplicitConversion: true,
+		excludeExtraneousValues: true
+	})
+	getDetail(
+		@Param("id", ParseUUIDPipe) id: string,
+		@User() user: Claims | undefined
+	) {
+		return this.reelsService.getDetail({
+			reelId: id,
+			userAddress: user?.address,
+			userId: user?.id
+		})
 	}
 }

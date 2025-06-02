@@ -34,7 +34,7 @@ export class ReelRepository {
 		})
 	}
 
-	async getPrevInTokenByTime(currentReel: Reel) {
+	async getPrevInToken(currentReel: Reel) {
 		const isPinned = currentReel.pinnedAt !== null
 
 		if (!isPinned) {
@@ -85,7 +85,7 @@ export class ReelRepository {
 		})
 	}
 
-	async getNextInTokenByTime(currentReel: Reel) {
+	async getNextInToken(currentReel: Reel) {
 		const isPinned = currentReel.pinnedAt !== null
 
 		if (isPinned) {
@@ -155,6 +155,36 @@ export class ReelRepository {
 			total,
 			maxPage: Math.ceil(total / take)
 		}
+	}
+
+	getLatestByTime() {
+		return this.prisma.reel.findFirst({
+			orderBy: {
+				createdAt: "desc"
+			}
+		})
+	}
+
+	//   Get previous reel by time
+	getPrevByTime(currentReel: Reel) {
+		return this.prisma.reel.findFirst({
+			where: {
+				id: { not: currentReel.id },
+				createdAt: { gt: currentReel.createdAt }
+			},
+			orderBy: [{ createdAt: "asc" }]
+		})
+	}
+
+	//   Get next reel by time
+	getNextByTime(currentReel: Reel) {
+		return this.prisma.reel.findFirst({
+			where: {
+				id: { not: currentReel.id },
+				createdAt: { lt: currentReel.createdAt }
+			},
+			orderBy: [{ createdAt: "desc" }]
+		})
 	}
 
 	paginateByTokenId(

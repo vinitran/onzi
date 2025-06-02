@@ -57,6 +57,8 @@ export type GetDetailReelPayload = {
 	userAddress?: string
 }
 
+export type GetLatestReelPayload = Omit<GetDetailReelPayload, "reelId">
+
 export type CreateReelReportPayload = CreateReelReportDto & {
 	userId: string
 	reelId: string

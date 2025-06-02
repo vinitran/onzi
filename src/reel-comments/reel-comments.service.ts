@@ -116,9 +116,10 @@ export class ReelCommentsService {
 	// Paginate comment in  reel (exlucde replies)
 	async paginateComment(payload: PaginateReelCommentPayload) {
 		const { reelId, take, userId } = payload
-		const [listComment, total] = await Promise.all([
+		const [listComment, total, reel] = await Promise.all([
 			this.reelComment.paginateByReelId(payload),
-			this.reelComment.getTotalByReelId(reelId)
+			this.reelComment.getTotalByReelId(reelId),
+			this.reel.findById(reelId)
 		])
 
 		const data = await Promise.all(
@@ -159,7 +160,8 @@ export class ReelCommentsService {
 					totalDislike,
 					totalReply,
 					isUserLiked,
-					isUserDisLiked
+					isUserDisLiked,
+					isCreatorToken: reel?.creatorId === comment.authorId
 				}
 			})
 		)
@@ -180,6 +182,12 @@ export class ReelCommentsService {
 			this.reelComment.getTotalByParentId(parentId)
 		])
 
+		const reelId = listComment[0]?.reelId
+		let reel = null
+		if (reelId) {
+			reel = await this.reel.findById(listComment[0]?.reelId)
+		}
+
 		const data = await Promise.all(
 			listComment.map(async comment => {
 				const {
@@ -218,7 +226,8 @@ export class ReelCommentsService {
 					totalDislike,
 					totalReply,
 					isUserLiked,
-					isUserDisLiked
+					isUserDisLiked,
+					isCreatorToken: reel?.creatorId === comment.authorId
 				}
 			})
 		)
