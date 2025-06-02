@@ -122,6 +122,12 @@ export class CommentRepository {
 		})
 	}
 
+	getTotalByTokenId(tokenId: string) {
+		return this.prisma.comment.count({
+			where: { tokenId }
+		})
+	}
+
 	async findReplyByUserId(userId: string, query: PaginatedParams) {
 		const { page, take } = query
 

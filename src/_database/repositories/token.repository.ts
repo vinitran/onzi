@@ -566,6 +566,19 @@ export class TokenRepository {
 		})
 	}
 
+	findHallOfFame(take = 100) {
+		return this.prisma.token.findMany({
+			where: {
+				hallOfFame: true,
+				isDeleted: false
+			},
+			orderBy: {
+				createdAt: "desc"
+			},
+			take: take
+		})
+	}
+
 	async updateKingOfCoin(id: string) {
 		return this.prisma.token.update({
 			where: {

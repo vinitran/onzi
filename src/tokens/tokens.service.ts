@@ -12,13 +12,15 @@ import { UserRepository } from "@root/_database/repositories/user.repository"
 import { ICreateTokenOnchainPayload } from "@root/_shared/types/token"
 
 import { BN, web3 } from "@coral-xyz/anchor"
-import { Prisma } from "@prisma/client"
+import { Prisma, Token } from "@prisma/client"
 import { TokenChartRepository } from "@root/_database/repositories/token-candle.repository"
 import { TokenFavoriteRepository } from "@root/_database/repositories/token-favorite.repository"
+import { TOKEN_SUMMARY_OPTION } from "@root/_shared/constants/token"
 import {
 	encodeTransaction,
 	keypairFromPrivateKey
 } from "@root/_shared/helpers/encode-decode-tx"
+import { GetSummaryTokensDto } from "@root/admin/dtos/payload.dto"
 import { S3Service } from "@root/file/file.service"
 import { Ponz } from "@root/programs/ponz/program"
 import { InjectConnection } from "@root/programs/programs.module"
@@ -489,6 +491,37 @@ export class TokensService {
 		await this.token.deleteBanner(tokenId)
 		// Delete image in s3
 		await this.s3Service.deleteFile(this.s3Service.getKeyS3(token.bannerUri))
+	}
+
+	// Get latest max 100 tokens with
+	/*
+	- Popular: tokens are ordred highlight by admin
+	- Hall of fame: tokens are sticked HOF
+	*/
+	async getSummaryTokens({ option }: GetSummaryTokensDto) {
+		let tokens: Token[] = []
+		switch (option) {
+			case TOKEN_SUMMARY_OPTION.POPULAR:
+				tokens = await this.token.findPopular()
+				break
+			case TOKEN_SUMMARY_OPTION.HALL_OF_FAME:
+				tokens = await this.token.findHallOfFame()
+				break
+			default:
+				return []
+		}
+		tokens = await Promise.all(
+			tokens.map(async token => {
+				const totalComment = await this.comment.getTotalByTokenId(token.id)
+				return {
+					...token,
+					totalComment
+				}
+			})
+		)
+		console.log("tokens: ", tokens)
+
+		return tokens
 	}
 
 	//   Get image url & authorize data to push image Aws3

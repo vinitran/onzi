@@ -1,9 +1,9 @@
-import { ApiProperty } from "@nestjs/swagger"
+import { ApiProperty, PickType } from "@nestjs/swagger"
 import { S3Upload } from "@root/dtos/file.dto"
 import { TokenChart } from "@root/dtos/token-chart.dto"
 import { TokenFavorite } from "@root/dtos/token-favorite.dto"
 import { TokenTransaction } from "@root/dtos/token-transaction.dto"
-import { Token as TokenDto } from "@root/dtos/token.dto"
+import { Token, Token as TokenDto } from "@root/dtos/token.dto"
 import { Expose, Type } from "class-transformer"
 import { IsArray } from "class-validator"
 
@@ -144,3 +144,21 @@ export class ChartResponse {
 export class FindSimilarTokenResponse extends TokenDto {}
 
 export class UpdateBannerResponse extends S3Upload {}
+
+export class GetSummaryTokensResponse extends PickType(Token, [
+	"id",
+	"address",
+	"headline",
+	"description",
+	"highlightOrder",
+	"address",
+	"imageUri",
+	"name",
+	"ticker",
+	"marketCapacity",
+	"isCompletedKingOfHill"
+]) {
+	@Expose()
+	@ApiProperty({ description: "Total replies" })
+	totalComment: number
+}

@@ -16,6 +16,7 @@ import {
 	ApiTags
 } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
+import { GetSummaryTokensDto } from "@root/admin/dtos/payload.dto"
 import { Claims } from "@root/auth/auth.service"
 import {
 	ApiPaginatedResponse,
@@ -40,6 +41,7 @@ import {
 	FindFavoriteTokenResponse,
 	FindSimilarTokenResponse,
 	FindTokenResponse,
+	GetSummaryTokensResponse,
 	ListTransactionResponse,
 	SickoModeResponse,
 	SimilarTokenResponse,
@@ -120,6 +122,21 @@ export class TokensController {
 				excludeExtraneousValues: true
 			}
 		)
+	}
+
+	@Get("/summary")
+	@ApiOperation({ summary: "Get summary tokens" })
+	@ApiResponse({
+		status: 200,
+		description: "Get summary tokens successfully",
+		type: GetSummaryTokensResponse,
+		isArray: true
+	})
+	async getSummary(@Query() query: GetSummaryTokensDto) {
+		const result = await this.tokensService.getSummaryTokens(query)
+		return plainToInstance(GetSummaryTokensResponse, result, {
+			excludeExtraneousValues: true
+		})
 	}
 
 	@Get("similar")

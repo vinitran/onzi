@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger"
+import { TOKEN_SUMMARY_OPTION } from "@root/_shared/constants/token"
 import { OptionalProp, Prop } from "@root/_shared/utils/decorators"
 import { PaginatedParams } from "@root/dtos/common.dto"
 import { Type } from "class-transformer"
@@ -110,3 +111,10 @@ export class UpdateTokensDto {
 }
 
 export class PaginateReportedTokensDto extends PaginatedParams {}
+
+export class GetSummaryTokensDto {
+	@ApiProperty({ description: "Option to find", enum: TOKEN_SUMMARY_OPTION })
+	@Prop()
+	@IsEnum(TOKEN_SUMMARY_OPTION)
+	option: TOKEN_SUMMARY_OPTION
+}

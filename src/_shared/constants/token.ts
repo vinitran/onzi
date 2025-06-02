@@ -9,3 +9,8 @@ export const TOKEN_GATEWAY_LISTEN_EVENTS = {
 export const TOKEN_GATEWAY_EMIT_EVENTS = {
 	RECEIVE: "receive-token"
 }
+
+export enum TOKEN_SUMMARY_OPTION {
+	POPULAR = "POPULAR",
+	HALL_OF_FAME = "HALL_OF_FAME"
+}
