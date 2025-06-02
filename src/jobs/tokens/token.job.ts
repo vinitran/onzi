@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common"
+import { Injectable, Logger } from "@nestjs/common"
 import { Cron, CronExpression } from "@nestjs/schedule"
 import { PrismaClient } from "@prisma/client"
 import { TokenKeyRepository } from "@root/_database/repositories/token-key.repository"
@@ -159,12 +159,12 @@ export class TokenJobs {
 			updated_at   = now()
 			FROM computed c
 		WHERE t.address = c.token_address;`
-		console.log("Starting updatePriceChange at", new Date())
+		Logger.log("Starting updatePriceChange at", new Date())
 		try {
 			await this.prisma.$executeRawUnsafe(rawSql)
-			console.log("Finished updatePriceChange at", new Date())
+			Logger.log("Finished updatePriceChange at", new Date())
 		} catch (error) {
-			console.error("Error in updatePriceChange:", error)
+			Logger.error("Error in updatePriceChange:", error)
 		}
 	}
 }

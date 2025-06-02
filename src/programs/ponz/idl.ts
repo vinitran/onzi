@@ -2,20 +2,58 @@
  * Program IDL in camelCase format in order to be used in JS/TS.
  *
  * Note that this is only a type helper and is not the actual IDL. The original
- * IDL can be found at `target/idl/ponz_sc.json`.
+ * IDL can be found at `target/idl/ponz.json`.
  */
 export type PonzSc = {
-	address: "eY81YmFUTDFjsWBQ998rL7JtefdUWnKZPvD7Xotponz"
+	address: "ponzDBbYFNQ7D2qzeJg5MjdwYZFgp6uJhT7VHLMAxpv"
 	metadata: {
-		name: "ponzSc"
+		name: "ponz"
 		version: "0.1.0"
 		spec: "0.1.0"
-		description: "Created with Anchor"
+		description: "Ponz platform program created with Anchor"
 	}
 	instructions: [
 		{
 			name: "acceptUpdateOwnerWallet"
 			discriminator: [61, 36, 100, 184, 133, 247, 21, 145]
+			accounts: [
+				{
+					name: "globalConfiguration"
+					writable: true
+					pda: {
+						seeds: [
+							{
+								kind: "const"
+								value: [
+									103,
+									108,
+									111,
+									98,
+									97,
+									108,
+									95,
+									99,
+									111,
+									110,
+									102,
+									105,
+									103
+								]
+							}
+						]
+					}
+				},
+				{
+					name: "signer"
+					writable: true
+					signer: true
+				}
+			]
+			args: []
+		},
+		{
+			name: "acceptUpdatePonzMultiSigWallet"
+			discriminator: [212, 11, 164, 34, 156, 149, 201, 181]
 			accounts: [
 				{
 					name: "globalConfiguration"
@@ -566,7 +604,7 @@ export type PonzSc = {
 						]
 						program: {
 							kind: "account"
-							path: "ponzScRewardVault"
+							path: "ponzVault"
 						}
 					}
 				},
@@ -577,8 +615,8 @@ export type PonzSc = {
 					name: "withheldAuthority"
 				},
 				{
-					name: "ponzScRewardVault"
-					address: "AJ55esKqR5YJuKrk3f3rtquC1KxYX959DMyAuzsponz"
+					name: "ponzVault"
+					address: "ponzDgxsuynKG8FcHU9xGygwHd9jj2c8ZjfdgxgdLHs"
 				},
 				{
 					name: "tokenProgram"
@@ -642,6 +680,13 @@ export type PonzSc = {
 				{
 					name: "systemProgram"
 					address: "11111111111111111111111111111111"
+				},
+				{
+					name: "ponzProgram"
+					address: "ponzDBbYFNQ7D2qzeJg5MjdwYZFgp6uJhT7VHLMAxpv"
+				},
+				{
+					name: "ponzProgramData"
 				}
 			]
 			args: [
@@ -747,6 +792,49 @@ export type PonzSc = {
 			args: [
 				{
 					name: "newOwner"
+					type: "pubkey"
+				}
+			]
+		},
+		{
+			name: "initUpdatePonzMultiSigWallet"
+			discriminator: [190, 164, 142, 233, 106, 119, 247, 181]
+			accounts: [
+				{
+					name: "globalConfiguration"
+					writable: true
+					pda: {
+						seeds: [
+							{
+								kind: "const"
+								value: [
+									103,
+									108,
+									111,
+									98,
+									97,
+									108,
+									95,
+									99,
+									111,
+									110,
+									102,
+									105,
+									103
+								]
+							}
+						]
+					}
+				},
+				{
+					name: "signer"
+					writable: true
+					signer: true
+				}
+			]
+			args: [
+				{
+					name: "newPonzMultiSigWallet"
 					type: "pubkey"
 				}
 			]
@@ -1473,10 +1561,6 @@ export type PonzSc = {
 			discriminator: [4, 4, 86, 151, 191, 94, 245, 193]
 		},
 		{
-			name: "initConfigurationEvent"
-			discriminator: [79, 206, 51, 242, 171, 132, 87, 224]
-		},
-		{
 			name: "removeLiquidityEvent"
 			discriminator: [141, 199, 182, 123, 159, 94, 215, 102]
 		},
@@ -1487,106 +1571,125 @@ export type PonzSc = {
 		{
 			name: "withdrawFeePoolEvent"
 			discriminator: [20, 253, 195, 73, 93, 232, 177, 171]
+		},
+		{
+			name: "withdrawTokenPoolLockEvent"
+			discriminator: [54, 107, 94, 60, 170, 21, 71, 230]
 		}
 	]
 	errors: [
 		{
 			code: 6000
+			name: "invalidPonzProgram"
+			msg: "Invalid Ponz program"
+		},
+		{
+			code: 6001
 			name: "invalidPonzProgramData"
 			msg: "Invalid Ponz program data"
 		},
 		{
-			code: 6001
+			code: 6002
 			name: "missMatchingValue"
 			msg: "Mismatching Values"
 		},
 		{
-			code: 6002
+			code: 6003
 			name: "slippageExcceded"
 			msg: "Slippage Error"
 		},
 		{
-			code: 6003
+			code: 6004
 			name: "bondingCurveCompleted"
 			msg: "Bonding Curve completed"
 		},
 		{
-			code: 6004
+			code: 6005
 			name: "insufficientPoolFeeToWithdraw"
 			msg: "No pool fee to withdraw"
 		},
 		{
-			code: 6005
+			code: 6006
 			name: "notOwnerWallet"
 			msg: "Not the Owner Wallet"
 		},
 		{
-			code: 6006
+			code: 6007
 			name: "notPonzSystemWallet"
 			msg: "Not the Ponz System Wallet"
 		},
 		{
-			code: 6007
+			code: 6008
 			name: "notPonzTokenMintAuthorityWallet"
 			msg: "Not the Ponz Token Mint Authority Wallet"
 		},
 		{
-			code: 6008
+			code: 6009
+			name: "notPonzMultiSigWallet"
+			msg: "Not the Ponz Multi Sig Wallet"
+		},
+		{
+			code: 6010
 			name: "notPendingOwnerWallet"
 			msg: "Not the Pending Owner Wallet"
 		},
 		{
-			code: 6009
+			code: 6011
 			name: "notPendingPonzSystemWallet"
 			msg: "Not the Pending Ponz System Wallet"
 		},
 		{
-			code: 6010
+			code: 6012
 			name: "notPendingPonzTokenMintAuthorityWallet"
 			msg: "Not the Pending Ponz Mint Authority Wallet"
 		},
 		{
-			code: 6011
+			code: 6013
+			name: "notPendingPonzMultiSigWallet"
+			msg: "Not the Pending Ponz Multi Sig Wallet"
+		},
+		{
+			code: 6014
 			name: "emptyWallet"
 			msg: "Empty wallet"
 		},
 		{
-			code: 6012
+			code: 6015
 			name: "unAuthorized"
 			msg: "You are not the Ponz SYSTEM Wallet or Ponz OWNER Wallet"
 		},
 		{
-			code: 6013
+			code: 6016
 			name: "invalidSwapFee"
 			msg: "Invalid swap fee"
 		},
 		{
-			code: 6014
+			code: 6017
 			name: "tokenPoolLockNotExpired"
 			msg: "Token pool lock not expired"
 		},
 		{
-			code: 6015
+			code: 6018
 			name: "zeroLamportsInputAmount"
 			msg: "Zero lamports input amount"
 		},
 		{
-			code: 6016
+			code: 6019
 			name: "zeroTokenInputAmount"
 			msg: "Zero token input amount"
 		},
 		{
-			code: 6017
+			code: 6020
 			name: "mathOverflow"
 			msg: "Math Overflow"
 		},
 		{
-			code: 6018
+			code: 6021
 			name: "invalidLockTime"
 			msg: "Invalid Lock Time"
 		},
 		{
-			code: 6019
+			code: 6022
 			name: "invalidLockPercent"
 			msg: "Invalid Lock Percent"
 		}
@@ -1748,62 +1851,10 @@ export type PonzSc = {
 			}
 		},
 		{
-			name: "initConfigurationEvent"
-			type: {
-				kind: "struct"
-				fields: [
-					{
-						name: "owner"
-						type: "pubkey"
-					},
-					{
-						name: "ponzRewardSystem"
-						type: "pubkey"
-					}
-				]
-			}
-		},
-		{
 			name: "initializeConfiguration"
 			type: {
 				kind: "struct"
 				fields: [
-					{
-						name: "ownerWallet"
-						type: "pubkey"
-					},
-					{
-						name: "ponzSystemWallet"
-						type: "pubkey"
-					},
-					{
-						name: "ponzTokenMintAuthorityWallet"
-						type: "pubkey"
-					},
-					{
-						name: "pendingOwner"
-						type: {
-							option: "pubkey"
-						}
-					},
-					{
-						name: "pendingPonzSystemWallet"
-						type: {
-							option: "pubkey"
-						}
-					},
-					{
-						name: "pendingPonzScTokenMintAuthorityWallet"
-						type: {
-							option: "pubkey"
-						}
-					},
-					{
-						name: "pendingPonzTokenMintAuthorityWallet"
-						type: {
-							option: "pubkey"
-						}
-					},
 					{
 						name: "bump"
 						type: "u8"
@@ -1825,8 +1876,44 @@ export type PonzSc = {
 						type: "u64"
 					},
 					{
-						name: "createPoolFeeLamports"
-						type: "u64"
+						name: "ownerWallet"
+						type: "pubkey"
+					},
+					{
+						name: "pendingOwner"
+						type: {
+							option: "pubkey"
+						}
+					},
+					{
+						name: "ponzSystemWallet"
+						type: "pubkey"
+					},
+					{
+						name: "pendingPonzSystemWallet"
+						type: {
+							option: "pubkey"
+						}
+					},
+					{
+						name: "ponzTokenMintAuthorityWallet"
+						type: "pubkey"
+					},
+					{
+						name: "pendingPonzTokenMintAuthorityWallet"
+						type: {
+							option: "pubkey"
+						}
+					},
+					{
+						name: "ponzMultiSigWallet"
+						type: "pubkey"
+					},
+					{
+						name: "pendingPonzMultiSigWallet"
+						type: {
+							option: "pubkey"
+						}
 					}
 				]
 			}
@@ -1836,18 +1923,6 @@ export type PonzSc = {
 			type: {
 				kind: "struct"
 				fields: [
-					{
-						name: "ownerWallet"
-						type: "pubkey"
-					},
-					{
-						name: "ponzSystemWallet"
-						type: "pubkey"
-					},
-					{
-						name: "ponzTokenMintAuthorityWallet"
-						type: "pubkey"
-					},
 					{
 						name: "swapFee"
 						type: "f32"
@@ -1865,8 +1940,20 @@ export type PonzSc = {
 						type: "u64"
 					},
 					{
-						name: "createPoolFeeLamports"
-						type: "u64"
+						name: "ownerWallet"
+						type: "pubkey"
+					},
+					{
+						name: "ponzSystemWallet"
+						type: "pubkey"
+					},
+					{
+						name: "ponzTokenMintAuthorityWallet"
+						type: "pubkey"
+					},
+					{
+						name: "ponzMultiSigWallet"
+						type: "pubkey"
 					}
 				]
 			}
@@ -1977,7 +2064,7 @@ export type PonzSc = {
 						type: "u64"
 					},
 					{
-						name: "createPoolFeeLamports"
+						name: "initialVirtualToken"
 						type: "u64"
 					}
 				]
@@ -1994,6 +2081,26 @@ export type PonzSc = {
 					},
 					{
 						name: "lamports"
+						type: "u64"
+					}
+				]
+			}
+		},
+		{
+			name: "withdrawTokenPoolLockEvent"
+			type: {
+				kind: "struct"
+				fields: [
+					{
+						name: "withdrawer"
+						type: "pubkey"
+					},
+					{
+						name: "mint"
+						type: "pubkey"
+					},
+					{
+						name: "amount"
 						type: "u64"
 					}
 				]

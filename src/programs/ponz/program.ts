@@ -94,13 +94,13 @@ export class Ponz extends SolanaProgram<PonzSc> {
 				transferFeeBasisPoints: tokenMetadata.transferFeeBasisPoints,
 				maximumFee: tokenMetadata.maximumFee
 			})
-			.accountsPartial({
+			.accountsStrict({
 				globalConfiguration: this.globalConfiguration,
 				mint: mint,
 				bondingCurve: this.getBondingCurve(mint),
 				tokenPool: this.getTokenPool(mint),
 				psrvTokenPool: this.getRewardVaultTokenPool(mint),
-				ponzScRewardVault: this.rewardVault,
+				ponzVault: this.rewardVault,
 				ponzTokenMintAuthorityWallet: this.tokenMintAuthorityWallet,
 				payer: user,
 				withheldAuthority: this.heldAuthority,
@@ -160,7 +160,7 @@ export class Ponz extends SolanaProgram<PonzSc> {
 				bondingCurve: this.getBondingCurve(mint),
 				tokenPool: this.getTokenPool(mint),
 				psrvTokenPool: this.getRewardVaultTokenPool(mint),
-				ponzScRewardVault: this.rewardVault,
+				ponzVault: this.rewardVault,
 				ponzTokenMintAuthorityWallet: this.tokenMintAuthorityWallet,
 				withheldAuthority: this.heldAuthority,
 				payer: user,
