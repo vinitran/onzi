@@ -181,7 +181,7 @@ export class StorageIndexerService {
 			throw new InternalServerErrorException("Failed to handle buy token")
 		}
 
-		await this.rabbitMQService.emit("new-candle", {
+		await this.rabbitMQService.emit("socket", "new-candle", {
 			address: data.mint,
 			date: Number(data.timestamp)
 		})
@@ -201,6 +201,7 @@ export class StorageIndexerService {
 		}
 
 		await this.rabbitMQService.emit(
+			"socket",
 			"new-transaction",
 			plainToInstance(TokenTransaction, transaction)
 		)
@@ -280,12 +281,13 @@ export class StorageIndexerService {
 			createdBy: plainToInstance(User, user)
 		}
 
-		await this.rabbitMQService.emit("new-candle", {
+		await this.rabbitMQService.emit("socket", "new-candle", {
 			address: data.mint,
 			date: Number(data.timestamp)
 		})
 
 		await this.rabbitMQService.emit(
+			"socket",
 			"new-transaction",
 			plainToInstance(TokenTransaction, transaction)
 		)

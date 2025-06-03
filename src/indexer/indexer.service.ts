@@ -52,7 +52,11 @@ export class IndexerService {
 						if (await this.isExistEvent(signature, event.type)) {
 							break
 						}
-						await this.rabbitMQService.emit(EVENTS.CreateToken, event)
+						await this.rabbitMQService.emit(
+							"blockchain",
+							EVENTS.CreateToken,
+							event
+						)
 						break
 					}
 
@@ -65,7 +69,11 @@ export class IndexerService {
 						if (await this.isExistEvent(signature, event.type)) {
 							break
 						}
-						await this.rabbitMQService.emit(EVENTS.BuyTokens, event)
+						await this.rabbitMQService.emit(
+							"blockchain",
+							EVENTS.BuyTokens,
+							event
+						)
 						break
 					}
 
@@ -78,7 +86,11 @@ export class IndexerService {
 						if (await this.isExistEvent(signature, event.type)) {
 							break
 						}
-						await this.rabbitMQService.emit(EVENTS.SellTokens, event)
+						await this.rabbitMQService.emit(
+							"blockchain",
+							EVENTS.SellTokens,
+							event
+						)
 						break
 					}
 
@@ -91,7 +103,11 @@ export class IndexerService {
 						if (await this.isExistEvent(signature, event.type)) {
 							break
 						}
-						await this.rabbitMQService.emit(EVENTS.CompleteBondingCurve, event)
+						await this.rabbitMQService.emit(
+							"blockchain",
+							EVENTS.CompleteBondingCurve,
+							event
+						)
 						break
 					}
 
@@ -104,7 +120,11 @@ export class IndexerService {
 						if (await this.isExistEvent(signature, event.type)) {
 							break
 						}
-						await this.rabbitMQService.emit(EVENTS.RemoveLiquidity, event)
+						await this.rabbitMQService.emit(
+							"blockchain",
+							EVENTS.RemoveLiquidity,
+							event
+						)
 						break
 					}
 

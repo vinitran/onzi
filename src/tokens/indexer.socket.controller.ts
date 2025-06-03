@@ -24,16 +24,9 @@ export class TokenSocketController {
 		@Ctx() context: RmqContext
 	) {
 		const channel = context.getChannelRef()
-		const originalMsg = context.getMessage()
 		channel.prefetch(1, false)
 
-		try {
-			await this.tokenService.socketNewCandle(data.address, data.date)
-			channel.ack(originalMsg, false)
-		} catch (error) {
-			channel.ack(originalMsg, false, false)
-			throw error
-		}
+		await this.tokenService.socketNewCandle(data.address, data.date)
 	}
 
 	@EventPattern("new-transaction")
@@ -42,15 +35,8 @@ export class TokenSocketController {
 		@Ctx() context: RmqContext
 	) {
 		const channel = context.getChannelRef()
-		const originalMsg = context.getMessage()
 		channel.prefetch(1, false)
 
-		try {
-			this.txGateway.handleTx(data)
-			channel.ack(originalMsg, false)
-		} catch (error) {
-			channel.ack(originalMsg, false, false)
-			throw error
-		}
+		this.txGateway.handleTx(data)
 	}
 }

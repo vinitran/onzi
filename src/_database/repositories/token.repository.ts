@@ -438,15 +438,6 @@ export class TokenRepository {
 				take,
 				orderBy: {
 					createdAt: Prisma.SortOrder.desc
-				},
-				include: {
-					creator: {
-						select: {
-							id: true,
-							address: true,
-							username: true
-						}
-					}
 				}
 			}),
 			this.prisma.token.count({ where: { isDeleted: false } })
