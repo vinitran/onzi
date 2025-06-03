@@ -1,30 +1,16 @@
 import { Logger, ValidationPipe } from "@nestjs/common"
 import { NestFactory } from "@nestjs/core"
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger"
-import {
-	blockchainRabbitMQConfig,
-	socketRabbitMQConfig
-} from "@root/_rabbitmq/rabbitmq.options"
+import { RabbitMQConfig } from "@root/_rabbitmq/rabbitmq.options"
 import { AppModule } from "@root/app.module"
 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule)
 
 	try {
-		app.connectMicroservice({
-			...blockchainRabbitMQConfig(),
-			options: {
-				...blockchainRabbitMQConfig().options,
-				noAck: false
-			}
-		})
-
-		app.connectMicroservice({
-			...socketRabbitMQConfig(),
-			options: {
-				...socketRabbitMQConfig().options
-			}
-		})
+		app.connectMicroservice(RabbitMQConfig("blockchain", false))
+		app.connectMicroservice(RabbitMQConfig("socket"))
+		app.connectMicroservice(RabbitMQConfig("reward-distributor"))
 	} catch (error) {
 		console.error("Failed to connect to RabbitMQ:", error)
 		process.exit(1)

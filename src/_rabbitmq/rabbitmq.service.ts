@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common"
 import { ClientProxy } from "@nestjs/microservices"
 import { firstValueFrom } from "rxjs"
 
-type RabbitMQServiceType = "blockchain" | "socket"
+export type RabbitMQServiceType = "blockchain" | "socket" | "reward-distributor"
 
 @Injectable()
 export class RabbitMQService {

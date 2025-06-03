@@ -1,9 +1,6 @@
 import { Global, Module } from "@nestjs/common"
 import { ClientsModule } from "@nestjs/microservices"
-import {
-	blockchainRabbitMQConfig,
-	socketRabbitMQConfig
-} from "./rabbitmq.options"
+import { RabbitMQConfig } from "./rabbitmq.options"
 import { RabbitMQService } from "./rabbitmq.service"
 
 @Global()
@@ -12,11 +9,11 @@ import { RabbitMQService } from "./rabbitmq.service"
 		ClientsModule.registerAsync([
 			{
 				name: "BLOCKCHAIN_RABBITMQ_SERVICE",
-				useFactory: () => blockchainRabbitMQConfig()
+				useFactory: () => RabbitMQConfig("blockchain")
 			},
 			{
 				name: "SOCKET_RABBITMQ_SERVICE",
-				useFactory: () => socketRabbitMQConfig()
+				useFactory: () => RabbitMQConfig("socket")
 			}
 		])
 	],
