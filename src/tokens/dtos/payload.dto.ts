@@ -138,13 +138,10 @@ export class CreateTokenPayload extends Social {
 
 	@ApiProperty({
 		description: "Name of the token",
-		example: "My Token",
-		minLength: 3,
-		maxLength: 80
+		example: "My Token"
 	})
 	@Prop()
 	@IsString()
-	@Length(3, 80)
 	name: string
 
 	@ApiProperty({
@@ -153,6 +150,7 @@ export class CreateTokenPayload extends Social {
 	})
 	@Prop()
 	@IsString()
+	@Length(1, 10)
 	ticker: string
 
 	@ApiProperty({
@@ -160,7 +158,7 @@ export class CreateTokenPayload extends Social {
 		example: "A token for my awesome project"
 	})
 	@Prop()
-	@IsString()
+	@Length(0, 500)
 	description: string
 
 	@ApiProperty({

@@ -14,6 +14,10 @@ import { RabbitMQService } from "./rabbitmq.service"
 			{
 				name: "SOCKET_RABBITMQ_SERVICE",
 				useFactory: () => RabbitMQConfig("socket")
+			},
+			{
+				name: "REWARD_DISTRIBUTOR_RABBITMQ_SERVICE",
+				useFactory: () => RabbitMQConfig("reward-distributor", undefined, 5)
 			}
 		])
 	],

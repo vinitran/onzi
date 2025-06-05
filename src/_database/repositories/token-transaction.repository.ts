@@ -173,4 +173,23 @@ export class TokenTransactionRepository {
 			throw new Error("Failed to check existing signatures")
 		}
 	}
+
+	async checkTransactionsInTimeRange(minutesAgo: number): Promise<boolean> {
+		try {
+			const timeAgo = new Date(Date.now() - minutesAgo * 60 * 1000)
+
+			const transaction = await this.prisma.tokenTransaction.findFirst({
+				where: {
+					createdAt: {
+						gte: timeAgo
+					}
+				}
+			})
+
+			return !!transaction
+		} catch (error) {
+			console.error("Error in checkTransactionsInTimeRange:", error)
+			throw new Error("Failed to check transactions in time range")
+		}
+	}
 }

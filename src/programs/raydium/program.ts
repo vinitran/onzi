@@ -74,10 +74,10 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 		const configAddress = await this.createAmmConfig(
 			creator,
 			0,
-			new BN(10),
-			new BN(1000),
-			new BN(25000),
-			new BN(100000000)
+			new BN(2500),
+			new BN(120000),
+			new BN(40000),
+			new BN(150000000)
 		)
 
 		const sortedTokenArray = this.sortTokens(

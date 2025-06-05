@@ -428,26 +428,14 @@ export class TokenRepository {
 		}
 	}
 
-	async findAllByPage(page: number, take: number) {
-		const skip = (page - 1) * take
-
-		const [tokens, total] = await Promise.all([
-			this.prisma.token.findMany({
-				where: { isDeleted: false },
-				skip,
-				take,
-				orderBy: {
-					createdAt: Prisma.SortOrder.desc
-				}
-			}),
-			this.prisma.token.count({ where: { isDeleted: false } })
-		])
-
-		return {
-			tokens,
-			total,
-			maxPage: Math.ceil(total / take)
-		}
+	async getAllTokenAddress() {
+		return this.prisma.token.findMany({
+			select: { id: true, address: true },
+			where: { isDeleted: false },
+			orderBy: {
+				createdAt: Prisma.SortOrder.desc
+			}
+		})
 	}
 
 	async findOneByAddress(address: string) {

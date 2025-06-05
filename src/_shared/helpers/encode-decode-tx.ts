@@ -1,3 +1,4 @@
+import { web3 } from "@coral-xyz/anchor"
 import { Keypair, Transaction } from "@solana/web3.js"
 import bs58 from "bs58"
 
@@ -14,4 +15,8 @@ export const decodeTransaction = (encodedTx: string) => {
 export const keypairFromPrivateKey = (privateKey: string) => {
 	const privateKeyUint8Array = bs58.decode(privateKey)
 	return Keypair.fromSecretKey(privateKeyUint8Array)
+}
+
+export const privateKeyFromKeypair = (keypair: web3.Keypair) => {
+	return bs58.encode(keypair.secretKey)
 }

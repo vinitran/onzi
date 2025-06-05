@@ -36,7 +36,6 @@ export class Ponz extends SolanaProgram<PonzSc> {
 	public rewardVault: web3.PublicKey
 	public tokenMintAuthorityWallet: web3.PublicKey
 	public feePool: web3.PublicKey
-	public heldAuthority: web3.PublicKey
 
 	constructor(
 		@InjectConnection() public connection: web3.Connection,
@@ -54,7 +53,6 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		this.tokenMintAuthorityWallet = new web3.PublicKey(
 			env.TOKEN_MINT_AUTHORITY_WALLET
 		)
-		this.heldAuthority = new web3.PublicKey(env.HELD_AUTHORITY)
 		this.globalConfiguration = web3.PublicKey.findProgramAddressSync(
 			[Buffer.from("global_config")],
 			this.programId
@@ -71,12 +69,27 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		mint: web3.PublicKey,
 		user: web3.PublicKey,
 		tokenKeypair: web3.Keypair,
+		withheldAuthority: web3.PublicKey,
 		data: BuyTokenType
 	) {
 		if (data.lockTime && data.lockPercent) {
-			return this.launchTokenLock(tokenMetadata, mint, user, tokenKeypair, data)
+			return this.launchTokenLock(
+				tokenMetadata,
+				mint,
+				user,
+				tokenKeypair,
+				withheldAuthority,
+				data
+			)
 		}
-		return this.launchTokenBuy(tokenMetadata, mint, user, tokenKeypair, data)
+		return this.launchTokenBuy(
+			tokenMetadata,
+			mint,
+			user,
+			tokenKeypair,
+			withheldAuthority,
+			data
+		)
 	}
 
 	public async launchTokenBuy(
@@ -84,6 +97,7 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		mint: web3.PublicKey,
 		user: web3.PublicKey,
 		tokenKeypair: web3.Keypair,
+		withheldAuthority: web3.PublicKey,
 		data: BuyTokenType
 	): Promise<web3.Transaction> {
 		const createTokenIx = await this.program.methods
@@ -103,7 +117,7 @@ export class Ponz extends SolanaProgram<PonzSc> {
 				ponzVault: this.rewardVault,
 				ponzTokenMintAuthorityWallet: this.tokenMintAuthorityWallet,
 				payer: user,
-				withheldAuthority: this.heldAuthority,
+				withheldAuthority,
 				tokenProgram: TOKEN_2022_PROGRAM_ID,
 				rent: SYSVAR_RENT_PUBKEY,
 				systemProgram: SYSTEM_PROGRAM_ID
@@ -141,6 +155,7 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		mint: web3.PublicKey,
 		user: web3.PublicKey,
 		tokenKeypair: web3.Keypair,
+		withheldAuthority: web3.PublicKey,
 		data: BuyTokenType
 	): Promise<web3.Transaction> {
 		if (!data.lockPercent || !data.lockTime)
@@ -162,7 +177,7 @@ export class Ponz extends SolanaProgram<PonzSc> {
 				psrvTokenPool: this.getRewardVaultTokenPool(mint),
 				ponzVault: this.rewardVault,
 				ponzTokenMintAuthorityWallet: this.tokenMintAuthorityWallet,
-				withheldAuthority: this.heldAuthority,
+				withheldAuthority,
 				payer: user,
 				tokenProgram: TOKEN_2022_PROGRAM_ID,
 				rent: SYSVAR_RENT_PUBKEY,

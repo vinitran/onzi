@@ -15,6 +15,7 @@ import { BN, web3 } from "@coral-xyz/anchor"
 import { Prisma, Token } from "@prisma/client"
 import { TokenChartRepository } from "@root/_database/repositories/token-candle.repository"
 import { TokenFavoriteRepository } from "@root/_database/repositories/token-favorite.repository"
+import { TokenKeyWithHeldRepository } from "@root/_database/repositories/token-key-with-held.repository"
 import { TOKEN_SUMMARY_OPTION } from "@root/_shared/constants/token"
 import {
 	encodeTransaction,
@@ -58,6 +59,7 @@ export class TokensService {
 		private tokenChart: TokenChartRepository,
 		private ponz: Ponz,
 		private chartSocket: ChartGateway,
+		private readonly tokenKeyWithHeld: TokenKeyWithHeldRepository,
 		@InjectConnection() private connection: web3.Connection
 	) {}
 
@@ -164,6 +166,10 @@ export class TokensService {
 			maximumFee
 		}
 
+		const keyWithHeld = await this.tokenKeyWithHeld.createIfNotExist(
+			payload.tokenID
+		)
+
 		let tx: web3.Transaction
 		try {
 			tx = await this.ponz.lauchToken(
@@ -171,6 +177,7 @@ export class TokensService {
 				new PublicKey(token.address),
 				new PublicKey(payload.creatorAddress),
 				tokenKeypair,
+				new PublicKey(keyWithHeld.publicKey),
 				payload.data
 			)
 		} catch (error) {

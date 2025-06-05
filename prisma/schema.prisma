@@ -203,6 +203,15 @@ model Token {
   @@map("token")
 }
 
+model TokenFeeBalance {
+  tokenId String @id @db.Uuid
+  amount  BigInt @default(0)
+
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("token_fee_balance")
+}
+
 model TokenKey {
   id         String   @id @default(uuid()) @db.Uuid
   privateKey String   @unique @map("private_key")
@@ -215,6 +224,16 @@ model TokenKey {
   @@index([publicKey])
   @@index([isPicked])
   @@map("token_key")
+}
+
+model TokenKeyWithHeld {
+  privateKey String   @unique @map("private_key")
+  publicKey  String   @unique @map("public_key")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  tokenId    String   @unique @db.Uuid
+
+  @@index([publicKey])
+  @@map("token_key_with_held")
 }
 
 model TokenOwner {

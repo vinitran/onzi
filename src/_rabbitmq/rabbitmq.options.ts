@@ -3,7 +3,8 @@ import { RabbitMQServiceType } from "@root/_rabbitmq/rabbitmq.service"
 
 export const RabbitMQConfig = (
 	queue: RabbitMQServiceType,
-	noAck?: boolean
+	noAck?: boolean,
+	prefetchCount = 1
 ): RmqOptions => ({
 	transport: Transport.RMQ,
 	options: {
@@ -17,7 +18,7 @@ export const RabbitMQConfig = (
 				"x-dead-letter-routing-key": `${process.env.RABBITMQ_QUEUE}_retry`
 			}
 		},
-		prefetchCount: 1,
+		prefetchCount,
 		persistent: true,
 		...(noAck !== undefined && { noAck })
 	}
