@@ -16,7 +16,7 @@ import { Prisma, Token } from "@prisma/client"
 import { TokenChartRepository } from "@root/_database/repositories/token-candle.repository"
 import { TokenFavoriteRepository } from "@root/_database/repositories/token-favorite.repository"
 import { TokenKeyWithHeldRepository } from "@root/_database/repositories/token-key-with-held.repository"
-import { TOKEN_SUMMARY_OPTION } from "@root/_shared/constants/token"
+import { STOP_WORDS, TOKEN_SUMMARY_OPTION } from "@root/_shared/constants/token"
 import {
 	encodeTransaction,
 	keypairFromPrivateKey
@@ -432,12 +432,12 @@ export class TokensService {
 		const wordCount: Record<string, number> = {}
 
 		for (const token of listToken) {
-			const content = `${token.name} ${token.ticker} ${token.description}`
+			const content = `${token.name} ${token.ticker}`
 			const words = content
 				.toLowerCase()
 				.replace(/[^a-z0-9\s]/g, "")
 				.split(/\s+/)
-				.filter(word => word.length > 2)
+				.filter(word => word.length > 2 && !STOP_WORDS.has(word))
 
 			for (const word of words) {
 				wordCount[word] = (wordCount[word] || 0) + 1

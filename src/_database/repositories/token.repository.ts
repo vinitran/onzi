@@ -199,6 +199,7 @@ export class TokenRepository {
 					taxPending: true,
 					createdAt: true,
 					updatedAt: true,
+					raydiumStatus: true,
 					tokenOwners: {
 						select: {
 							userAddress: true,
