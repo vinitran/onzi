@@ -33,7 +33,7 @@ export class TokenJobs {
 		)
 	}
 
-	@Cron(CronExpression.EVERY_MINUTE)
+	@Cron(CronExpression.EVERY_5_MINUTES)
 	async collectFeesFromAllMints() {
 		const tokens = await this.tokenRepository.getAllTokenAddress()
 
