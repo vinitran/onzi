@@ -1,10 +1,10 @@
 import { ApiProperty } from "@nestjs/swagger"
+import { RaydiumStatusType } from "@prisma/client"
 import { TokenChart } from "@root/dtos/token-chart.dto"
 import { TokenFavorite } from "@root/dtos/token-favorite.dto"
 import { TokenOwner } from "@root/dtos/token-owner.dto"
 import { User } from "@root/dtos/user.dto"
 import { Expose, Type } from "class-transformer"
-import { RaydiumStatusType } from '@prisma/client';
 
 class SocialToken {
 	@ApiProperty({
