@@ -40,7 +40,7 @@ export class TokenJobs {
 		for (const token of tokens) {
 			await this.rabbitMQService.emit(
 				"reward-distributor",
-				"reward-distributor.token",
+				REWARD_DISTRIBUTOR_EVENTS.Token,
 				token
 			)
 		}

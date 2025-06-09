@@ -4,6 +4,7 @@ import { TokenFavorite } from "@root/dtos/token-favorite.dto"
 import { TokenOwner } from "@root/dtos/token-owner.dto"
 import { User } from "@root/dtos/user.dto"
 import { Expose, Type } from "class-transformer"
+import { RaydiumStatusType } from '@prisma/client';
 
 class SocialToken {
 	@ApiProperty({
@@ -123,10 +124,11 @@ export class Token extends SocialToken {
 
 	@ApiProperty({
 		description: "Token raydium status",
-		example: "NotListed"
+		example: "NotListed",
+		enum: RaydiumStatusType
 	})
 	@Expose()
-	raydiumStatus: string
+	raydiumStatus: RaydiumStatusType
 
 	@ApiProperty({
 		description: "Token metadata",
