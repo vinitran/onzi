@@ -2,16 +2,53 @@ import { Inject, Injectable } from "@nestjs/common"
 import { ClientProxy } from "@nestjs/microservices"
 import { firstValueFrom } from "rxjs"
 
-export type RabbitMQServiceType = "blockchain" | "socket" | "reward-distributor"
+export type RabbitMQServiceType =
+	| "blockchain"
+	| "socket"
+	| "collect-fee-reward-distributor"
+	| "swap-to-sol-reward-distributor"
+	| "distribute-reward-distributor"
 
 @Injectable()
 export class RabbitMQService {
 	constructor(
 		@Inject("BLOCKCHAIN_RABBITMQ_SERVICE")
 		private readonly blockchainClient: ClientProxy,
+
 		@Inject("SOCKET_RABBITMQ_SERVICE")
-		private readonly socketClient: ClientProxy
+		private readonly socketClient: ClientProxy,
+
+		@Inject("COLLECT_FEE_REWARD_DISTRIBUTOR_RABBITMQ_SERVICE")
+		private readonly collectFeeRewardDistributorClient: ClientProxy,
+
+		@Inject("SWAP_TO_SOL_REWARD_DISTRIBUTOR_RABBITMQ_SERVICE")
+		private readonly swapToSolRewardDistributorClient: ClientProxy,
+
+		@Inject("DISTRIBUTE_REWARD_DISTRIBUTOR_RABBITMQ_SERVICE")
+		private readonly distributeRewardDistributorClient: ClientProxy
 	) {}
+
+	/**
+	 * Get the appropriate client based on service type
+	 * @param type - The service type
+	 * @returns The corresponding RabbitMQ client
+	 */
+	private getClientByType(type: RabbitMQServiceType): ClientProxy {
+		switch (type) {
+			case "blockchain":
+				return this.blockchainClient
+			case "socket":
+				return this.socketClient
+			case "collect-fee-reward-distributor":
+				return this.collectFeeRewardDistributorClient
+			case "swap-to-sol-reward-distributor":
+				return this.swapToSolRewardDistributorClient
+			case "distribute-reward-distributor":
+				return this.distributeRewardDistributorClient
+			default:
+				throw new Error(`Unknown RabbitMQ service type: ${type}`)
+		}
+	}
 
 	/**
 	 * Emit an event to RabbitMQ
@@ -24,8 +61,7 @@ export class RabbitMQService {
 		pattern: string,
 		data: T
 	): Promise<void> {
-		const client =
-			type === "blockchain" ? this.blockchainClient : this.socketClient
+		const client = this.getClientByType(type)
 		await firstValueFrom(client.emit(pattern, data))
 	}
 
@@ -41,8 +77,7 @@ export class RabbitMQService {
 		pattern: string,
 		data: TRequest
 	): Promise<TResponse> {
-		const client =
-			type === "blockchain" ? this.blockchainClient : this.socketClient
+		const client = this.getClientByType(type)
 		return await firstValueFrom(client.send<TResponse>(pattern, data))
 	}
 }

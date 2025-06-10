@@ -203,13 +203,18 @@ model Token {
   @@map("token")
 }
 
-model TokenFeeBalance {
-  tokenId String @id @db.Uuid
-  amount  BigInt @default(0)
+model TokenTransactionDistribute {
+  id          String                         @id @default(uuid()) @db.Uuid
+  tokenId     String                         @db.Uuid
+  from        String?
+  to          String?
+  lamport     BigInt                         @default(0)
+  amountToken BigInt                         @default(0)
+  type        TokenTransactionDistributeType
+  signature   String?
+  updatedAt   DateTime?                      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
-
-  @@map("token_fee_balance")
+  @@map("token_transaction_distribute")
 }
 
 model TokenKey {
@@ -528,4 +533,13 @@ enum RaydiumStatusType {
   NotListed
   Listed
   Pending
+}
+
+enum TokenTransactionDistributeType {
+  SwapToSolana
+  SwapToToken
+  Burn
+  Distribute
+  Jackpot
+  CollectFee
 }

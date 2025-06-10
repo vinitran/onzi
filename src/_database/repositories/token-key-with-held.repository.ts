@@ -41,7 +41,7 @@ export class TokenKeyWithHeldRepository {
 					where: { tokenId }
 				})
 			},
-			10
+			30
 		)
 	}
 }

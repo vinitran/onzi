@@ -10,6 +10,7 @@ import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token"
 import { Injectable, InternalServerErrorException } from "@nestjs/common"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import {
+	POOL_SEED,
 	getAmmConfigAddress,
 	getAuthAddress,
 	getOrcleAccountAddress,
@@ -19,9 +20,11 @@ import {
 } from "@root/programs/raydium/pda"
 import idl from "@root/programs/raydium/raydium_cp_swap.json"
 import {
+	ASSOCIATED_TOKEN_PROGRAM_ID,
 	NATIVE_MINT,
 	TOKEN_2022_PROGRAM_ID,
 	TOKEN_PROGRAM_ID,
+	createAssociatedTokenAccountIdempotentInstruction,
 	createAssociatedTokenAccountInstruction,
 	createCloseAccountInstruction,
 	createSyncNativeInstruction,
@@ -29,6 +32,7 @@ import {
 } from "@solana/spl-token"
 import {
 	ConfirmOptions,
+	Keypair,
 	PublicKey,
 	SYSVAR_RENT_PUBKEY,
 	Signer,
@@ -37,6 +41,7 @@ import {
 	TransactionInstruction,
 	TransactionSignature
 } from "@solana/web3.js"
+import bs58 from "bs58"
 import { InjectConnection } from "../programs.module"
 import { RaydiumCpSwap } from "./idl"
 
@@ -220,6 +225,59 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 		}
 	}
 
+	async swap(
+		owner: Keypair,
+		feePayer: Keypair,
+		tokenAddress: PublicKey,
+		exactAmountIn: BN,
+		slippage: BN, // 10_000 = 100% - 100% = 1%
+		inputIsWSol: boolean, // false -> active
+		taxPercent: number // 10_000 = 100% - 100 = 1%
+	) {
+		const [configAddress] = await getAmmConfigAddress(0, this.program.programId)
+
+		const amountInputAfterTaxes = this.calculateInputAmountAfterTaxes(
+			exactAmountIn,
+			taxPercent
+		)
+
+		const minimumAmountOut = await this.calculateAmountOut(
+			tokenAddress,
+			amountInputAfterTaxes,
+			slippage,
+			inputIsWSol
+		)
+
+		const tx = await this.swapBaseIn(
+			owner.publicKey,
+			feePayer.publicKey,
+			configAddress,
+			tokenAddress,
+			exactAmountIn,
+			minimumAmountOut,
+			inputIsWSol
+		)
+		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
+		tx.feePayer = feePayer.publicKey
+		tx.sign(feePayer, owner)
+		console.log("bs58: ", bs58.encode(tx.serialize()))
+
+		const simulationResult = await this.connection.simulateTransaction(tx)
+
+		if (simulationResult.value.err) {
+			throw Error(simulationResult.value.err.toString())
+		}
+
+		console.log("simulation result: ", simulationResult)
+
+		const txSig = await this.connection.sendRawTransaction(tx.serialize(), {
+			skipPreflight: true,
+			maxRetries: 5
+		})
+		await this.connection.confirmTransaction(txSig, "finalized")
+		return txSig
+	}
+
 	async createAmmConfig(
 		owner: Signer,
 		config_index: number,
@@ -265,6 +323,99 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 		return true
 	}
 
+	getPoolAddress(
+		ammConfig: PublicKey,
+		tokenMint0: PublicKey,
+		tokenMint1: PublicKey,
+		programId: PublicKey
+	): [PublicKey, number] {
+		const [token0, token1] = this.sortTokenAddresses(tokenMint0, tokenMint1)
+
+		const [address, bump] = PublicKey.findProgramAddressSync(
+			[POOL_SEED, ammConfig.toBuffer(), token0.toBuffer(), token1.toBuffer()],
+			programId
+		)
+		return [address, bump]
+	}
+
+	async fetchPool(
+		tokenMint0: PublicKey,
+		tokenMint1: PublicKey
+	): Promise<[BN, BN]> {
+		const [ammConfigAddress] = await getAmmConfigAddress(
+			0,
+			this.program.programId
+		)
+
+		const poolAddress = this.getPoolAddress(
+			ammConfigAddress,
+			tokenMint0,
+			tokenMint1,
+			this.program.programId
+		)[0]
+
+		const poolState = await this.program.account.poolState.fetch(poolAddress)
+
+		const pool0 = poolState.token0Vault
+		const pool1 = poolState.token1Vault
+		const pool0Balance = await this.connection.getTokenAccountBalance(pool0)
+		const pool1Balance = await this.connection.getTokenAccountBalance(pool1)
+
+		const wSolReserve =
+			poolState.token0Mint.toString() === NATIVE_MINT.toString()
+				? new BN(pool0Balance.value.amount)
+				: new BN(pool1Balance.value.amount)
+
+		const tokenReserve =
+			poolState.token0Mint.toString() === NATIVE_MINT.toString()
+				? new BN(pool1Balance.value.amount)
+				: new BN(pool0Balance.value.amount)
+
+		const _kParam = new BN(pool0Balance.value.amount).mul(
+			new BN(pool1Balance.value.amount)
+		)
+
+		return [wSolReserve, tokenReserve]
+	}
+
+	async calculateAmountOut(
+		tokenAddress: PublicKey,
+		exactAmountIn: BN,
+		slippage: BN,
+		inputIsWSOL: boolean
+	): Promise<BN> {
+		const [wSolReserve, tokenReserve] = await this.fetchPool(
+			NATIVE_MINT,
+			tokenAddress
+		)
+
+		const [ammConfigAddress] = await getAmmConfigAddress(
+			0,
+			this.program.programId
+		)
+
+		const ammConfig =
+			await this.program.account.ammConfig.fetch(ammConfigAddress)
+		const tradeFeeRate: BN = ammConfig.tradeFeeRate
+		const ONE_MILLION = new BN(1_000_000)
+
+		const reserveIn = inputIsWSOL ? wSolReserve : tokenReserve
+		const reserveOut = inputIsWSOL ? tokenReserve : wSolReserve
+
+		const feeAmount = exactAmountIn.mul(tradeFeeRate).div(ONE_MILLION)
+
+		const netIn = exactAmountIn.sub(feeAmount)
+
+		const newReserveIn = reserveIn.add(netIn)
+		let amountOut = reserveOut.mul(netIn).div(newReserveIn)
+
+		if (slippage.gt(new BN(0))) {
+			amountOut = amountOut.sub(amountOut.mul(slippage).div(new BN(10_000)))
+		}
+
+		return amountOut
+	}
+
 	async sendTransactionWithInstruction(
 		ixs: TransactionInstruction[],
 		signers: Array<Signer>
@@ -301,6 +452,24 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 			)
 		}
 		return signature
+	}
+
+	sortTokenAddresses(tokenA: PublicKey, tokenB: PublicKey): PublicKey[] {
+		const tokenArray: PublicKey[] = [tokenA, tokenB]
+
+		tokenArray.sort((x, y) => {
+			const buffer1 = x.toBuffer()
+			const buffer2 = y.toBuffer()
+
+			for (let i = 0; i < buffer1.length && i < buffer2.length; i++) {
+				if (buffer1[i] < buffer2[i]) return -1
+				if (buffer1[i] > buffer2[i]) return 1
+			}
+
+			return buffer1.length - buffer2.length
+		})
+
+		return tokenArray
 	}
 
 	sortTokens(
@@ -344,5 +513,215 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 		})
 
 		return [tokenArray[0], tokenArray[1]]
+	}
+
+	async swapBaseOutput(
+		program: Program<RaydiumCpSwap>,
+		creator: PublicKey,
+		configAddress: PublicKey,
+		inputToken: PublicKey,
+		inputTokenProgram: PublicKey,
+		outputToken: PublicKey,
+		outputTokenProgram: PublicKey,
+		amount_out_less_fee: BN,
+		max_amount_in: BN
+	): Promise<Transaction> {
+		const [auth] = await getAuthAddress(program.programId)
+		const [poolAddress] = await getPoolAddress(
+			configAddress,
+			inputToken,
+			outputToken,
+			program.programId
+		)
+
+		const [inputVault] = await getPoolVaultAddress(
+			poolAddress,
+			inputToken,
+			program.programId
+		)
+		const [outputVault] = await getPoolVaultAddress(
+			poolAddress,
+			outputToken,
+			program.programId
+		)
+
+		const inputTokenAccount = getAssociatedTokenAddressSync(
+			inputToken,
+			creator,
+			false,
+			inputTokenProgram
+		)
+		const outputTokenAccount = getAssociatedTokenAddressSync(
+			outputToken,
+			creator,
+			false,
+			outputTokenProgram
+		)
+		const [observationAddress] = await getOrcleAccountAddress(
+			poolAddress,
+			program.programId
+		)
+
+		const tx = await program.methods
+			.swapBaseOutput(max_amount_in, amount_out_less_fee)
+			.accountsStrict({
+				payer: creator,
+				authority: auth,
+				ammConfig: configAddress,
+				poolState: poolAddress,
+				inputTokenAccount,
+				outputTokenAccount,
+				inputVault,
+				outputVault,
+				inputTokenProgram: inputTokenProgram,
+				outputTokenProgram: outputTokenProgram,
+				inputTokenMint: inputToken,
+				outputTokenMint: outputToken,
+				observationState: observationAddress
+			})
+			.transaction()
+
+		return tx
+	}
+
+	async swapBaseIn(
+		creator: PublicKey,
+		feePayer: PublicKey,
+		configAddress: PublicKey,
+		tokenAddress: PublicKey,
+		amountIn: BN,
+		minimumAmountOut: BN,
+		inputIsWSol: boolean
+	): Promise<Transaction> {
+		const inputToken = inputIsWSol ? NATIVE_MINT : tokenAddress
+		const outputToken = inputIsWSol ? tokenAddress : NATIVE_MINT
+		const inputTokenProgram = inputIsWSol
+			? TOKEN_PROGRAM_ID
+			: TOKEN_2022_PROGRAM_ID
+		const outputTokenProgram = inputIsWSol
+			? TOKEN_2022_PROGRAM_ID
+			: TOKEN_PROGRAM_ID
+
+		const [auth] = await getAuthAddress(this.program.programId)
+		const [poolAddress] = this.getPoolAddress(
+			configAddress,
+			inputToken,
+			outputToken,
+			this.program.programId
+		)
+
+		const [inputVault] = await getPoolVaultAddress(
+			poolAddress,
+			inputToken,
+			this.program.programId
+		)
+		const [outputVault] = await getPoolVaultAddress(
+			poolAddress,
+			outputToken,
+			this.program.programId
+		)
+
+		const inputTokenAccount = getAssociatedTokenAddressSync(
+			inputToken,
+			creator,
+			false,
+			inputTokenProgram
+		)
+		const outputTokenAccount = getAssociatedTokenAddressSync(
+			outputToken,
+			creator,
+			false,
+			outputTokenProgram
+		)
+
+		const [observationAddress] = await getOrcleAccountAddress(
+			poolAddress,
+			this.program.programId
+		)
+
+		const wsolAta = getAssociatedTokenAddressSync(NATIVE_MINT, creator)
+
+		const tokenPubkey = NATIVE_MINT === inputToken ? outputToken : inputToken
+		const tokenAta = getAssociatedTokenAddressSync(
+			tokenPubkey,
+			creator,
+			undefined,
+			TOKEN_2022_PROGRAM_ID,
+			ASSOCIATED_TOKEN_PROGRAM_ID
+		)
+
+		const createWsolAtaIx = createAssociatedTokenAccountIdempotentInstruction(
+			feePayer,
+			wsolAta,
+			creator,
+			NATIVE_MINT
+		)
+
+		const createTokenAtaIx = createAssociatedTokenAccountIdempotentInstruction(
+			feePayer,
+			tokenAta,
+			creator,
+			tokenPubkey,
+			TOKEN_2022_PROGRAM_ID,
+			ASSOCIATED_TOKEN_PROGRAM_ID
+		)
+
+		const transferIx = SystemProgram.transfer({
+			fromPubkey: creator,
+			toPubkey: wsolAta,
+			lamports: BigInt(amountIn.toString())
+		})
+
+		const syncNativeIx = createSyncNativeInstruction(wsolAta)
+
+		const swapIx = await this.program.methods
+			.swapBaseInput(amountIn, minimumAmountOut)
+			.accountsStrict({
+				payer: creator,
+				authority: auth,
+				ammConfig: configAddress,
+				poolState: poolAddress,
+				inputTokenAccount,
+				outputTokenAccount,
+				inputVault,
+				outputVault,
+				inputTokenProgram: inputTokenProgram,
+				outputTokenProgram: outputTokenProgram,
+				inputTokenMint: inputToken,
+				outputTokenMint: outputToken,
+				observationState: observationAddress
+			})
+			.instruction()
+
+		const closeWsolAtaIx = createCloseAccountInstruction(
+			wsolAta,
+			creator,
+			creator
+		)
+
+		const tx = new Transaction()
+
+		if (inputIsWSol) {
+			tx.add(
+				createWsolAtaIx,
+				createTokenAtaIx,
+				transferIx,
+				syncNativeIx,
+				swapIx,
+				closeWsolAtaIx
+			)
+		} else {
+			tx.add(createWsolAtaIx, createTokenAtaIx, swapIx, closeWsolAtaIx)
+		}
+
+		return tx
+	}
+
+	calculateInputAmountAfterTaxes(inputAmount: BN, taxesPercent: number): BN {
+		const taxRate = new BN(taxesPercent).mul(new BN(100)) // percent * 100 (5% -> 500)
+		const taxAmount = inputAmount.mul(taxRate).div(new BN(10000)) // input * taxRate / 10000
+		const amountAfterTaxes = inputAmount.sub(taxAmount)
+
+		return amountAfterTaxes
 	}
 }

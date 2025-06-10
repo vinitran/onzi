@@ -3,7 +3,7 @@ import {
 	InternalServerErrorException,
 	NotFoundException
 } from "@nestjs/common"
-import { Prisma } from "@prisma/client"
+import { Prisma, RaydiumStatusType } from "@prisma/client"
 import { DefaultArgs } from "@prisma/client/runtime/library"
 import { RedisService } from "@root/_redis/redis.service"
 import {
@@ -432,9 +432,25 @@ export class TokenRepository {
 	async getAllTokenAddress() {
 		return this.prisma.token.findMany({
 			select: { id: true, address: true },
-			where: { isDeleted: false },
+			where: {
+				isDeleted: false,
+				raydiumStatus: RaydiumStatusType.Listed
+			},
 			orderBy: {
 				createdAt: Prisma.SortOrder.desc
+			}
+		})
+	}
+
+	async getTotalSupply(id: string) {
+		return this.prisma.token.findFirst({
+			select: {
+				totalSupply: true
+			},
+			where: {
+				isDeleted: false,
+				raydiumStatus: RaydiumStatusType.Listed,
+				id
 			}
 		})
 	}

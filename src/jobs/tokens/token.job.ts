@@ -4,34 +4,24 @@ import { PrismaClient } from "@prisma/client"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
-import { keypairFromPrivateKey } from "@root/_shared/helpers/encode-decode-tx"
 import { IndexerService } from "@root/indexer/indexer.service"
-import { Connection, Keypair } from "@solana/web3.js"
 
 export const REWARD_DISTRIBUTOR_EVENTS = {
-	Token: "reward-distributor.token"
+	COLLECT_TOKEN: "reward-distributor.collect-token",
+	SWAP_TOKEN: "reward-distributor.swap-token",
+	DISTRIBUTE: "reward-distributor.distribute"
 } as const
 
 @Injectable()
 export class TokenJobs {
-	private connection: Connection
-	private systemWallet: Keypair
 	private prisma = new PrismaClient()
-	private HELIUS_RPC =
-		this.env.IS_TEST === "true"
-			? `https://devnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
-			: `https://mainnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
+
 	constructor(
 		private readonly tokenRepository: TokenRepository,
 		private indexer: IndexerService,
 		@InjectEnv() private env: Env,
 		private readonly rabbitMQService: RabbitMQService
-	) {
-		this.connection = new Connection(this.HELIUS_RPC)
-		this.systemWallet = keypairFromPrivateKey(
-			this.env.SYSTEM_WALLET_PRIVATE_KEY
-		)
-	}
+	) {}
 
 	@Cron(CronExpression.EVERY_5_MINUTES)
 	async collectFeesFromAllMints() {
@@ -39,8 +29,8 @@ export class TokenJobs {
 
 		for (const token of tokens) {
 			await this.rabbitMQService.emit(
-				"reward-distributor",
-				REWARD_DISTRIBUTOR_EVENTS.Token,
+				"collect-fee-reward-distributor",
+				REWARD_DISTRIBUTOR_EVENTS.COLLECT_TOKEN,
 				token
 			)
 		}

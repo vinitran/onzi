@@ -16,8 +16,16 @@ import { RabbitMQService } from "./rabbitmq.service"
 				useFactory: () => RabbitMQConfig("socket")
 			},
 			{
-				name: "REWARD_DISTRIBUTOR_RABBITMQ_SERVICE",
-				useFactory: () => RabbitMQConfig("reward-distributor", undefined, 5)
+				name: "COLLECT_FEE_REWARD_DISTRIBUTOR_RABBITMQ_SERVICE",
+				useFactory: () => RabbitMQConfig("collect-fee-reward-distributor")
+			},
+			{
+				name: "SWAP_TO_SOL_REWARD_DISTRIBUTOR_RABBITMQ_SERVICE",
+				useFactory: () => RabbitMQConfig("swap-to-sol-reward-distributor")
+			},
+			{
+				name: "DISTRIBUTE_REWARD_DISTRIBUTOR_RABBITMQ_SERVICE",
+				useFactory: () => RabbitMQConfig("distribute-reward-distributor")
 			}
 		])
 	],

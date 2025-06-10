@@ -270,8 +270,11 @@ export class IndexerService {
 			}
 
 			return response.data.result.token_accounts.map(
-				(account: { owner: string }) => account.owner
-			) as string[]
+				(account: { owner: string; amount: number }) => ({
+					owner: account.owner,
+					amount: account.amount.toString()
+				})
+			) as { owner: string; amount: string }[]
 		} catch (error) {
 			console.error("Error fetching token holders:", error)
 			throw error

@@ -10,7 +10,15 @@ async function bootstrap() {
 	try {
 		app.connectMicroservice(RabbitMQConfig("blockchain", false))
 		app.connectMicroservice(RabbitMQConfig("socket"))
-		app.connectMicroservice(RabbitMQConfig("reward-distributor"))
+		app.connectMicroservice(
+			RabbitMQConfig("collect-fee-reward-distributor", false, 20)
+		)
+		app.connectMicroservice(
+			RabbitMQConfig("swap-to-sol-reward-distributor", false, 20)
+		)
+		app.connectMicroservice(
+			RabbitMQConfig("distribute-reward-distributor", false, 20)
+		)
 	} catch (error) {
 		console.error("Failed to connect to RabbitMQ:", error)
 		process.exit(1)

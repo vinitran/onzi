@@ -29,7 +29,7 @@ export class IndexerController {
 	) {
 		const channel = context.getChannelRef()
 		const originalMsg = context.getMessage()
-		channel.prefetch(1, false)
+		channel.prefetch(20, false)
 
 		try {
 			await this.indexerService.handlerCreateToken(data)
