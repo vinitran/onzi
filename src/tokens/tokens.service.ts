@@ -16,6 +16,7 @@ import { Prisma, Token } from "@prisma/client"
 import { TokenChartRepository } from "@root/_database/repositories/token-candle.repository"
 import { TokenFavoriteRepository } from "@root/_database/repositories/token-favorite.repository"
 import { TokenKeyWithHeldRepository } from "@root/_database/repositories/token-key-with-held.repository"
+import { RedisService } from "@root/_redis/redis.service"
 import { STOP_WORDS, TOKEN_SUMMARY_OPTION } from "@root/_shared/constants/token"
 import {
 	encodeTransaction,
@@ -52,6 +53,7 @@ export class TokensService {
 		private token: TokenRepository,
 		private tokenKey: TokenKeyRepository,
 		private tokenFavorite: TokenFavoriteRepository,
+		private redis: RedisService,
 		private comment: CommentRepository,
 		private user: UserRepository,
 		private s3Service: S3Service,
@@ -70,7 +72,7 @@ export class TokensService {
 	) {
 		const {
 			contentType,
-			description,
+			description = " ",
 			name,
 			ticker,
 			rewardTax,
@@ -448,6 +450,15 @@ export class TokensService {
 			.sort((a, b) => b[1] - a[1])
 			.map(([word, count]) => ({ word, count }))
 
+		if (sorted.length > 0) {
+			return this.redis.getOrSet(
+				"trending-topics",
+				async () => {
+					return { data: sorted.slice(0, 5).map(item => item.word) }
+				},
+				60
+			)
+		}
 		return { data: sorted.slice(0, 5).map(item => item.word) }
 	}
 

@@ -14,6 +14,7 @@ import {
 	IsString,
 	IsUrl,
 	Length,
+	MaxLength,
 	MinLength
 } from "class-validator"
 
@@ -157,8 +158,8 @@ export class CreateTokenPayload extends Social {
 		description: "Description of the token",
 		example: "A token for my awesome project"
 	})
-	@Prop()
-	@Length(0, 500)
+	@OptionalProp()
+	@MaxLength(500)
 	description: string
 
 	@ApiProperty({

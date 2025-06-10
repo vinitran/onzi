@@ -12,6 +12,7 @@ import { ReelRepository } from "@root/_database/repositories/reel.repository"
 import { TokenFavoriteRepository } from "@root/_database/repositories/token-favorite.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
+import { RedisService } from "@root/_redis/redis.service"
 import {
 	CreateReelPayload,
 	GetDetailReelPayload,
@@ -32,6 +33,7 @@ import {
 export class ReelsService {
 	constructor(
 		private s3Service: S3Service,
+		private redis: RedisService,
 		private token: TokenRepository,
 		private tokenFavorite: TokenFavoriteRepository,
 		private reel: ReelRepository,
@@ -140,19 +142,25 @@ export class ReelsService {
 			isUserDislikeReel = !!userActionMap.Dislike
 		}
 
-		return {
-			...reel,
-			totalComment,
-			totalLike: totalByAction.Like,
-			totalDislike: totalByAction.Dislike,
-			userStatus: {
-				isLikeReel: isUserLikeReel,
-				isDislikeReel: isUserDislikeReel,
-				isFavoriteToken: isUserFavouriteToken
+		return this.redis.getOrSet(
+			`reel-detail-${reelId}-by-token`,
+			async () => {
+				return {
+					...reel,
+					totalComment,
+					totalLike: totalByAction.Like,
+					totalDislike: totalByAction.Dislike,
+					userStatus: {
+						isLikeReel: isUserLikeReel,
+						isDislikeReel: isUserDislikeReel,
+						isFavoriteToken: isUserFavouriteToken
+					},
+					prevReelId: prevReel?.id || null,
+					nextReelId: nextReel?.id || null
+				}
 			},
-			prevReelId: prevReel?.id || null,
-			nextReelId: nextReel?.id || null
-		}
+			30
+		)
 	}
 
 	// Get detail reel
@@ -205,19 +213,25 @@ export class ReelsService {
 			isUserDislikeReel = !!userActionMap.Dislike
 		}
 
-		return {
-			...reel,
-			totalComment,
-			totalLike: totalByAction.Like,
-			totalDislike: totalByAction.Dislike,
-			userStatus: {
-				isLikeReel: isUserLikeReel,
-				isDislikeReel: isUserDislikeReel,
-				isFavoriteToken: isUserFavouriteToken
+		return this.redis.getOrSet(
+			`reel-detail-${reelId}`,
+			async () => {
+				return {
+					...reel,
+					totalComment,
+					totalLike: totalByAction.Like,
+					totalDislike: totalByAction.Dislike,
+					userStatus: {
+						isLikeReel: isUserLikeReel,
+						isDislikeReel: isUserDislikeReel,
+						isFavoriteToken: isUserFavouriteToken
+					},
+					prevReelId: prevReel?.id || null,
+					nextReelId: nextReel?.id || null
+				}
 			},
-			prevReelId: prevReel?.id || null,
-			nextReelId: nextReel?.id || null
-		}
+			30
+		)
 	}
 
 	//   Get latest detail reel
