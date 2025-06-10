@@ -260,15 +260,12 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
 		tx.feePayer = feePayer.publicKey
 		tx.sign(feePayer, owner)
-		console.log("bs58: ", bs58.encode(tx.serialize()))
 
 		const simulationResult = await this.connection.simulateTransaction(tx)
 
 		if (simulationResult.value.err) {
 			throw Error(simulationResult.value.err.toString())
 		}
-
-		console.log("simulation result: ", simulationResult)
 
 		const txSig = await this.connection.sendRawTransaction(tx.serialize(), {
 			skipPreflight: true,
