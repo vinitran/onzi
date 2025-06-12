@@ -1,5 +1,6 @@
 import {
 	Body,
+	ClassSerializerInterceptor,
 	Controller,
 	Delete,
 	Get,
@@ -7,7 +8,9 @@ import {
 	ParseUUIDPipe,
 	Post,
 	Put,
-	Query
+	Query,
+	SerializeOptions,
+	UseInterceptors
 } from "@nestjs/common"
 import {
 	ApiBearerAuth,
@@ -30,6 +33,7 @@ import {
 	FindTokenByTextParams,
 	FindTokenParams,
 	ListTransactionParams,
+	PaginateDistributionPayload,
 	SickoModeParams,
 	UpdateTokenPayload
 } from "@root/tokens/dtos/payload.dto"
@@ -43,6 +47,7 @@ import {
 	FindTokenResponse,
 	GetSummaryTokensResponse,
 	ListTransactionResponse,
+	PaginateTransactionDistributeResponse,
 	SickoModeResponse,
 	SimilarTokenResponse,
 	ToggleFavoriteTokenResponse,
@@ -340,6 +345,28 @@ export class TokensController {
 				excludeExtraneousValues: true
 			}
 		)
+	}
+
+	@Get(":id/distribute-transactions")
+	@ApiOperation({
+		summary: "Get paginated list of token distributed transactions"
+	})
+	@ApiResponse({
+		status: 200,
+		description: "Get list reel reports in a reel successfully",
+		type: PaginateTransactionDistributeResponse
+	})
+	@UseInterceptors(ClassSerializerInterceptor)
+	@SerializeOptions({
+		type: PaginateTransactionDistributeResponse,
+		excludeExtraneousValues: true,
+		enableImplicitConversion: true
+	})
+	async getListDistributeTransaction(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+		@Query() query: PaginateDistributionPayload
+	) {
+		return this.tokensService.paginateTxDistribute(id, query)
 	}
 
 	@Auth()

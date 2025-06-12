@@ -1,9 +1,12 @@
 import { ApiProperty, PickType } from "@nestjs/swagger"
+import { Paginate } from "@root/dtos/common.dto"
 import { S3Upload } from "@root/dtos/file.dto"
 import { TokenChart } from "@root/dtos/token-chart.dto"
 import { TokenFavorite } from "@root/dtos/token-favorite.dto"
+import { TokenTransactionDistribute } from "@root/dtos/token-transaction-distribute.dto"
 import { TokenTransaction } from "@root/dtos/token-transaction.dto"
 import { Token, Token as TokenDto } from "@root/dtos/token.dto"
+import { User } from "@root/dtos/user.dto"
 import { Expose, Type } from "class-transformer"
 import { IsArray } from "class-validator"
 
@@ -162,4 +165,27 @@ export class GetSummaryTokensResponse extends PickType(Token, [
 	@Expose()
 	@ApiProperty({ description: "Total replies" })
 	totalComment: number
+}
+
+class TransactionDistributeUser extends PickType(User, [
+	"id",
+	"address",
+	"username",
+	"avatarUrl"
+]) {}
+
+export class TransactionDistributeItem extends TokenTransactionDistribute {
+	@ApiProperty({ description: "Data user from", nullable: true })
+	@Expose()
+	userFrom?: TransactionDistributeUser
+	@ApiProperty({ description: "Data user to", nullable: true })
+	@Expose()
+	userTo?: TransactionDistributeUser
+}
+
+export class PaginateTransactionDistributeResponse extends Paginate<TransactionDistributeItem> {
+	@ApiProperty({ type: [TransactionDistributeItem] })
+	@Type(() => TransactionDistributeItem)
+	@Expose()
+	data: TransactionDistributeItem[]
 }

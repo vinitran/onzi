@@ -238,7 +238,7 @@ export class ReelsService {
 	async getLatest({ userAddress, userId }: GetLatestReelPayload) {
 		const reel = await this.reel.getLatestByTime()
 
-		if (!reel) return null
+		if (!reel) throw new NotFoundException("Not found reel")
 
 		return this.getDetail({ reelId: reel.id, userAddress, userId })
 	}

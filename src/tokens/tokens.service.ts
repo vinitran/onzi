@@ -16,6 +16,7 @@ import { Prisma, Token } from "@prisma/client"
 import { TokenChartRepository } from "@root/_database/repositories/token-candle.repository"
 import { TokenFavoriteRepository } from "@root/_database/repositories/token-favorite.repository"
 import { TokenKeyWithHeldRepository } from "@root/_database/repositories/token-key-with-held.repository"
+import { TokenTransactionDistributeRepository } from "@root/_database/repositories/token-tx-distribute"
 import { RedisService } from "@root/_redis/redis.service"
 import { STOP_WORDS, TOKEN_SUMMARY_OPTION } from "@root/_shared/constants/token"
 import {
@@ -33,6 +34,7 @@ import {
 	FindTokenByTextParams,
 	FindTokenParams,
 	ListTransactionParams,
+	PaginateDistributionPayload,
 	SickoModeParams,
 	UpdateTokenPayload
 } from "@root/tokens/dtos/payload.dto"
@@ -59,6 +61,7 @@ export class TokensService {
 		private s3Service: S3Service,
 		private tokenTransaction: TokenTransactionRepository,
 		private tokenChart: TokenChartRepository,
+		private tokenTxDistribute: TokenTransactionDistributeRepository,
 		private ponz: Ponz,
 		private chartSocket: ChartGateway,
 		private readonly tokenKeyWithHeld: TokenKeyWithHeldRepository,
@@ -539,6 +542,13 @@ export class TokensService {
 		)
 
 		return tokens
+	}
+
+	async paginateTxDistribute(
+		tokenId: string,
+		payload: PaginateDistributionPayload
+	) {
+		return this.tokenTxDistribute.paginateByToken(tokenId, payload)
 	}
 
 	//   Get image url & authorize data to push image Aws3

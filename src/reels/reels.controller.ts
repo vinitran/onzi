@@ -62,7 +62,7 @@ export class ReelsController {
 	@ApiResponse({
 		status: 200,
 		description: "Get latest detail reel successfully",
-		type: GetDetailReelResponse
+		type: GetDetailReelResponse || null
 	})
 	@SerializeOptions({
 		type: GetDetailReelResponse,

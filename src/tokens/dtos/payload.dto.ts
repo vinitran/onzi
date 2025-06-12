@@ -731,3 +731,5 @@ export class UpdateTokenPayload {
 	@IsEnum(ContentType)
 	contentTypeBanner: ContentType
 }
+
+export class PaginateDistributionPayload extends PaginatedParams {}

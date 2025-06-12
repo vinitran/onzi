@@ -41,7 +41,6 @@ import {
 	TransactionInstruction,
 	TransactionSignature
 } from "@solana/web3.js"
-import bs58 from "bs58"
 import { InjectConnection } from "../programs.module"
 import { RaydiumCpSwap } from "./idl"
 
