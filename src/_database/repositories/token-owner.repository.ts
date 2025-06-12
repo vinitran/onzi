@@ -117,10 +117,12 @@ export class TokenOwnerRepository {
 		userAddress: string,
 		tokenAddress: string,
 		amount: string,
-		_tx?: Prisma.TransactionClient
+		tx?: Prisma.TransactionClient
 	) {
+		const client = tx ?? this.prisma
+
 		if (BigInt(amount) > 0) {
-			return this.prisma.tokenOwner.update({
+			return client.tokenOwner.update({
 				where: {
 					userAddress_tokenAddress: {
 						userAddress,
@@ -133,7 +135,7 @@ export class TokenOwnerRepository {
 			})
 		}
 
-		return this.prisma.tokenOwner.delete({
+		return client.tokenOwner.delete({
 			where: {
 				userAddress_tokenAddress: {
 					userAddress,
