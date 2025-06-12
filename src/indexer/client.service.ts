@@ -133,14 +133,20 @@ export class IndexerClientService {
 		const lamportsAmount = new BN(LAMPORTS_PER_SOL * 4) // sol amount - 4 SOL
 		const tokensAmount = new BN("11692307000000") // token amount ~ 11692307 Tokens
 
-		const tx = await this.raydium.createNewPair(
+		const txSignCreateNewPair = await this.raydium.createNewPair(
 			systemWalletKeypair,
 			new PublicKey(data.mint),
 			lamportsAmount,
 			tokensAmount
 		)
 
-		Logger.log(`Transaction migration to raydium: ${tx.txSig}`)
+		Logger.log("Transaction migration to raydium", txSignCreateNewPair)
+
+		const txSignBurnLPT = await this.raydium.burnLpToken(
+			new PublicKey(data.mint),
+			systemWalletKeypair
+		)
+		Logger.log("Transaction burn liquidity", txSignBurnLPT)
 
 		try {
 			await this.prisma.$transaction(

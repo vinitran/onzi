@@ -8,6 +8,7 @@ import {
 import { Ctx, EventPattern, Payload, RmqContext } from "@nestjs/microservices"
 import { TokenKeyWithHeldRepository } from "@root/_database/repositories/token-key-with-held.repository"
 import { TokenTransactionDistributeRepository } from "@root/_database/repositories/token-tx-distribute"
+import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
 import { keypairFromPrivateKey } from "@root/_shared/helpers/encode-decode-tx"
@@ -50,6 +51,7 @@ export class TokenJobsController {
 		@InjectConnection() private connection: web3.Connection,
 		private readonly tokenKeyWithHeld: TokenKeyWithHeldRepository,
 		private readonly tokentxDistribute: TokenTransactionDistributeRepository,
+		private readonly tokenRepository: TokenRepository,
 		private readonly rabbitMQService: RabbitMQService
 	) {
 		this.systemWalletKeypair = Keypair.fromSecretKey(
@@ -257,17 +259,40 @@ export class TokenJobsController {
 
 		if (feeAmountTotal > 0) {
 			await this.connection.confirmTransaction(lastSignature, "finalized")
+			const [tokenTax] = await Promise.all([
+				this.tokenRepository.getTaxByID(data.id),
+				this.tokentxDistribute.insert({
+					tokenId: data.id,
+					amountToken: feeAmountTotal,
+					signature: lastSignature,
+					type: "CollectFee"
+				})
+			])
+
+			const totalTotalTax =
+				tokenTax!.rewardTax + tokenTax!.jackpotTax + tokenTax!.burnTax
+			if (totalTotalTax === 0) {
+				return
+			}
+
+			if (tokenTax!.burnTax > 0) {
+				const burnAmount =
+					(feeAmountTotal * BigInt(tokenTax!.burnTax)) / BigInt(totalTotalTax)
+				await this.rabbitMQService.emit(
+					"swap-to-sol-reward-distributor",
+					REWARD_DISTRIBUTOR_EVENTS.BURN_TOKEN,
+					{ ...data, amount: burnAmount.toString() }
+				)
+			}
+
+			const swapAmount =
+				(feeAmountTotal * BigInt(tokenTax!.rewardTax + tokenTax!.jackpotTax)) /
+				BigInt(totalTotalTax)
 			await this.rabbitMQService.emit(
 				"swap-to-sol-reward-distributor",
 				REWARD_DISTRIBUTOR_EVENTS.SWAP_TOKEN,
-				{ ...data, amount: feeAmountTotal.toString() }
+				{ ...data, amount: swapAmount.toString() }
 			)
-			await this.tokentxDistribute.insert({
-				tokenId: data.id,
-				amountToken: feeAmountTotal,
-				signature: lastSignature,
-				type: "CollectFee"
-			})
 		}
 	}
 

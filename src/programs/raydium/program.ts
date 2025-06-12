@@ -26,6 +26,7 @@ import {
 	TOKEN_PROGRAM_ID,
 	createAssociatedTokenAccountIdempotentInstruction,
 	createAssociatedTokenAccountInstruction,
+	createBurnCheckedInstruction,
 	createCloseAccountInstruction,
 	createSyncNativeInstruction,
 	getAssociatedTokenAddressSync
@@ -219,9 +220,7 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 		const txSig = await this.connection.sendRawTransaction(tx.serialize())
 		await this.connection.confirmTransaction(txSig, "finalized")
 
-		return {
-			txSig
-		}
+		return txSig
 	}
 
 	async swap(
@@ -271,6 +270,88 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 			maxRetries: 5
 		})
 		await this.connection.confirmTransaction(txSig, "finalized")
+		return txSig
+	}
+
+	async burnToken(tokenAddress: PublicKey, amount: string, owner: Keypair) {
+		const tokenAta = getAssociatedTokenAddressSync(
+			tokenAddress,
+			owner.publicKey,
+			undefined,
+			TOKEN_2022_PROGRAM_ID
+		)
+
+		const tx = new Transaction().add(
+			createBurnCheckedInstruction(
+				tokenAta,
+				tokenAddress,
+				owner.publicKey,
+				BigInt(amount),
+				6,
+				[],
+				TOKEN_2022_PROGRAM_ID
+			)
+		)
+
+		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
+		tx.feePayer = owner.publicKey
+		tx.sign(owner)
+
+		return this.connection.sendRawTransaction(tx.serialize(), {
+			skipPreflight: true,
+			preflightCommitment: "processed",
+			maxRetries: 10
+		})
+	}
+
+	async burnLpToken(tokenAddress: PublicKey, creator: Keypair) {
+		const sortedTokenArray = this.sortTokens(tokenAddress, new BN(0), new BN(0))
+		if (sortedTokenArray.length !== 2)
+			throw new InternalServerErrorException("Can not sort token")
+
+		const token0 = sortedTokenArray[0]
+		const token1 = sortedTokenArray[1]
+
+		const poolAddress = await this.fetchPoolAddress(
+			token0.address,
+			token1.address
+		)
+
+		const poolState = await this.program.account.poolState.fetch(poolAddress)
+		const lpMintAddress = poolState.lpMint
+
+		// fetch lpMintAta - creator's ATA
+		const lpMintAta = getAssociatedTokenAddressSync(
+			lpMintAddress,
+			creator.publicKey
+		)
+		console.log("lpMintAta", lpMintAta.toBase58())
+
+		const lpMintAtaAccount =
+			await this.connection.getTokenAccountBalance(lpMintAta)
+		console.log("lpMintAtaAccount", lpMintAtaAccount.value.amount)
+
+		// Burn entire the amount in the creator's lpMintAta
+		const tx = new Transaction().add(
+			createBurnCheckedInstruction(
+				lpMintAta,
+				lpMintAddress,
+				creator.publicKey,
+				BigInt(lpMintAtaAccount.value.amount),
+				lpMintAtaAccount.value.decimals
+			)
+		)
+
+		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
+		tx.feePayer = creator.publicKey
+		tx.sign(creator)
+
+		const txSig = await this.connection.sendRawTransaction(tx.serialize(), {
+			skipPreflight: true,
+			maxRetries: 5
+		})
+
+		await this.connection.confirmTransaction(txSig, "confirmed")
 		return txSig
 	}
 
@@ -334,21 +415,25 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 		return [address, bump]
 	}
 
-	async fetchPool(
-		tokenMint0: PublicKey,
-		tokenMint1: PublicKey
-	): Promise<[BN, BN]> {
+	async fetchPoolAddress(tokenMint0: PublicKey, tokenMint1: PublicKey) {
 		const [ammConfigAddress] = await getAmmConfigAddress(
 			0,
 			this.program.programId
 		)
 
-		const poolAddress = this.getPoolAddress(
+		return this.getPoolAddress(
 			ammConfigAddress,
 			tokenMint0,
 			tokenMint1,
 			this.program.programId
 		)[0]
+	}
+
+	async fetchPool(
+		tokenMint0: PublicKey,
+		tokenMint1: PublicKey
+	): Promise<[BN, BN]> {
+		const poolAddress = await this.fetchPoolAddress(tokenMint0, tokenMint1)
 
 		const poolState = await this.program.account.poolState.fetch(poolAddress)
 

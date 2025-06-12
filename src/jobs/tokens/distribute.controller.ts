@@ -11,6 +11,7 @@ import { keypairFromPrivateKey } from "@root/_shared/helpers/encode-decode-tx"
 import { IndexerService } from "@root/indexer/indexer.service"
 import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
 import { InjectConnection } from "@root/programs/programs.module"
+import { Raydium } from "@root/programs/raydium/program"
 import {
 	ConfirmOptions,
 	Keypair,
@@ -24,6 +25,12 @@ type DistributeMessageType = {
 	id: string
 	address: string
 	lamport: string
+}
+
+type BurnTokenMessageType = {
+	id: string
+	address: string
+	amount: string
 }
 
 type DataDistributeMessageType = {
@@ -55,7 +62,8 @@ export class DistributorController {
 		private readonly tokenKeyWithHeld: TokenKeyWithHeldRepository,
 		private readonly tokentxDistribute: TokenTransactionDistributeRepository,
 		private readonly tokenRepository: TokenRepository,
-		private readonly rabbitMQService: RabbitMQService
+		private readonly rabbitMQService: RabbitMQService,
+		private readonly raydium: Raydium
 	) {
 		this.systemWalletKeypair = Keypair.fromSecretKey(
 			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
@@ -73,6 +81,36 @@ export class DistributorController {
 
 		try {
 			await this.distributeSolToHolder(data)
+			channel.ack(originalMsg, false)
+		} catch (error) {
+			Logger.error(error)
+			throw error
+		}
+	}
+
+	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.BURN_TOKEN)
+	async handleBurnToken(
+		@Payload() data: BurnTokenMessageType,
+		@Ctx() context: RmqContext
+	) {
+		const channel = context.getChannelRef()
+		channel.prefetch(20, false)
+		const originalMsg = context.getMessage()
+
+		try {
+			const txSign = await this.raydium.burnToken(
+				new PublicKey(data.address),
+				data.amount,
+				this.systemWalletKeypair
+			)
+			await this.tokentxDistribute.insert({
+				from: this.systemWalletKeypair.publicKey.toBase58(),
+				tokenId: data.id,
+				amountToken: BigInt(data.amount),
+				signature: txSign,
+				type: "Burn"
+			})
+
 			channel.ack(originalMsg, false)
 		} catch (error) {
 			Logger.error(error)

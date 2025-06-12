@@ -9,6 +9,7 @@ export const REWARD_DISTRIBUTOR_EVENTS = {
 	COLLECT_TOKEN: "reward-distributor.collect-token",
 	SWAP_TOKEN: "reward-distributor.swap-token",
 	DISTRIBUTE: "reward-distributor.distribute",
+	BURN_TOKEN: "reward-distributor.burn-token",
 	DISTRIBUTE_TOKEN: "reward-distributor.distribute-token",
 	JACKPOT: "reward-distributor.jackpot",
 	DISTRIBUTE_JACKPOT: "reward-distributor.distribure-jackpot"
