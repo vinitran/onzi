@@ -155,7 +155,7 @@ export class TokenJobsController {
 			new PublicKey(data.address),
 			new PublicKey(keyWithHeld.publicKey),
 			true,
-			"confirmed",
+			"processed",
 			{},
 			TOKEN_2022_PROGRAM_ID,
 			ASSOCIATED_TOKEN_PROGRAM_ID
@@ -239,7 +239,7 @@ export class TokenJobsController {
 						[],
 						validSourceAddresses,
 						{
-							commitment: "confirmed"
+							commitment: "processed"
 						},
 						TOKEN_2022_PROGRAM_ID
 					)

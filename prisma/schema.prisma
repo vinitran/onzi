@@ -158,11 +158,11 @@ model Token {
   tax                     Float     @default(0)
   rewardTax               Float     @default(0) @map("reward_tax")
   jackpotTax              Float     @default(0) @map("jackpot_tax")
-  jackpotAmount           Float     @default(0) @map("jackpot_amount")
+  jackpotAmount           BigInt    @default(0) @map("jackpot_amount")
   burnTax                 Float     @default(0) @map("burn_tax")
 
-  jackpotPending Float @default(0) @map("jackpot_pending")
-  taxPending     Float @default(0) @map("tax_pending")
+  jackpotPending BigInt @default(0) @map("jackpot_pending")
+  taxPending     Float  @default(0) @map("tax_pending")
 
   lockAmount BigInt?   @map("lock_amount")
   unlockAt   DateTime? @map("unlock_at") @db.Timestamptz(3)

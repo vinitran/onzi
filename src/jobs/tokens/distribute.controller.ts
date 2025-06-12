@@ -4,7 +4,9 @@ import { Ctx, EventPattern, Payload, RmqContext } from "@nestjs/microservices"
 import { Prisma } from "@prisma/client"
 import { TokenKeyWithHeldRepository } from "@root/_database/repositories/token-key-with-held.repository"
 import { TokenTransactionDistributeRepository } from "@root/_database/repositories/token-tx-distribute"
+import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
+import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
 import { keypairFromPrivateKey } from "@root/_shared/helpers/encode-decode-tx"
 import { IndexerService } from "@root/indexer/indexer.service"
 import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
@@ -24,16 +26,36 @@ type DistributeMessageType = {
 	lamport: string
 }
 
+type DataDistributeMessageType = {
+	from: string
+	tokenId: string
+	to: string
+	lamport: string
+	type: string
+}
+
+type DistributeTokenMessageType = {
+	tx: string
+	data: DataDistributeMessageType[]
+}
+
+type JackpotMessageType = {
+	id: string
+	address: string
+	amount: string
+}
 @Controller()
 export class DistributorController {
-	private systemWalletKeypair: Keypair
+	private readonly systemWalletKeypair: Keypair
 
 	constructor(
 		@InjectEnv() private env: Env,
 		private readonly indexer: IndexerService,
 		@InjectConnection() private connection: web3.Connection,
 		private readonly tokenKeyWithHeld: TokenKeyWithHeldRepository,
-		private readonly tokentxDistribute: TokenTransactionDistributeRepository
+		private readonly tokentxDistribute: TokenTransactionDistributeRepository,
+		private readonly tokenRepository: TokenRepository,
+		private readonly rabbitMQService: RabbitMQService
 	) {
 		this.systemWalletKeypair = Keypair.fromSecretKey(
 			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
@@ -58,8 +80,188 @@ export class DistributorController {
 		}
 	}
 
+	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.DISTRIBUTE_TOKEN)
+	async handleDistributeSOLToHolder(
+		@Payload() data: DistributeTokenMessageType,
+		@Ctx() context: RmqContext
+	) {
+		const channel = context.getChannelRef()
+		channel.prefetch(20, false)
+		const originalMsg = context.getMessage()
+
+		if (data.data.length === 0) {
+			channel.ack(originalMsg, false)
+			return
+		}
+
+		const keyWithHeld = await this.tokenKeyWithHeld.find(data.data[0].tokenId)
+		if (!keyWithHeld) {
+			throw new NotFoundException("not found key with held")
+		}
+
+		try {
+			const txBuffer = Buffer.from(data.tx, "base64")
+			const tx = Transaction.from(txBuffer)
+
+			const options: ConfirmOptions = {
+				skipPreflight: true,
+				commitment: "processed",
+				maxRetries: 5
+			}
+
+			tx.recentBlockhash = (
+				await this.connection.getLatestBlockhash()
+			).blockhash
+
+			tx.sign(
+				this.systemWalletKeypair,
+				keypairFromPrivateKey(keyWithHeld.privateKey)
+			)
+
+			const txSig = await this.connection.sendRawTransaction(
+				tx.serialize(),
+				options
+			)
+
+			// Add signature to each transaction record
+			const createTokenTxDistribute = data.data.map(tx => ({
+				tokenId: tx.tokenId,
+				from: tx.from,
+				to: tx.to,
+				lamport: BigInt(tx.lamport),
+				type: tx.type,
+				signature: txSig
+			})) as Prisma.TokenTransactionDistributeCreateInput[]
+
+			await this.tokentxDistribute.insertManyWithSign(createTokenTxDistribute)
+
+			if (data.data[0].type === "Jackpot") {
+				await this.tokenRepository.resetJackpotAmount(data.data[0].tokenId)
+			}
+
+			channel.ack(originalMsg, false)
+		} catch (error) {
+			Logger.error(error)
+			throw error
+		}
+	}
+
+	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.JACKPOT)
+	async handleJackpot(
+		@Payload() data: JackpotMessageType,
+		@Ctx() context: RmqContext
+	) {
+		const channel = context.getChannelRef()
+		channel.prefetch(20, false)
+		const originalMsg = context.getMessage()
+
+		try {
+			const jackpot = await this.tokenRepository.updateJackpotPending(
+				data.id,
+				data.amount
+			)
+			if (jackpot) {
+				await this.rabbitMQService.emit(
+					"distribute-reward-distributor",
+					REWARD_DISTRIBUTOR_EVENTS.DISTRIBUTE_JACKPOT,
+					{
+						id: data.id,
+						address: data.address
+					}
+				)
+			}
+			channel.ack(originalMsg, false)
+		} catch (error) {
+			Logger.error(error)
+			throw error
+		}
+	}
+
+	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.DISTRIBUTE_JACKPOT)
+	async handleDistributeJackpot(
+		@Payload() data: { id: string; address: string },
+		@Ctx() context: RmqContext
+	) {
+		const channel = context.getChannelRef()
+		channel.prefetch(20, false)
+		const originalMsg = context.getMessage()
+
+		let page = 1
+		const pageSize = 1000
+
+		let holdersAddress: string[] = []
+
+		while (true) {
+			const holders = await this.indexer.getTokenHoldersByPage(
+				data.address,
+				page,
+				pageSize
+			)
+			if (!holders || holders.length === 0) break
+
+			holdersAddress = [
+				...holdersAddress,
+				...holders.map(holder => holder.owner)
+			]
+
+			if (holders.length < pageSize) break
+			page++
+		}
+
+		// Get random user from holders
+		const randomIndex = Math.floor(Math.random() * holdersAddress.length)
+		const randomUser = holdersAddress[randomIndex]
+
+		const [keyWithHeld, token] = await Promise.all([
+			this.tokenKeyWithHeld.find(data.id),
+			this.tokenRepository.getJackpotAmount(data.id)
+		])
+		if (!keyWithHeld) {
+			throw new NotFoundException("not found key with held")
+		}
+
+		if (!token) {
+			throw new NotFoundException("not found token")
+		}
+
+		const createTokenTxDistribute: DataDistributeMessageType[] = []
+
+		const tx = new Transaction().add(
+			SystemProgram.transfer({
+				fromPubkey: new PublicKey(keyWithHeld.publicKey),
+				toPubkey: new PublicKey(randomUser),
+				lamports: token.jackpotPending
+			})
+		)
+
+		tx.feePayer = this.systemWalletKeypair.publicKey
+
+		// Set fake/dummy recentBlockhash
+		tx.recentBlockhash = PublicKey.default.toBase58()
+
+		createTokenTxDistribute.push({
+			from: keyWithHeld.publicKey,
+			tokenId: data.id,
+			to: randomUser,
+			lamport: token.jackpotPending.toString(),
+			type: "Jackpot"
+		})
+
+		await this.rabbitMQService.emit(
+			"distribute-reward-distributor",
+			REWARD_DISTRIBUTOR_EVENTS.DISTRIBUTE_TOKEN,
+			{
+				tx: tx
+					.serialize({ requireAllSignatures: false, verifySignatures: false })
+					.toString("base64"),
+				data: createTokenTxDistribute
+			}
+		)
+
+		channel.ack(originalMsg, false)
+	}
+
 	async distributeSolToHolder(data: DistributeMessageType) {
-		console.log("start distribute to")
 		let page = 1
 		const pageSize = 1000 // Get 1000 users per page
 		const batchSize = 10 // Process 5 users at a time
@@ -68,6 +270,13 @@ export class DistributorController {
 		if (!keyWithHeld) {
 			throw new NotFoundException("not found key with held")
 		}
+
+		const token = await this.tokenRepository.getTaxByID(data.id)
+		if (!token) {
+			throw new NotFoundException("not found token")
+		}
+
+		const totalTax = token.rewardTax + token.jackpotTax + token.burnTax
 
 		while (true) {
 			try {
@@ -79,19 +288,31 @@ export class DistributorController {
 				if (!holders || holders.length === 0) break
 
 				const listHolders = [...new Set(holders)]
+				const holderPubkeys = listHolders.map(
+					holder => new PublicKey(holder.owner)
+				)
+				const accountsInfo =
+					await this.connection.getMultipleAccountsInfo(holderPubkeys)
+
+				// Filter out non-existent accounts
+				const existingHolders = listHolders.filter(
+					(_holder, index) => accountsInfo[index] !== null
+				)
 
 				// Process holders in batches of 5
-				for (let i = 0; i < listHolders.length; i += batchSize) {
-					const batch = listHolders.slice(i, i + batchSize)
+				for (let i = 0; i < existingHolders.length; i += batchSize) {
+					const batch = existingHolders.slice(i, i + batchSize)
 
 					const tx = new Transaction()
 
-					let createTokenTxDistribute: Prisma.TokenTransactionDistributeCreateInput[] =
-						[]
+					const createTokenTxDistribute: DataDistributeMessageType[] = []
 					for (const holder of batch) {
 						const lamportToSend =
-							(BigInt(data.lamport) * BigInt(holder.amount)) /
-							BigInt(1000000000000000)
+							(BigInt(data.lamport) *
+								BigInt(holder.amount) *
+								BigInt(token.rewardTax)) /
+							(BigInt(totalTax) * BigInt(token.totalSupply))
+
 						tx.add(
 							SystemProgram.transfer({
 								fromPubkey: new PublicKey(keyWithHeld.publicKey),
@@ -103,42 +324,28 @@ export class DistributorController {
 							from: keyWithHeld.publicKey,
 							tokenId: data.id,
 							to: holder.owner,
-							lamport: BigInt(lamportToSend),
+							lamport: lamportToSend.toString(),
 							type: "Distribute"
 						})
 					}
 
-					tx.recentBlockhash = (
-						await this.connection.getLatestBlockhash()
-					).blockhash
 					tx.feePayer = this.systemWalletKeypair.publicKey
 
-					const options: ConfirmOptions = {
-						preflightCommitment: "confirmed",
-						commitment: "confirmed"
-					}
+					// Set fake/dummy recentBlockhash
+					tx.recentBlockhash = PublicKey.default.toBase58()
 
-					const txSig = await this.connection.sendTransaction(
-						tx,
-						[
-							this.systemWalletKeypair,
-							keypairFromPrivateKey(keyWithHeld.privateKey)
-						],
-						options
-					)
-
-					// Add signature to each transaction record
-					createTokenTxDistribute = createTokenTxDistribute.map(tx => ({
-						...tx,
-						signature: txSig
-					}))
-
-					await this.tokentxDistribute.insertManyWithSign(
-						createTokenTxDistribute
-					)
-					Logger.log(
-						`Transaction signature for page ${page}, batch ${Math.floor(i / batchSize) + 1}:`,
-						txSig
+					await this.rabbitMQService.emit(
+						"distribute-reward-distributor",
+						REWARD_DISTRIBUTOR_EVENTS.DISTRIBUTE_TOKEN,
+						{
+							tx: tx
+								.serialize({
+									requireAllSignatures: false,
+									verifySignatures: false
+								})
+								.toString("base64"),
+							data: createTokenTxDistribute
+						}
 					)
 				}
 
@@ -150,6 +357,21 @@ export class DistributorController {
 				Logger.log("Error when distributing SOL:", error)
 				break
 			}
+		}
+
+		if (token.jackpotTax > 0) {
+			const amountJackpot =
+				(BigInt(data.lamport) * BigInt(token.jackpotTax)) / BigInt(totalTax)
+
+			await this.rabbitMQService.emit(
+				"distribute-reward-distributor",
+				REWARD_DISTRIBUTOR_EVENTS.JACKPOT,
+				{
+					id: data.id,
+					address: data.address,
+					amount: amountJackpot.toString()
+				}
+			)
 		}
 	}
 }

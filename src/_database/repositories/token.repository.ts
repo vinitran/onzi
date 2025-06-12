@@ -442,6 +442,24 @@ export class TokenRepository {
 		})
 	}
 
+	async getTaxByID(id: string) {
+		return this.redis.getOrSet(
+			`token-getTaxByID: ${id}`,
+			() => {
+				return this.prisma.token.findFirst({
+					where: { id },
+					select: {
+						rewardTax: true,
+						jackpotTax: true,
+						burnTax: true,
+						totalSupply: true
+					}
+				})
+			},
+			10
+		)
+	}
+
 	async getTotalSupply(id: string) {
 		return this.prisma.token.findFirst({
 			select: {
@@ -948,5 +966,64 @@ export class TokenRepository {
 			where: { id },
 			data: { isDeleted: true }
 		})
+	}
+
+	async getJackpotAmount(id: string) {
+		return this.prisma.token.findFirst({
+			where: { id },
+			select: {
+				jackpotPending: true
+			}
+		})
+	}
+
+	async resetJackpotAmount(id: string) {
+		return this.prisma.token.update({
+			where: { id },
+			data: {
+				jackpotPending: 0
+			}
+		})
+	}
+
+	async updateJackpotPending(
+		id: string,
+		amount: string,
+		tx?: Prisma.TransactionClient
+	): Promise<boolean> {
+		const amountBigInt = BigInt(amount)
+		if (amountBigInt <= 0) {
+			throw new InternalServerErrorException("Amount must be positive")
+		}
+
+		const client = tx ?? this.prisma
+
+		const token = await client.token.findFirst({
+			where: {
+				id
+			},
+			select: {
+				jackpotPending: true
+			}
+		})
+
+		if (!token) {
+			throw new NotFoundException("not found token")
+		}
+
+		const updatedToken = await client.token.update({
+			where: {
+				id
+			},
+			data: {
+				jackpotPending: token.jackpotPending + amountBigInt
+			},
+			select: {
+				jackpotPending: true,
+				jackpotAmount: true
+			}
+		})
+
+		return updatedToken.jackpotPending >= updatedToken.jackpotAmount
 	}
 }

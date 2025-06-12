@@ -4,12 +4,14 @@ import { PrismaClient } from "@prisma/client"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
-import { IndexerService } from "@root/indexer/indexer.service"
 
 export const REWARD_DISTRIBUTOR_EVENTS = {
 	COLLECT_TOKEN: "reward-distributor.collect-token",
 	SWAP_TOKEN: "reward-distributor.swap-token",
-	DISTRIBUTE: "reward-distributor.distribute"
+	DISTRIBUTE: "reward-distributor.distribute",
+	DISTRIBUTE_TOKEN: "reward-distributor.distribute-token",
+	JACKPOT: "reward-distributor.jackpot",
+	DISTRIBUTE_JACKPOT: "reward-distributor.distribure-jackpot"
 } as const
 
 @Injectable()
@@ -18,12 +20,11 @@ export class TokenJobs {
 
 	constructor(
 		private readonly tokenRepository: TokenRepository,
-		private indexer: IndexerService,
 		@InjectEnv() private env: Env,
 		private readonly rabbitMQService: RabbitMQService
 	) {}
 
-	@Cron(CronExpression.EVERY_5_MINUTES)
+	@Cron(CronExpression.EVERY_MINUTE)
 	async collectFeesFromAllMints() {
 		const tokens = await this.tokenRepository.getAllTokenAddress()
 
