@@ -325,11 +325,9 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 			lpMintAddress,
 			creator.publicKey
 		)
-		console.log("lpMintAta", lpMintAta.toBase58())
 
 		const lpMintAtaAccount =
 			await this.connection.getTokenAccountBalance(lpMintAta)
-		console.log("lpMintAtaAccount", lpMintAtaAccount.value.amount)
 
 		// Burn entire the amount in the creator's lpMintAta
 		const tx = new Transaction().add(

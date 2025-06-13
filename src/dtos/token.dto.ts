@@ -93,10 +93,7 @@ export class Token extends SocialToken {
 	@Expose()
 	ticker: string
 
-	@ApiProperty({
-		description: "Token price",
-		example: 1.25
-	})
+	@ApiProperty({ description: "Token price at transaction time" })
 	@Expose()
 	@Type(() => Number)
 	price: number

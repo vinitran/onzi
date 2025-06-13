@@ -37,6 +37,7 @@ export class TokenOwner {
 		type: () => Token
 	})
 	@Expose()
+	@Type(() => Token)
 	token: Token
 
 	@ApiProperty({

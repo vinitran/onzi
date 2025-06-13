@@ -166,7 +166,7 @@ export class TokenOwnerRepository {
 		const newAmount =
 			type === "Sell"
 				? dbAmountBN - BigInt(amount)
-				: dbAmountBN - BigInt(amount)
+				: dbAmountBN + BigInt(amount)
 
 		return this.updateTokenOwner(
 			userAddress,
