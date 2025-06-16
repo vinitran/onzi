@@ -87,14 +87,12 @@ export class TokenJobsController {
 		const originalMsg = context.getMessage()
 
 		try {
-			await this.collectFeesForToken(data)
+			await this.swapToSol(data)
 			channel.ack(originalMsg, false)
 		} catch (error) {
 			Logger.error(error)
 			throw error
 		}
-
-		await this.swapToSol(data)
 	}
 
 	async swapToSol(data: SwapMessageType) {

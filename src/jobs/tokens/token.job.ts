@@ -25,7 +25,7 @@ export class TokenJobs {
 		private readonly rabbitMQService: RabbitMQService
 	) {}
 
-	@Cron(CronExpression.EVERY_MINUTE)
+	@Cron(CronExpression.EVERY_5_MINUTES)
 	async collectFeesFromAllMints() {
 		const tokens = await this.tokenRepository.getAllTokenAddress()
 
@@ -34,6 +34,24 @@ export class TokenJobs {
 				"collect-fee-reward-distributor",
 				REWARD_DISTRIBUTOR_EVENTS.COLLECT_TOKEN,
 				token
+			)
+		}
+	}
+
+	@Cron(CronExpression.EVERY_MINUTE)
+	async sendJackpot() {
+		const tokens = await this.tokenRepository.getTokenWithJackpot()
+
+		for (const token of tokens) {
+			await this.rabbitMQService.emit(
+				"distribute-reward-distributor",
+				REWARD_DISTRIBUTOR_EVENTS.DISTRIBUTE_JACKPOT,
+				{
+					id: token.id,
+					address: token.address,
+					amount: token.jackpotAmount.toString(),
+					times: token.jackpotQueue
+				}
 			)
 		}
 	}

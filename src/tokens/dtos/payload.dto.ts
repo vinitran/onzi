@@ -15,6 +15,7 @@ import {
 	IsUrl,
 	Length,
 	MaxLength,
+	Min,
 	MinLength
 } from "class-validator"
 
@@ -184,6 +185,7 @@ export class CreateTokenPayload extends Social {
 	})
 	@Prop()
 	@IsNumber()
+	@Min(500000000)
 	jackpotAmount: number
 
 	@ApiProperty({

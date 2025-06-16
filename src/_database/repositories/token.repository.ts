@@ -968,20 +968,30 @@ export class TokenRepository {
 		})
 	}
 
-	async getJackpotAmount(id: string) {
-		return this.prisma.token.findFirst({
-			where: { id },
+	async getTokenWithJackpot() {
+		return this.prisma.token.findMany({
+			where: {
+				jackpotQueue: {
+					gt: 0
+				},
+				isDeleted: false
+			},
 			select: {
-				jackpotPending: true
+				id: true,
+				address: true,
+				jackpotAmount: true,
+				jackpotQueue: true
 			}
 		})
 	}
 
-	async resetJackpotAmount(id: string) {
+	async resetJackpotQueue(id: string) {
 		return this.prisma.token.update({
-			where: { id },
+			where: {
+				id
+			},
 			data: {
-				jackpotPending: 0
+				jackpotQueue: 0
 			}
 		})
 	}
@@ -990,7 +1000,7 @@ export class TokenRepository {
 		id: string,
 		amount: string,
 		tx?: Prisma.TransactionClient
-	): Promise<boolean> {
+	) {
 		const amountBigInt = BigInt(amount)
 		if (amountBigInt <= 0) {
 			throw new InternalServerErrorException("Amount must be positive")
@@ -998,32 +1008,21 @@ export class TokenRepository {
 
 		const client = tx ?? this.prisma
 
-		const token = await client.token.findFirst({
-			where: {
-				id
-			},
-			select: {
-				jackpotPending: true
-			}
-		})
-
-		if (!token) {
-			throw new NotFoundException("not found token")
-		}
-
-		const updatedToken = await client.token.update({
-			where: {
-				id
-			},
-			data: {
-				jackpotPending: token.jackpotPending + amountBigInt
-			},
-			select: {
-				jackpotPending: true,
-				jackpotAmount: true
-			}
-		})
-
-		return updatedToken.jackpotPending >= updatedToken.jackpotAmount
+		return client.$queryRaw`
+			UPDATE "token"
+			SET 
+				"jackpot_pending" = CASE 
+					WHEN "jackpot_amount" != 0 AND ("jackpot_pending" + ${amountBigInt}) >= "jackpot_amount"
+					THEN ("jackpot_pending" + ${amountBigInt}) % "jackpot_amount"
+					ELSE "jackpot_pending" + ${amountBigInt}
+				END,
+				"jackpot_queue" = CASE 
+					WHEN "jackpot_amount" != 0 AND ("jackpot_pending" + ${amountBigInt}) >= "jackpot_amount"
+					THEN "jackpot_queue" + FLOOR(("jackpot_pending" + ${amountBigInt}) / "jackpot_amount")
+					ELSE "jackpot_queue"
+				END
+			WHERE id = ${id}::uuid
+			RETURNING "jackpot_pending", "jackpot_amount", "jackpot_queue"
+		`
 	}
 }

@@ -51,6 +51,13 @@ type JackpotMessageType = {
 	address: string
 	amount: string
 }
+
+type DistributeJackpotMessageType = {
+	id: string
+	address: string
+	amount: string
+	times: number
+}
 @Controller()
 export class DistributorController {
 	private readonly systemWalletKeypair: Keypair
@@ -174,7 +181,7 @@ export class DistributorController {
 			await this.tokentxDistribute.insertManyWithSign(createTokenTxDistribute)
 
 			if (data.data[0].type === "Jackpot") {
-				await this.tokenRepository.resetJackpotAmount(data.data[0].tokenId)
+				await this.tokenRepository.resetJackpotQueue(data.data[0].tokenId)
 			}
 
 			channel.ack(originalMsg, false)
@@ -194,20 +201,7 @@ export class DistributorController {
 		const originalMsg = context.getMessage()
 
 		try {
-			const jackpot = await this.tokenRepository.updateJackpotPending(
-				data.id,
-				data.amount
-			)
-			if (jackpot) {
-				await this.rabbitMQService.emit(
-					"distribute-reward-distributor",
-					REWARD_DISTRIBUTOR_EVENTS.DISTRIBUTE_JACKPOT,
-					{
-						id: data.id,
-						address: data.address
-					}
-				)
-			}
+			await this.tokenRepository.updateJackpotPending(data.id, data.amount)
 			channel.ack(originalMsg, false)
 		} catch (error) {
 			Logger.error(error)
@@ -217,7 +211,7 @@ export class DistributorController {
 
 	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.DISTRIBUTE_JACKPOT)
 	async handleDistributeJackpot(
-		@Payload() data: { id: string; address: string },
+		@Payload() data: DistributeJackpotMessageType,
 		@Ctx() context: RmqContext
 	) {
 		const channel = context.getChannelRef()
@@ -246,44 +240,42 @@ export class DistributorController {
 			page++
 		}
 
-		// Get random user from holders
-		const randomIndex = Math.floor(Math.random() * holdersAddress.length)
-		const randomUser = holdersAddress[randomIndex]
-
-		const [keyWithHeld, token] = await Promise.all([
-			this.tokenKeyWithHeld.find(data.id),
-			this.tokenRepository.getJackpotAmount(data.id)
+		const [keyWithHeld] = await Promise.all([
+			this.tokenKeyWithHeld.find(data.id)
 		])
 		if (!keyWithHeld) {
 			throw new NotFoundException("not found key with held")
 		}
 
-		if (!token) {
-			throw new NotFoundException("not found token")
-		}
-
 		const createTokenTxDistribute: DataDistributeMessageType[] = []
+		const tx = new Transaction()
 
-		const tx = new Transaction().add(
-			SystemProgram.transfer({
-				fromPubkey: new PublicKey(keyWithHeld.publicKey),
-				toPubkey: new PublicKey(randomUser),
-				lamports: token.jackpotPending
+		for (let i = 0; i < data.times; i++) {
+			// Get random user from holders
+			const randomIndex = Math.floor(Math.random() * holdersAddress.length)
+			const randomUser = holdersAddress[randomIndex]
+
+			tx.add(
+				SystemProgram.transfer({
+					fromPubkey: new PublicKey(keyWithHeld.publicKey),
+					toPubkey: new PublicKey(randomUser),
+					lamports: BigInt(data.amount)
+				})
+			)
+
+			createTokenTxDistribute.push({
+				from: keyWithHeld.publicKey,
+				tokenId: data.id,
+				to: randomUser,
+				lamport: data.amount,
+				type: "Jackpot"
 			})
-		)
+		}
 
 		tx.feePayer = this.systemWalletKeypair.publicKey
 
 		// Set fake/dummy recentBlockhash
 		tx.recentBlockhash = PublicKey.default.toBase58()
-
-		createTokenTxDistribute.push({
-			from: keyWithHeld.publicKey,
-			tokenId: data.id,
-			to: randomUser,
-			lamport: token.jackpotPending.toString(),
-			type: "Jackpot"
-		})
 
 		await this.rabbitMQService.emit(
 			"distribute-reward-distributor",

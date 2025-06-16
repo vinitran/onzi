@@ -162,6 +162,7 @@ model Token {
   burnTax                 Float     @default(0) @map("burn_tax")
 
   jackpotPending BigInt @default(0) @map("jackpot_pending")
+  jackpotQueue    Int    @default(0) @map("jackpot_queue")
   taxPending     Float  @default(0) @map("tax_pending")
 
   lockAmount BigInt?   @map("lock_amount")
