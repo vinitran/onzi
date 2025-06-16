@@ -80,5 +80,10 @@ export const STOP_WORDS = new Set([
 	"ticker",
 	"token",
 	"project",
-	"description" // thêm các từ chung domain
+	"description"
 ])
+
+export const SICKO_MODE_TOKEN_EMIT_EVENTS = {
+	NEW_TOKEN: "sicko-mode-new-token",
+	UPDATE_TOKEN: "sicko-mode-update-token"
+}

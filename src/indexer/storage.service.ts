@@ -29,6 +29,7 @@ import {
 } from "@root/programs/ponz/events"
 import { Ponz } from "@root/programs/ponz/program"
 import { InjectConnection } from "@root/programs/programs.module"
+import { SickoModeResponse } from "@root/tokens/dtos/response.dto"
 import { plainToInstance } from "class-transformer"
 import { DateTime } from "luxon"
 
@@ -108,6 +109,15 @@ export class StorageIndexerService {
 			Logger.log(e)
 			throw new InternalServerErrorException("Failed to handle create token")
 		}
+
+		// Emit socket -> sicko mode
+		const sickoModeToken = await this.getSickoModeToken(data.mint)
+		if (!sickoModeToken) return
+		await this.rabbitMQService.emit(
+			"socket",
+			"sicko-mode-new-token",
+			sickoModeToken
+		)
 	}
 
 	async updateTokenAfterTransaction(
@@ -205,6 +215,15 @@ export class StorageIndexerService {
 			"new-transaction",
 			plainToInstance(TokenTransaction, transaction)
 		)
+
+		// Emit socket -> sicko mode
+		const sickoModeToken = await this.getSickoModeToken(data.mint)
+		if (!sickoModeToken) return
+		await this.rabbitMQService.emit(
+			"socket",
+			"sicko-mode-tx-token",
+			sickoModeToken
+		)
 	}
 
 	async handlerSellToken(data: SellTokensEvent) {
@@ -290,6 +309,15 @@ export class StorageIndexerService {
 			"socket",
 			"new-transaction",
 			plainToInstance(TokenTransaction, transaction)
+		)
+
+		// Emit socket -> sicko mode
+		const sickoModeToken = await this.getSickoModeToken(data.mint)
+		if (!sickoModeToken) return
+		await this.rabbitMQService.emit(
+			"socket",
+			"sicko-mode-tx-token",
+			sickoModeToken
 		)
 	}
 
@@ -409,5 +437,18 @@ export class StorageIndexerService {
 			throw new Error("not found block time from transaction")
 
 		return DateTime.fromSeconds(transaction.blockTime)
+	}
+
+	private async getSickoModeToken(tokenAddress: string) {
+		const sickoModeToken =
+			await this.tokenRepository.getSickoModeItem(tokenAddress)
+
+		if (!sickoModeToken) return null
+
+		const formatData = plainToInstance(SickoModeResponse, sickoModeToken, {
+			excludeExtraneousValues: true,
+			enableImplicitConversion: true
+		})
+		return formatData
 	}
 }

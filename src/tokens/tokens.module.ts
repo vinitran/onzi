@@ -6,7 +6,12 @@ import { Ponz } from "@root/programs/ponz/program"
 import { ProgramsModule } from "@root/programs/programs.module"
 import { AuthWebSocketService } from "@root/socket/auth-ws.service"
 import { TokenSocketController } from "@root/tokens/indexer.socket.controller"
-import { ChartGateway, TokeGateway, TransactionGateway } from "./token.gateway"
+import {
+	ChartGateway,
+	TokeGateway,
+	TokenSickoModeGateway,
+	TransactionGateway
+} from "./token.gateway"
 import { TokensController } from "./tokens.controller"
 import { TokensService } from "./tokens.service"
 
@@ -16,6 +21,7 @@ import { TokensService } from "./tokens.service"
 	providers: [
 		ChartGateway,
 		TransactionGateway,
+		TokenSickoModeGateway,
 		TokensService,
 		S3Service,
 		TokeGateway,

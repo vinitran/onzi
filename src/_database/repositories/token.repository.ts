@@ -297,6 +297,119 @@ export class TokenRepository {
 		}
 	}
 
+	async getSickoModeItem(tokenAddress: string) {
+		const token = await this.prisma.token.findUnique({
+			where: {
+				address: tokenAddress,
+				bump: true,
+				isDeleted: false
+			},
+			select: {
+				id: true,
+				name: true,
+				address: true,
+				price: true,
+				imageUri: true,
+				ticker: true,
+				network: true,
+				bondingCurveTarget: true,
+				isCompletedBondingCurve: true,
+				isCompletedKingOfHill: true,
+				createdAtKingOfHill: true,
+				bump: true,
+				creatorAddress: true,
+				marketCapacity: true,
+				volumn: true,
+				hallOfFame: true,
+				tax: true,
+				rewardTax: true,
+				jackpotTax: true,
+				jackpotAmount: true,
+				burnTax: true,
+				jackpotPending: true,
+				lockAmount: true,
+				totalSupply: true,
+				unlockAt: true,
+				taxPending: true,
+				createdAt: true,
+				updatedAt: true,
+				raydiumStatus: true,
+				tokenOwners: {
+					select: {
+						userAddress: true,
+						amount: true
+					},
+					take: 10,
+					orderBy: {
+						amount: Prisma.SortOrder.desc
+					}
+				},
+				_count: {
+					select: {
+						tokenTransaction: true,
+						tokenOwners: true
+					}
+				}
+			}
+		})
+
+		if (!token) return null
+
+		const top10Total = token.tokenOwners.reduce(
+			(sum, owner) => sum + owner.amount,
+			BigInt(0)
+		)
+
+		const top10Percentage =
+			token.marketCapacity > 0
+				? top10Total / token.totalSupply / BigInt(100)
+				: BigInt(0)
+
+		const isFavorite = false
+
+		if (token.tokenOwners.length === 0) {
+			return {
+				...token,
+				tokenOwners: undefined,
+				top10HoldersPercentage: top10Percentage,
+				isFavorite,
+				devHoldPersent: 0
+			}
+		}
+
+		let creatorAmount = BigInt(0)
+		const creatorInTop10 = token.tokenOwners.find(
+			owner => owner.userAddress === token.creatorAddress
+		)
+
+		if (creatorInTop10) {
+			creatorAmount = creatorInTop10.amount
+		} else {
+			const creator = await this.prisma.tokenOwner.findFirst({
+				where: {
+					userAddress: token.creatorAddress,
+					tokenAddress: token.address
+				},
+				select: {
+					userAddress: true,
+					amount: true
+				}
+			})
+
+			creatorAmount = creator ? creator.amount : BigInt(0)
+		}
+
+		const devHoldPersent = creatorAmount / token.totalSupply
+
+		return {
+			...token,
+			tokenOwners: undefined,
+			top10HoldersPercentage: top10Percentage,
+			isFavorite,
+			devHoldPersent
+		}
+	}
+
 	async find(userAddress: string | undefined, query: FindTokenParams) {
 		const skip = (query.page - 1) * query.take
 

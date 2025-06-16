@@ -9,6 +9,7 @@ import {
 	WebSocketGateway
 } from "@nestjs/websockets"
 import {
+	SICKO_MODE_TOKEN_EMIT_EVENTS,
 	TOKEN_GATEWAY_EMIT_EVENTS,
 	TOKEN_GATEWAY_LISTEN_EVENTS
 } from "@root/_shared/constants/token"
@@ -18,6 +19,7 @@ import { TokenTransaction } from "@root/dtos/token-transaction.dto"
 import { CandleDto } from "@root/indexer/dtos/chart.dto"
 import { AuthWebSocketService } from "@root/socket/auth-ws.service"
 import { Server, Socket } from "socket.io"
+import { SickoModeResponse } from "./dtos/response.dto"
 @WebSocketGateway({
 	cors: { origin: "*" },
 	namespace: "token"
@@ -126,5 +128,42 @@ export class TransactionGateway
 	handleTx(data: TokenTransaction) {
 		const room = `transaction:${data.token?.id}`
 		this.serverInstance.to(room).emit(TX_GATEWAY_EMIT_EVENTS.NEW_TX, data)
+	}
+}
+
+@WebSocketGateway({
+	cors: { origin: "*" },
+	namespace: "/sicko-mode-token"
+})
+export class TokenSickoModeGateway
+	implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
+	private readonly logger = new Logger("token-sicko-mode")
+	private serverInstance: Server
+
+	afterInit(server: Server) {
+		this.serverInstance = server
+	}
+
+	async handleConnection(@ConnectedSocket() client: Socket) {
+		try {
+			this.logger.log(`Client connected: ${client.nsp.name} - ID: ${client.id}`)
+		} catch {
+			client.disconnect()
+		}
+	}
+
+	handleDisconnect(client: Socket) {
+		this.logger.log(
+			`Client disconnected: ${client.nsp.name} - ID: ${client.id}`
+		)
+	}
+
+	emitNewSickoModeToken(data: SickoModeResponse) {
+		this.serverInstance.emit(SICKO_MODE_TOKEN_EMIT_EVENTS.NEW_TOKEN, data)
+	}
+
+	emitUpdateSickoModeToken(data: SickoModeResponse) {
+		this.serverInstance.emit(SICKO_MODE_TOKEN_EMIT_EVENTS.UPDATE_TOKEN, data)
 	}
 }

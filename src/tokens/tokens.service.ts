@@ -208,7 +208,7 @@ export class TokensService {
 		}))
 	}
 
-	findSickoMode(
+	async findSickoMode(
 		userAddress: string | undefined,
 		params: SickoModeParams
 	): Promise<{ tokens: SickoModeResponse[]; total: number; maxPage: number }> {
