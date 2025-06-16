@@ -42,13 +42,14 @@ import {
 	CreateTokenInCacheResponse,
 	CreateTokenOffchainResponse,
 	CreateTokenOnchainResponse,
-	FindFavoriteTokenResponse,
 	FindSimilarTokenResponse,
 	FindTokenResponse,
 	GetSummaryTokensResponse,
 	ListTransactionResponse,
+	PaginateFavoriteTokenResponse,
+	PaginateSickoModeResponse,
+	PaginateTokenResponse,
 	PaginateTransactionDistributeResponse,
-	SickoModeResponse,
 	SimilarTokenResponse,
 	ToggleFavoriteTokenResponse,
 	TokenHolderResponse,
@@ -108,25 +109,23 @@ export class TokensController {
 
 	@Get()
 	@ApiBearerAuth()
-	@ApiPaginatedResponse(FindTokenResponse)
 	@ApiOperation({ summary: "List token" })
+	@ApiResponse({
+		status: 200,
+		description: "Paginate tokens successfully",
+		type: PaginateTokenResponse
+	})
+	@UseInterceptors(ClassSerializerInterceptor)
+	@SerializeOptions({
+		type: PaginateTokenResponse,
+		enableImplicitConversion: true,
+		excludeExtraneousValues: true
+	})
 	async findMany(
 		@User() user: Claims | undefined,
 		@Query() query: FindTokenParams
 	) {
-		const {
-			tokens: data,
-			total,
-			maxPage
-		} = await this.tokensService.find(user?.address, query)
-
-		return plainToInstance(
-			PaginatedResponse<FindTokenResponse>,
-			new PaginatedResponse(data, total, maxPage),
-			{
-				excludeExtraneousValues: true
-			}
-		)
+		return this.tokensService.find(user?.address, query)
 	}
 
 	@Get("/summary")
@@ -162,25 +161,23 @@ export class TokensController {
 
 	@Get("/sicko-mode")
 	@ApiBearerAuth()
-	@ApiPaginatedResponse(SickoModeResponse)
 	@ApiOperation({ summary: "Latest token in Sicko mode" })
+	@ApiResponse({
+		status: 200,
+		type: PaginateSickoModeResponse,
+		description: "Paginate sicko mode tokens successfully"
+	})
+	@UseInterceptors(ClassSerializerInterceptor)
+	@SerializeOptions({
+		type: PaginateSickoModeResponse,
+		enableImplicitConversion: true,
+		excludeExtraneousValues: true
+	})
 	async findManySickoMode(
 		@User() user: Claims | undefined,
 		@Query() query: SickoModeParams
 	) {
-		const {
-			tokens: data,
-			total,
-			maxPage
-		} = await this.tokensService.findSickoMode(user?.address, query)
-
-		return plainToInstance(
-			PaginatedResponse<SickoModeResponse>,
-			new PaginatedResponse(data, total, maxPage),
-			{
-				excludeExtraneousValues: true
-			}
-		)
+		return this.tokensService.findSickoMode(user?.address, query)
 	}
 
 	@Get("trending-topics")
@@ -221,25 +218,24 @@ export class TokensController {
 	}
 
 	@Auth()
-	@ApiPaginatedResponse(FindFavoriteTokenResponse)
 	@Get("favorite")
 	@ApiOperation({ summary: "Paginate list favorite token" })
+	@ApiResponse({
+		status: 200,
+		type: PaginateFavoriteTokenResponse,
+		description: "Paginate favorite tokens successfully"
+	})
+	@UseInterceptors(ClassSerializerInterceptor)
+	@SerializeOptions({
+		type: PaginateFavoriteTokenResponse,
+		enableImplicitConversion: true,
+		excludeExtraneousValues: true
+	})
 	async paginateFavouriteToken(
 		@Query() query: FindListTokenFavoriteParams,
 		@User() user: Claims
 	) {
-		const { maxPage, data, total } = await this.tokensService.getListFavorite(
-			user.address,
-			query
-		)
-
-		return plainToInstance(
-			PaginatedResponse<FindFavoriteTokenResponse>,
-			new PaginatedResponse(data, total, maxPage),
-			{
-				excludeExtraneousValues: true
-			}
-		)
+		return this.tokensService.getListFavorite(user.address, query)
 	}
 
 	@Post(":id/onchain")

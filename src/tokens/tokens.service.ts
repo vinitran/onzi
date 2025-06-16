@@ -39,11 +39,8 @@ import {
 	UpdateTokenPayload
 } from "@root/tokens/dtos/payload.dto"
 import {
-	FindFavoriteTokenResponse,
 	FindSimilarTokenResponse,
-	FindTokenResponse,
-	ListTransactionResponse,
-	SickoModeResponse
+	ListTransactionResponse
 } from "@root/tokens/dtos/response.dto"
 import { ChartGateway } from "@root/tokens/token.gateway"
 import { PublicKey } from "@solana/web3.js"
@@ -193,32 +190,12 @@ export class TokensService {
 		return encodeTransaction(tx)
 	}
 
-	find(
-		userAddress: string | undefined,
-		params: FindTokenParams
-	): Promise<{ tokens: FindTokenResponse[]; total: number; maxPage: number }> {
-		return this.token.find(userAddress, params).then(result => ({
-			tokens: plainToInstance(FindTokenResponse, result.tokens, {
-				excludeExtraneousValues: true,
-				enableImplicitConversion: true
-			}),
-			total: result.total,
-			maxPage: result.maxPage
-		}))
+	find(userAddress: string | undefined, params: FindTokenParams) {
+		return this.token.find(userAddress, params)
 	}
 
-	async findSickoMode(
-		userAddress: string | undefined,
-		params: SickoModeParams
-	): Promise<{ tokens: SickoModeResponse[]; total: number; maxPage: number }> {
-		return this.token.findSickoMode(userAddress, params).then(result => ({
-			tokens: plainToInstance(SickoModeResponse, result.tokens, {
-				excludeExtraneousValues: true,
-				enableImplicitConversion: true
-			}),
-			total: result.total,
-			maxPage: result.maxPage
-		}))
+	findSickoMode(userAddress: string | undefined, params: SickoModeParams) {
+		return this.token.findSickoMode(userAddress, params)
 	}
 
 	//   Get image url & authorize data to push image Aws3
@@ -419,14 +396,7 @@ export class TokensService {
 		userAddress: string,
 		query: FindListTokenFavoriteParams
 	) {
-		return this.tokenFavorite.find({ ...query, userAddress }).then(result => ({
-			data: plainToInstance(FindFavoriteTokenResponse, result.data, {
-				excludeExtraneousValues: true,
-				enableImplicitConversion: true
-			}),
-			total: result.total,
-			maxPage: result.maxPage
-		}))
+		return this.tokenFavorite.find({ ...query, userAddress })
 	}
 
 	async getTrendingTopics() {

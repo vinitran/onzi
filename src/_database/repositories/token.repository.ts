@@ -132,6 +132,7 @@ export class TokenRepository {
 					: [])
 			]
 		}
+
 		switch (query.sort) {
 			case SickoModeType.NEWEST:
 				orderBy = [...[{ createdAt: Prisma.SortOrder.desc }]]
@@ -291,7 +292,7 @@ export class TokenRepository {
 		)
 
 		return {
-			tokens: tokenData,
+			data: tokenData,
 			total,
 			maxPage: Math.ceil(total / query.take)
 		}
@@ -417,8 +418,7 @@ export class TokenRepository {
 			...(query.searchText && {
 				OR: [
 					{ name: { contains: query.searchText, mode: "insensitive" } },
-					{ ticker: { contains: query.searchText, mode: "insensitive" } },
-					{ description: { contains: query.searchText, mode: "insensitive" } }
+					{ ticker: { contains: query.searchText, mode: "insensitive" } }
 				]
 			}),
 			...(query.hallOfFame && {
@@ -516,7 +516,7 @@ export class TokenRepository {
 
 		if (!tokens || tokens.length === 0) {
 			return {
-				tokens: [],
+				data: [],
 				total: 0,
 				maxPage: 1
 			}
@@ -533,7 +533,7 @@ export class TokenRepository {
 		}
 
 		return {
-			tokens: tokens.map(token => ({
+			data: tokens.map(token => ({
 				...token,
 				isFavorite: userAddress ? favoriteTokens.includes(token.address) : false
 			})),

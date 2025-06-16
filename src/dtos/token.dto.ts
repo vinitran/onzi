@@ -4,7 +4,7 @@ import { TokenChart } from "@root/dtos/token-chart.dto"
 import { TokenFavorite } from "@root/dtos/token-favorite.dto"
 import { TokenOwner } from "@root/dtos/token-owner.dto"
 import { User } from "@root/dtos/user.dto"
-import { Expose, Type } from "class-transformer"
+import { Expose, Transform, Type } from "class-transformer"
 
 class SocialToken {
 	@ApiProperty({
@@ -219,6 +219,7 @@ export class Token extends SocialToken {
 	})
 	@Expose()
 	@Type(() => Number)
+	@Transform(({ value }) => Number(value))
 	marketCapacity?: number
 
 	@ApiProperty({
@@ -235,6 +236,7 @@ export class Token extends SocialToken {
 	})
 	@Expose()
 	@Type(() => Number)
+	@Transform(({ value }) => Number(value))
 	totalSupply: number
 
 	@ApiProperty({
@@ -251,6 +253,7 @@ export class Token extends SocialToken {
 	})
 	@Expose()
 	@Type(() => Number)
+	@Transform(({ value }) => Number(value))
 	volumn: number
 
 	@ApiProperty({
@@ -259,6 +262,7 @@ export class Token extends SocialToken {
 	})
 	@Expose()
 	@Type(() => Number)
+	@Transform(({ value }) => value / 100, { toClassOnly: true })
 	tax: number
 
 	@ApiProperty({
@@ -267,6 +271,7 @@ export class Token extends SocialToken {
 	})
 	@Expose()
 	@Type(() => Number)
+	@Transform(({ value }) => value / 100, { toClassOnly: true })
 	rewardTax: number
 
 	@ApiProperty({
@@ -275,6 +280,7 @@ export class Token extends SocialToken {
 	})
 	@Expose()
 	@Type(() => Number)
+	@Transform(({ value }) => value / 100, { toClassOnly: true })
 	jackpotTax: number
 
 	@ApiProperty({
@@ -291,6 +297,7 @@ export class Token extends SocialToken {
 	})
 	@Expose()
 	@Type(() => Number)
+	@Transform(({ value }) => value / 100, { toClassOnly: true })
 	burnTax: number
 
 	@ApiProperty({

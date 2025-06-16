@@ -7,7 +7,7 @@ import { TokenTransactionDistribute } from "@root/dtos/token-transaction-distrib
 import { TokenTransaction } from "@root/dtos/token-transaction.dto"
 import { Token, Token as TokenDto } from "@root/dtos/token.dto"
 import { User } from "@root/dtos/user.dto"
-import { Expose, Type } from "class-transformer"
+import { Expose, Transform, Type } from "class-transformer"
 import { IsArray } from "class-validator"
 
 export class CreateTokenInCacheResponse {
@@ -78,6 +78,14 @@ export class FindTokenResponse extends TokenDto {
 	balance?: number
 }
 
+export class PaginateTokenResponse extends Paginate<FindTokenResponse> {
+	@ApiProperty({ type: [FindTokenResponse] })
+	@Type(() => FindTokenResponse)
+	@Transform(({ value }) => value)
+	@Expose()
+	data: FindTokenResponse[]
+}
+
 class SickoModeCountResponse {
 	@ApiProperty({
 		description: "Token transaction",
@@ -117,6 +125,14 @@ export class SickoModeResponse extends TokenDto {
 	devHoldPersent: number
 }
 
+export class PaginateSickoModeResponse extends Paginate<SickoModeResponse> {
+	@ApiProperty({ type: [SickoModeResponse] })
+	@Type(() => SickoModeResponse)
+	@Transform(({ value }) => value)
+	@Expose()
+	data: SickoModeResponse[]
+}
+
 export class TokenHolderResponse extends TokenDto {}
 
 export class ToggleFavoriteTokenResponse {
@@ -126,6 +142,13 @@ export class ToggleFavoriteTokenResponse {
 }
 
 export class FindFavoriteTokenResponse extends TokenFavorite {}
+export class PaginateFavoriteTokenResponse extends Paginate<FindFavoriteTokenResponse> {
+	@ApiProperty({ type: [FindFavoriteTokenResponse] })
+	@Type(() => FindFavoriteTokenResponse)
+	@Transform(({ value }) => value)
+	@Expose()
+	data: FindFavoriteTokenResponse[]
+}
 
 export class TrendingTopicResponse {
 	@ApiProperty({ type: "string", description: "Data", isArray: true })
