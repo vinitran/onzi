@@ -222,6 +222,14 @@ export class Token extends SocialToken {
 	marketCapacity?: number
 
 	@ApiProperty({
+		description: "Token jackpot queue",
+		example: 1
+	})
+	@Expose()
+	@Type(() => Number)
+	jackpotQueue?: number
+
+	@ApiProperty({
 		description: "Token total supply ",
 		example: 1000000000
 	})

@@ -16,7 +16,8 @@ import {
 	Length,
 	MaxLength,
 	Min,
-	MinLength
+	MinLength,
+	ValidateIf
 } from "class-validator"
 
 export enum ContentType {
@@ -185,6 +186,8 @@ export class CreateTokenPayload extends Social {
 	})
 	@Prop()
 	@IsNumber()
+	@Transform(({ value }) => Number(value))
+	@ValidateIf(o => o.jackpotAmount !== 0)
 	@Min(500000000)
 	jackpotAmount: number
 

@@ -161,13 +161,12 @@ export class TokensService {
 			throw new InternalServerErrorException("token already create")
 
 		const tokenKeypair = keypairFromPrivateKey(token.tokenKey.privateKey)
-		const transferFeeBasisPoints = (token.tax * 100) as number // 1% = 100
 		const maximumFee = new BN("1000000000000000")
 		const tokenMetadata = {
 			name: token.name,
 			symbol: token.ticker,
 			uri: token.uri,
-			transferFeeBasisPoints,
+			transferFeeBasisPoints: token.tax,
 			maximumFee
 		}
 

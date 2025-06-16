@@ -12,6 +12,7 @@ import { IndexerService } from "@root/indexer/indexer.service"
 import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
 import { InjectConnection } from "@root/programs/programs.module"
 import { Raydium } from "@root/programs/raydium/program"
+import { NATIVE_MINT } from "@solana/spl-token"
 import {
 	ConfirmOptions,
 	Keypair,
@@ -240,12 +241,21 @@ export class DistributorController {
 			page++
 		}
 
-		const [keyWithHeld] = await Promise.all([
-			this.tokenKeyWithHeld.find(data.id)
+		const [keyWithHeld, poolAddress] = await Promise.all([
+			this.tokenKeyWithHeld.find(data.id),
+			this.raydium.fetchPoolAddress(NATIVE_MINT, new PublicKey(data.address))
 		])
 		if (!keyWithHeld) {
 			throw new NotFoundException("not found key with held")
 		}
+
+		// Filter out pool address and keyWithHeld.publicKey from holders
+		const filteredHolders = holdersAddress.filter(
+			holder =>
+				holder !== poolAddress?.toBase58() && holder !== keyWithHeld.publicKey
+		)
+
+		const listHolders = [...new Set(filteredHolders)]
 
 		const createTokenTxDistribute: DataDistributeMessageType[] = []
 		const tx = new Transaction()
@@ -253,7 +263,7 @@ export class DistributorController {
 		for (let i = 0; i < data.times; i++) {
 			// Get random user from holders
 			const randomIndex = Math.floor(Math.random() * holdersAddress.length)
-			const randomUser = holdersAddress[randomIndex]
+			const randomUser = listHolders[randomIndex]
 
 			tx.add(
 				SystemProgram.transfer({
@@ -310,14 +320,23 @@ export class DistributorController {
 
 		while (true) {
 			try {
-				const holders = await this.indexer.getTokenHoldersByPage(
-					data.address,
-					page,
-					pageSize
-				)
+				const [holders, poolAddress] = await Promise.all([
+					this.indexer.getTokenHoldersByPage(data.address, page, pageSize),
+					this.raydium.fetchPoolAddress(
+						NATIVE_MINT,
+						new PublicKey(data.address)
+					)
+				])
 				if (!holders || holders.length === 0) break
 
-				const listHolders = [...new Set(holders)]
+				// Filter out pool address and keyWithHeld.publicKey from holders
+				const filteredHolders = holders.filter(
+					holder =>
+						holder.owner !== poolAddress?.toBase58() &&
+						holder.owner !== keyWithHeld.publicKey
+				)
+
+				const listHolders = [...new Set(filteredHolders)]
 				const holderPubkeys = listHolders.map(
 					holder => new PublicKey(holder.owner)
 				)
