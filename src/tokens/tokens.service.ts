@@ -134,6 +134,8 @@ export class TokensService {
 	}
 
 	async createTokenOffchain(id: string) {
+		await this.tokenKeyWithHeld.createIfNotExist(id)
+
 		return this.token.createOffchain({
 			id,
 			postMetadataToS3: this.postMetadataToS3.bind(this),

@@ -13,7 +13,9 @@ import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
 import { keypairFromPrivateKey } from "@root/_shared/helpers/encode-decode-tx"
 import { IndexerService } from "@root/indexer/indexer.service"
+import { BurnFeePayload } from "@root/jobs/tokens/distribution/distribute.controller"
 import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
+import { Ponz } from "@root/programs/ponz/program"
 import { InjectConnection } from "@root/programs/programs.module"
 import { Raydium } from "@root/programs/raydium/program"
 import {
@@ -29,10 +31,11 @@ import {
 import { Keypair, PublicKey } from "@solana/web3.js"
 import bs58 from "bs58"
 
-type SwapMessageType = {
+export type SwapMessageType = {
 	id: string
 	address: string
-	amount: string
+	amount?: string
+	type?: "raydium" | "ponz"
 }
 
 @Controller()
@@ -48,6 +51,7 @@ export class TokenJobsController {
 		@InjectEnv() private env: Env,
 		private readonly indexer: IndexerService,
 		private raydium: Raydium,
+		private ponz: Ponz,
 		@InjectConnection() private connection: web3.Connection,
 		private readonly tokenKeyWithHeld: TokenKeyWithHeldRepository,
 		private readonly tokentxDistribute: TokenTransactionDistributeRepository,
@@ -59,7 +63,7 @@ export class TokenJobsController {
 		)
 	}
 
-	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.COLLECT_TOKEN)
+	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.COLLECT_FEE)
 	async handleCollectFeeToken(
 		@Payload() data: SwapMessageType,
 		@Ctx() context: RmqContext
@@ -77,7 +81,7 @@ export class TokenJobsController {
 		}
 	}
 
-	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.SWAP_TOKEN)
+	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.SWAP_FEE_TO_SOL)
 	async handleSwapTokenToSol(
 		@Payload() data: SwapMessageType,
 		@Ctx() context: RmqContext
@@ -96,24 +100,32 @@ export class TokenJobsController {
 	}
 
 	async swapToSol(data: SwapMessageType) {
-		const systemWalletKeypair = Keypair.fromSecretKey(
-			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
-		)
-
 		const keyWithHeld = await this.tokenKeyWithHeld.find(data.id)
 		if (!keyWithHeld) {
 			throw new NotFoundException("not found key with held")
 		}
 
-		const txSign = await this.raydium.swap(
-			keypairFromPrivateKey(keyWithHeld.privateKey),
-			systemWalletKeypair,
-			new PublicKey(data.address),
-			new BN(data.amount),
-			new BN(10000),
-			false,
-			2000
-		)
+		let txSign = ""
+		if (data.type === "ponz") {
+			txSign = await this.ponz.swapToSol(
+				new PublicKey(data.address),
+				keypairFromPrivateKey(keyWithHeld.privateKey),
+				this.systemWalletKeypair,
+				new BN(data.amount)
+			)
+		}
+
+		if (data.type === "raydium") {
+			txSign = await this.raydium.swap(
+				keypairFromPrivateKey(keyWithHeld.privateKey),
+				this.systemWalletKeypair,
+				new PublicKey(data.address),
+				new BN(data.amount),
+				new BN(10000),
+				false,
+				2000
+			)
+		}
 
 		const balanceChange = await this.getBalanceChange(
 			txSign,
@@ -122,7 +134,7 @@ export class TokenJobsController {
 
 		await this.tokentxDistribute.insert({
 			tokenId: data.id,
-			amountToken: BigInt(data.amount),
+			amountToken: BigInt(data.amount!),
 			lamport: BigInt(balanceChange),
 			signature: txSign,
 			type: "SwapToSolana"
@@ -130,7 +142,7 @@ export class TokenJobsController {
 
 		await this.rabbitMQService.emit(
 			"distribute-reward-distributor",
-			REWARD_DISTRIBUTOR_EVENTS.DISTRIBUTE,
+			REWARD_DISTRIBUTOR_EVENTS.PREPARE_REWARD_DISTRIBUTION,
 			{
 				id: data.id,
 				address: data.address,
@@ -139,7 +151,7 @@ export class TokenJobsController {
 		)
 	}
 
-	async collectFeesForToken(data: { id: string; address: string }) {
+	async collectFeesForToken(data: SwapMessageType) {
 		let page = 1
 		const pageSize = 1000 // Process 1000 users per page
 		const batchSize = 20 // Process max 20 users at a time
@@ -276,20 +288,34 @@ export class TokenJobsController {
 			if (tokenTax!.burnTax > 0) {
 				const burnAmount =
 					(feeAmountTotal * BigInt(tokenTax!.burnTax)) / BigInt(totalTotalTax)
+				const burnFeeData: BurnFeePayload = {
+					id: data.id,
+					address: data.address,
+					amount: burnAmount.toString()
+				}
+
 				await this.rabbitMQService.emit(
 					"swap-to-sol-reward-distributor",
-					REWARD_DISTRIBUTOR_EVENTS.BURN_TOKEN,
-					{ ...data, amount: burnAmount.toString() }
+					REWARD_DISTRIBUTOR_EVENTS.BURN_FEE,
+					burnFeeData
 				)
 			}
 
 			const swapAmount =
 				(feeAmountTotal * BigInt(tokenTax!.rewardTax + tokenTax!.jackpotTax)) /
 				BigInt(totalTotalTax)
+
+			const swapToSolMessage: SwapMessageType = {
+				id: data.id,
+				address: data.address,
+				amount: swapAmount.toString(),
+				type: data.type
+			}
+
 			await this.rabbitMQService.emit(
 				"swap-to-sol-reward-distributor",
-				REWARD_DISTRIBUTOR_EVENTS.SWAP_TOKEN,
-				{ ...data, amount: swapAmount.toString() }
+				REWARD_DISTRIBUTOR_EVENTS.SWAP_FEE_TO_SOL,
+				swapToSolMessage
 			)
 		}
 	}

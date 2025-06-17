@@ -18,7 +18,12 @@ import {
 	ASSOCIATED_TOKEN_PROGRAM_ID,
 	TOKEN_2022_PROGRAM_ID
 } from "@solana/spl-token"
-import { PublicKey, SYSVAR_RENT_PUBKEY, Transaction } from "@solana/web3.js"
+import {
+	Keypair,
+	PublicKey,
+	SYSVAR_RENT_PUBKEY,
+	Transaction
+} from "@solana/web3.js"
 import { InjectConnection } from "../programs.module"
 import { PonzSc } from "./idl"
 
@@ -27,6 +32,19 @@ export type BuyTokenType = {
 	minTokenOut: string
 	lockPercent?: number
 	lockTime?: number
+}
+
+interface IBondingCurveData {
+	creator: PublicKey
+	bump: number
+	initVirtualSol: BN
+	initVirtualToken: BN
+	tokenSupply: BN
+	tokenReserves: BN
+	solReserves: BN
+	complete: boolean
+	unlockTime: BN
+	prevPrice: number
 }
 
 @Injectable()
@@ -147,6 +165,65 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		tx.feePayer = user
 		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
 		tx.partialSign(tokenKeypair)
+
+		return tx
+	}
+
+	public async swapToSol(
+		mint: web3.PublicKey,
+		owner: web3.Keypair,
+		feePayer: web3.Keypair,
+		amount: BN
+	) {
+		const tx = await this.sell(
+			mint,
+			owner.publicKey,
+			feePayer,
+			amount,
+			new BN(0)
+		)
+
+		tx.sign(owner, feePayer)
+
+		const simulationResult = await this.connection.simulateTransaction(tx)
+
+		if (simulationResult.value.err) {
+			throw new InternalServerErrorException(simulationResult.value.err)
+		}
+
+		const txSig = await this.connection.sendRawTransaction(tx.serialize(), {
+			skipPreflight: true
+		})
+
+		await this.connection.confirmTransaction(txSig, "finalized")
+		return txSig
+	}
+
+	public async sell(
+		mint: PublicKey,
+		owner: PublicKey,
+		feePayer: Keypair,
+		sellTokensAmount: BN,
+		expectedSolAmount: BN
+	): Promise<Transaction> {
+		const tx = await this.program.methods
+			.sell(sellTokensAmount, expectedSolAmount)
+			.accountsStrict({
+				globalConfiguration: this.globalConfiguration,
+				mint,
+				bondingCurve: this.getBondingCurve(mint),
+				tokenPool: this.getTokenPool(mint),
+				feePool: this.feePool,
+				payer: owner,
+				payerAta: this.getOwnerAta(owner, mint),
+				tokenProgram: TOKEN_2022_PROGRAM_ID,
+				associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+				systemProgram: SYSTEM_PROGRAM_ID
+			})
+			.transaction()
+
+		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
+		tx.feePayer = feePayer.publicKey
 
 		return tx
 	}
@@ -353,5 +430,58 @@ export class Ponz extends SolanaProgram<PonzSc> {
 			[owner.toBuffer(), TOKEN_2022_PROGRAM_ID.toBuffer(), mint.toBuffer()],
 			ASSOCIATED_TOKEN_PROGRAM_ID
 		)[0]
+	}
+
+	public async fetchBondingCurve(
+		bondingCurvePubkey: PublicKey
+	): Promise<IBondingCurveData> {
+		try {
+			const bondingCurveData =
+				await this.program.account.bondingCurve.fetch(bondingCurvePubkey)
+
+			return bondingCurveData
+		} catch (error) {
+			console.error("Error fetching bonding curve:", error)
+			throw error
+		}
+	}
+
+	public async calculateLamportsOut(
+		bondingCurvePubkey: PublicKey,
+		tokensIn: BN
+	): Promise<BN> {
+		const bondingCurveData = await this.fetchBondingCurve(bondingCurvePubkey)
+
+		const xTotal = bondingCurveData.initVirtualSol.add(
+			bondingCurveData.solReserves
+		)
+		const yTotal = bondingCurveData.initVirtualToken.sub(
+			bondingCurveData.tokenSupply
+				.mul(new BN(99))
+				.div(new BN(100))
+				.sub(bondingCurveData.tokenReserves)
+		)
+
+		const kParam = xTotal.mul(yTotal)
+
+		let lamportsOut = xTotal.sub(kParam.div(yTotal.add(tokensIn)))
+
+		const bondingCurveAccountInfo =
+			await this.connection.getAccountInfo(bondingCurvePubkey)
+
+		if (bondingCurveAccountInfo) {
+			if (lamportsOut.lt(new BN(bondingCurveAccountInfo.lamports))) {
+				const minimumLamports =
+					await this.connection.getMinimumBalanceForRentExemption(
+						bondingCurveAccountInfo.data.length
+					)
+
+				lamportsOut = new BN(bondingCurveAccountInfo.lamports).sub(
+					new BN(minimumLamports)
+				)
+			}
+		}
+
+		return lamportsOut
 	}
 }

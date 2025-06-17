@@ -1,18 +1,20 @@
 import { Injectable, Logger } from "@nestjs/common"
 import { Cron, CronExpression } from "@nestjs/schedule"
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient, RaydiumStatusType } from "@prisma/client"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
+import { SwapMessageType } from "@root/jobs/tokens/token.controller"
 
 export const REWARD_DISTRIBUTOR_EVENTS = {
-	COLLECT_TOKEN: "reward-distributor.collect-token",
-	SWAP_TOKEN: "reward-distributor.swap-token",
-	DISTRIBUTE: "reward-distributor.distribute",
-	BURN_TOKEN: "reward-distributor.burn-token",
-	DISTRIBUTE_TOKEN: "reward-distributor.distribute-token",
-	JACKPOT: "reward-distributor.jackpot",
-	DISTRIBUTE_JACKPOT: "reward-distributor.distribure-jackpot"
+	COLLECT_FEE: "reward-distributor.collect-fee",
+	SWAP_FEE_TO_SOL: "reward-distributor.swap-fee-to-sol",
+	BURN_FEE: "reward-distributor.burn-fee",
+	PREPARE_REWARD_DISTRIBUTION: "reward-distributor.prepare-reward-distribution",
+	PREPARE_JACKPOT_DISTRIBUTION:
+		"reward-distributor.prepare-jackpot-distribution",
+	UPDATE_JACKPOT_AFTER_SWAP: "reward-distributor.update-jackpot-after-swap",
+	EXECUTE_DISTRIBUTION: "reward-distributor.execute-distribution"
 } as const
 
 @Injectable()
@@ -25,15 +27,22 @@ export class TokenJobs {
 		private readonly rabbitMQService: RabbitMQService
 	) {}
 
-	@Cron(CronExpression.EVERY_5_MINUTES)
+	@Cron(CronExpression.EVERY_MINUTE)
 	async collectFeesFromAllMints() {
 		const tokens = await this.tokenRepository.getAllTokenAddress()
 
 		for (const token of tokens) {
+			const data: SwapMessageType = {
+				id: token.id,
+				address: token.address,
+				type:
+					token.raydiumStatus === RaydiumStatusType.Listed ? "raydium" : "ponz"
+			}
+
 			await this.rabbitMQService.emit(
 				"collect-fee-reward-distributor",
-				REWARD_DISTRIBUTOR_EVENTS.COLLECT_TOKEN,
-				token
+				REWARD_DISTRIBUTOR_EVENTS.COLLECT_FEE,
+				data
 			)
 		}
 	}
@@ -45,7 +54,7 @@ export class TokenJobs {
 		for (const token of tokens) {
 			await this.rabbitMQService.emit(
 				"distribute-reward-distributor",
-				REWARD_DISTRIBUTOR_EVENTS.DISTRIBUTE_JACKPOT,
+				REWARD_DISTRIBUTOR_EVENTS.PREPARE_JACKPOT_DISTRIBUTION,
 				{
 					id: token.id,
 					address: token.address,

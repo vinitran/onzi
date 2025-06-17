@@ -544,10 +544,17 @@ export class TokenRepository {
 
 	async getAllTokenAddress() {
 		return this.prisma.token.findMany({
-			select: { id: true, address: true },
+			select: { id: true, address: true, raydiumStatus: true },
 			where: {
 				isDeleted: false,
-				raydiumStatus: RaydiumStatusType.Listed
+				OR: [
+					{
+						raydiumStatus: RaydiumStatusType.Listed
+					},
+					{
+						raydiumStatus: RaydiumStatusType.NotListed
+					}
+				]
 			},
 			orderBy: {
 				createdAt: Prisma.SortOrder.desc
@@ -1115,7 +1122,7 @@ export class TokenRepository {
 		tx?: Prisma.TransactionClient
 	) {
 		const amountBigInt = BigInt(amount)
-		if (amountBigInt <= 0) {
+		if (amountBigInt < 0) {
 			throw new InternalServerErrorException("Amount must be positive")
 		}
 

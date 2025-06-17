@@ -22,19 +22,19 @@ import {
 } from "@solana/web3.js"
 import bs58 from "bs58"
 
-type DistributeMessageType = {
+type PrepareRewardDistributionPayload = {
 	id: string
 	address: string
 	lamport: string
 }
 
-type BurnTokenMessageType = {
+export type BurnFeePayload = {
 	id: string
 	address: string
 	amount: string
 }
 
-type DataDistributeMessageType = {
+type DistributionTransaction = {
 	from: string
 	tokenId: string
 	to: string
@@ -42,23 +42,24 @@ type DataDistributeMessageType = {
 	type: string
 }
 
-type DistributeTokenMessageType = {
+type ExecuteDistributionPayload = {
 	tx: string
-	data: DataDistributeMessageType[]
+	data: DistributionTransaction[]
 }
 
-type JackpotMessageType = {
+type UpdateJackpotAfterSwapPayload = {
 	id: string
 	address: string
 	amount: string
 }
 
-type DistributeJackpotMessageType = {
+type PrepareJackpotDistributionPayload = {
 	id: string
 	address: string
 	amount: string
 	times: number
 }
+
 @Controller()
 export class DistributorController {
 	private readonly systemWalletKeypair: Keypair
@@ -78,9 +79,9 @@ export class DistributorController {
 		)
 	}
 
-	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.DISTRIBUTE)
+	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.PREPARE_REWARD_DISTRIBUTION)
 	async handleDistributeToHolder(
-		@Payload() data: DistributeMessageType,
+		@Payload() data: PrepareRewardDistributionPayload,
 		@Ctx() context: RmqContext
 	) {
 		const channel = context.getChannelRef()
@@ -96,9 +97,9 @@ export class DistributorController {
 		}
 	}
 
-	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.BURN_TOKEN)
+	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.BURN_FEE)
 	async handleBurnToken(
-		@Payload() data: BurnTokenMessageType,
+		@Payload() data: BurnFeePayload,
 		@Ctx() context: RmqContext
 	) {
 		const channel = context.getChannelRef()
@@ -126,9 +127,9 @@ export class DistributorController {
 		}
 	}
 
-	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.DISTRIBUTE_TOKEN)
+	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION)
 	async handleDistributeSOLToHolder(
-		@Payload() data: DistributeTokenMessageType,
+		@Payload() data: ExecuteDistributionPayload,
 		@Ctx() context: RmqContext
 	) {
 		const channel = context.getChannelRef()
@@ -192,9 +193,9 @@ export class DistributorController {
 		}
 	}
 
-	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.JACKPOT)
+	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.UPDATE_JACKPOT_AFTER_SWAP)
 	async handleJackpot(
-		@Payload() data: JackpotMessageType,
+		@Payload() data: UpdateJackpotAfterSwapPayload,
 		@Ctx() context: RmqContext
 	) {
 		const channel = context.getChannelRef()
@@ -210,9 +211,9 @@ export class DistributorController {
 		}
 	}
 
-	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.DISTRIBUTE_JACKPOT)
+	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.PREPARE_JACKPOT_DISTRIBUTION)
 	async handleDistributeJackpot(
-		@Payload() data: DistributeJackpotMessageType,
+		@Payload() data: PrepareJackpotDistributionPayload,
 		@Ctx() context: RmqContext
 	) {
 		const channel = context.getChannelRef()
@@ -257,7 +258,7 @@ export class DistributorController {
 
 		const listHolders = [...new Set(filteredHolders)]
 
-		const createTokenTxDistribute: DataDistributeMessageType[] = []
+		const createTokenTxDistribute: DistributionTransaction[] = []
 		const tx = new Transaction()
 
 		for (let i = 0; i < data.times; i++) {
@@ -289,7 +290,7 @@ export class DistributorController {
 
 		await this.rabbitMQService.emit(
 			"distribute-reward-distributor",
-			REWARD_DISTRIBUTOR_EVENTS.DISTRIBUTE_TOKEN,
+			REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION,
 			{
 				tx: tx
 					.serialize({ requireAllSignatures: false, verifySignatures: false })
@@ -301,7 +302,7 @@ export class DistributorController {
 		channel.ack(originalMsg, false)
 	}
 
-	async distributeSolToHolder(data: DistributeMessageType) {
+	async distributeSolToHolder(data: PrepareRewardDistributionPayload) {
 		let page = 1
 		const pageSize = 1000 // Get 1000 users per page
 		const batchSize = 10 // Process 5 users at a time
@@ -354,7 +355,7 @@ export class DistributorController {
 
 					const tx = new Transaction()
 
-					const createTokenTxDistribute: DataDistributeMessageType[] = []
+					const createTokenTxDistribute: DistributionTransaction[] = []
 					for (const holder of batch) {
 						const lamportToSend =
 							(BigInt(data.lamport) *
@@ -385,7 +386,7 @@ export class DistributorController {
 
 					await this.rabbitMQService.emit(
 						"distribute-reward-distributor",
-						REWARD_DISTRIBUTOR_EVENTS.DISTRIBUTE_TOKEN,
+						REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION,
 						{
 							tx: tx
 								.serialize({
@@ -414,7 +415,7 @@ export class DistributorController {
 
 			await this.rabbitMQService.emit(
 				"distribute-reward-distributor",
-				REWARD_DISTRIBUTOR_EVENTS.JACKPOT,
+				REWARD_DISTRIBUTOR_EVENTS.UPDATE_JACKPOT_AFTER_SWAP,
 				{
 					id: data.id,
 					address: data.address,
