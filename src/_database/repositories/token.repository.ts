@@ -1138,4 +1138,13 @@ export class TokenRepository {
 			RETURNING "jackpot_pending", "jackpot_amount", "jackpot_queue"
 		`
 	}
+
+	async deleteOffChain(id: string) {
+		return this.prisma.token.delete({
+			where: {
+				id,
+				bump: false
+			}
+		})
+	}
 }

@@ -107,6 +107,23 @@ export class TokensController {
 		})
 	}
 
+	@Delete(":id/offchain")
+	@Auth()
+	@ApiOperation({ summary: "Delete an off-chain token" })
+	@ApiResponse({
+		status: 204,
+		description: "Delete token off-chain successfully"
+	})
+	async deleteOffchain(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) tokenId: string,
+		@User("address") userAddress: string
+	) {
+		await this.tokensService.deleteTokenOffchain(tokenId, userAddress)
+		return {
+			message: "Delete token successfully"
+		}
+	}
+
 	@Get()
 	@ApiBearerAuth()
 	@ApiOperation({ summary: "List token" })

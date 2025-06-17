@@ -141,6 +141,15 @@ export class TokensService {
 		})
 	}
 
+	async deleteTokenOffchain(id: string, userAddress: string) {
+		const token = await this.token.findById(id)
+		if (!token) throw new NotFoundException("Not found token")
+		if (token.creatorAddress !== userAddress)
+			throw new ForbiddenException("Only creator have permission to remove")
+		await this.token.deleteOffChain(id)
+		await this.s3Service.deleteFile(this.s3Service.getKeyS3(token.imageUri))
+	}
+
 	async checkFileExist(uri: string): Promise<boolean> {
 		try {
 			const response = await fetch(uri, { method: "HEAD" })
