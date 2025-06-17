@@ -6,6 +6,7 @@ import {
 	Program,
 	Program as SolanaProgram,
 	Wallet,
+	utils,
 	web3
 } from "@coral-xyz/anchor"
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system"
@@ -17,7 +18,7 @@ import {
 	ASSOCIATED_TOKEN_PROGRAM_ID,
 	TOKEN_2022_PROGRAM_ID
 } from "@solana/spl-token"
-import { PublicKey, SYSVAR_RENT_PUBKEY } from "@solana/web3.js"
+import { PublicKey, SYSVAR_RENT_PUBKEY, Transaction } from "@solana/web3.js"
 import { InjectConnection } from "../programs.module"
 import { PonzSc } from "./idl"
 
@@ -282,6 +283,41 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		} catch (error) {
 			throw new InternalServerErrorException(`can not get lock data: ${error}`)
 		}
+	}
+
+	// ==== PDAs
+	get globalConfigPDA(): PublicKey {
+		return PublicKey.findProgramAddressSync(
+			[Buffer.from(utils.bytes.utf8.encode("global_config"))],
+			this.program.programId
+		)[0]
+	}
+
+	get feePoolPDA(): PublicKey {
+		return PublicKey.findProgramAddressSync(
+			[Buffer.from(utils.bytes.utf8.encode("fee_pool"))],
+			this.program.programId
+		)[0]
+	}
+
+	// withdraw fee
+	public async withdrawFeePool(
+		ponzMultiSigWallet: PublicKey
+	): Promise<Transaction> {
+		const tx = await this.program.methods
+			.withdrawFeePool()
+			.accountsStrict({
+				globalConfiguration: this.globalConfigPDA,
+				feePool: this.feePoolPDA,
+				payer: ponzMultiSigWallet,
+				systemProgram: SYSTEM_PROGRAM_ID
+			})
+			.transaction()
+
+		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
+		tx.feePayer = ponzMultiSigWallet
+
+		return tx
 	}
 
 	private getBondingCurve(mint: PublicKey) {

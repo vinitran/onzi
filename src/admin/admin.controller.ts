@@ -17,6 +17,7 @@ import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
 import { Admin } from "@root/_shared/utils/decorators"
 import { AdminService } from "./admin.service"
 import {
+	GetWithdrawalCodeDto,
 	PaginateReportedTokensDto,
 	ToggleBlockUserChatDto,
 	ToggleBlockUserCreateReelDto,
@@ -27,7 +28,9 @@ import {
 	PaginateReportedTokensResponse,
 	ToggleBlockUserChatResponse,
 	ToggleBlockUserCreateReelResponse,
-	UpdateTokensResponse
+	UpdateTokensResponse,
+	WithdrawalCodeResponse,
+	WithdrawalSolAmountResponse
 } from "./dtos/response.dto"
 
 @Controller("admin")
@@ -38,6 +41,38 @@ import {
 @UseInterceptors(ClassSerializerInterceptor)
 export class AdminController {
 	constructor(private readonly adminService: AdminService) {}
+
+	@Get("/withdrawal/amount")
+	@ApiOperation({ summary: "Get amount sol to withdraw by admin" })
+	@ApiResponse({
+		type: WithdrawalSolAmountResponse,
+		status: 200,
+		description: "Amount sol to withdraw by admin"
+	})
+	@SerializeOptions({
+		type: WithdrawalSolAmountResponse,
+		enableImplicitConversion: true,
+		excludeExtraneousValues: true
+	})
+	getSolToWithdraw() {
+		return this.adminService.getAmountSolToWithdraw()
+	}
+
+	@Get("/withdrawal/generate-code")
+	@ApiOperation({ summary: "Generate transaction code" })
+	@ApiResponse({
+		type: WithdrawalCodeResponse,
+		status: 200,
+		description: "Transaction code for admin to withdraw"
+	})
+	@SerializeOptions({
+		type: WithdrawalCodeResponse,
+		enableImplicitConversion: true,
+		excludeExtraneousValues: true
+	})
+	generateCode(@Query() query: GetWithdrawalCodeDto) {
+		return this.adminService.generateCodeToWithdraw(query)
+	}
 
 	@Put("tokens")
 	@ApiOperation({

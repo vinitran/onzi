@@ -51,3 +51,28 @@ export class PaginateReportedTokensResponse extends Paginate<ReportedToken> {
 	})
 	data: ReportedToken[]
 }
+
+export class WithdrawalSolAmountResponse {
+	@ApiProperty({
+		description: "Amount of SOL in the ponz wallet",
+		example: "590322361"
+	})
+	@Expose()
+	ponzSolAmount: string
+
+	@ApiProperty({
+		description: "Amount of SOL in the vault wallet",
+		example: "953520"
+	})
+	@Expose()
+	rewardVaultSolAmount: string
+}
+
+export class WithdrawalCodeResponse {
+	@ApiProperty({
+		description: "Withdrawal code for the transaction",
+		example: "ABC123XYZ"
+	})
+	@Expose()
+	code: string
+}

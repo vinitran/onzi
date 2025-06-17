@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger"
+import { WITHDRAW_CODE_OPTION } from "@root/_shared/constants/admin"
 import { TOKEN_SUMMARY_OPTION } from "@root/_shared/constants/token"
 import { OptionalProp, Prop } from "@root/_shared/utils/decorators"
 import { PaginatedParams } from "@root/dtos/common.dto"
@@ -117,4 +118,14 @@ export class GetSummaryTokensDto {
 	@Prop()
 	@IsEnum(TOKEN_SUMMARY_OPTION)
 	option: TOKEN_SUMMARY_OPTION
+}
+
+export class GetWithdrawalCodeDto {
+	@ApiProperty({
+		description: "Option to generate code",
+		enum: WITHDRAW_CODE_OPTION
+	})
+	@Prop()
+	@IsEnum(WITHDRAW_CODE_OPTION)
+	option: WITHDRAW_CODE_OPTION
 }

@@ -3,15 +3,21 @@ import { BlockCommentRepository } from "@root/_database/repositories/block-comme
 import { BlockUserRepository } from "@root/_database/repositories/block-user.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
+import { Env, InjectEnv } from "@root/_env/env.module"
+import { WITHDRAW_CODE_OPTION } from "@root/_shared/constants/admin"
+import { Ponz } from "@root/programs/ponz/program"
+import { PonzVault } from "@root/programs/vault/program"
+import { PublicKey } from "@solana/web3.js"
+import bs58 from "bs58"
 import { DateTime } from "luxon"
 import {
 	BlockUserType,
+	GetWithdrawalCodeDto,
 	PaginateReportedTokensDto,
 	ToggleBlockUserChatDto,
 	ToggleBlockUserCreateReelDto,
 	UpdateTokensDto
 } from "./dtos/payload.dto"
-
 type ToggleBlockUserChatPayload = ToggleBlockUserChatDto & {
 	userId: string
 }
@@ -22,12 +28,18 @@ type ToggleBlockUserCreateReelPayload = ToggleBlockUserCreateReelDto & {
 
 @Injectable()
 export class AdminService {
+	private ponzMultiSigWallet: string
 	constructor(
 		private user: UserRepository,
 		private blockUser: BlockUserRepository,
 		private blockComment: BlockCommentRepository,
-		private token: TokenRepository
-	) {}
+		private token: TokenRepository,
+		private ponz: Ponz,
+		private ponzVault: PonzVault,
+		@InjectEnv() private env: Env
+	) {
+		this.ponzMultiSigWallet = this.env.MULTI_SIG_PUBKEY
+	}
 
 	// Toggle block user chat
 	// - Block user chat in token comment
@@ -153,5 +165,41 @@ export class AdminService {
 
 		// Soft delete token
 		await this.token.softDelete(tokenId)
+	}
+
+	// Generate code to withdraw sol
+	async generateCodeToWithdraw(payload: GetWithdrawalCodeDto) {
+		const { option } = payload
+		const ponzMultiSigWallet = new PublicKey(this.ponzMultiSigWallet)
+
+		let code: string | null = null
+
+		if (option === WITHDRAW_CODE_OPTION.PONZ_PLATFORM) {
+			const ponzTx = await this.ponz.withdrawFeePool(ponzMultiSigWallet)
+			code = bs58.encode(ponzTx.serialize({ requireAllSignatures: false }))
+		}
+
+		if (option === WITHDRAW_CODE_OPTION.REWARD_VAULT) {
+			const vaultTx = await this.ponzVault.withdrawSol(ponzMultiSigWallet)
+			code = bs58.encode(vaultTx.serialize({ requireAllSignatures: false }))
+		}
+
+		return {
+			code
+		}
+	}
+
+	//   Get total sol to withdraw
+	async getAmountSolToWithdraw() {
+		// Get balances in parallel
+		const [ponzSolAmount, rewardVaultSolAmount] = await Promise.all([
+			this.ponz.connection.getBalance(this.ponz.feePoolPDA),
+			this.ponzVault.connection.getBalance(this.ponzVault.solPoolPDA)
+		])
+
+		return {
+			ponzSolAmount: ponzSolAmount.toString(),
+			rewardVaultSolAmount: rewardVaultSolAmount.toString()
+		}
 	}
 }

@@ -18,6 +18,7 @@ export type Env = {
 	TOKEN_MINT_AUTHORITY_WALLET: string
 	SYSTEM_WALLET_PRIVATE_KEY: string
 	CREATE_POOL_FEE_PUBLIC_KEY: string
+	MULTI_SIG_PUBKEY: string
 }
 
 export const InjectEnv = () => Inject(ENV_TOKEN)
@@ -51,6 +52,8 @@ const provider: Provider = {
 			"CREATE_POOL_FEE_PUBLIC_KEY"
 		)
 
+		const MULTI_SIG_PUBKEY = configService.get<string>("MULTI_SIG_PUBKEY")
+
 		if (!DATABASE_URL) throw new Error("missing DATABASE_URL env")
 		if (!JWT_SECRET) throw new Error("missing JWT_SECRET env")
 		if (!S3_REGION) throw new Error("missing S3_REGION env")
@@ -72,6 +75,8 @@ const provider: Provider = {
 		if (!CREATE_POOL_FEE_PUBLIC_KEY)
 			throw new Error("missing CREATE_POOL_FEE_PUBLIC_KEY env")
 
+		if (!MULTI_SIG_PUBKEY) throw new Error("missing MULTI_SIG_PUBKEY env")
+
 		return {
 			JWT_SECRET,
 			S3_REGION,
@@ -86,7 +91,8 @@ const provider: Provider = {
 			RABBITMQ_QUEUE,
 			TOKEN_MINT_AUTHORITY_WALLET,
 			SYSTEM_WALLET_PRIVATE_KEY,
-			CREATE_POOL_FEE_PUBLIC_KEY
+			CREATE_POOL_FEE_PUBLIC_KEY,
+			MULTI_SIG_PUBKEY
 		} satisfies Env
 	},
 	inject: [ConfigService]
