@@ -397,7 +397,7 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		return tx
 	}
 
-	private getBondingCurve(mint: PublicKey) {
+	public getBondingCurve(mint: PublicKey) {
 		return web3.PublicKey.findProgramAddressSync(
 			[mint.toBuffer(), Buffer.from("bonding_curve")],
 			this.programId

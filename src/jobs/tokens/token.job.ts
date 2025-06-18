@@ -1,10 +1,12 @@
+import { web3 } from "@coral-xyz/anchor"
 import { Injectable, Logger } from "@nestjs/common"
 import { Cron, CronExpression } from "@nestjs/schedule"
 import { PrismaClient, RaydiumStatusType } from "@prisma/client"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
-import { SwapMessageType } from "@root/jobs/tokens/token.controller"
+import { SwapMessageType } from "@root/jobs/tokens/distribution/swap.controller"
+import { InjectConnection } from "@root/programs/programs.module"
 
 export const REWARD_DISTRIBUTOR_EVENTS = {
 	COLLECT_FEE: "reward-distributor.collect-fee",
@@ -14,7 +16,8 @@ export const REWARD_DISTRIBUTOR_EVENTS = {
 	PREPARE_JACKPOT_DISTRIBUTION:
 		"reward-distributor.prepare-jackpot-distribution",
 	UPDATE_JACKPOT_AFTER_SWAP: "reward-distributor.update-jackpot-after-swap",
-	EXECUTE_DISTRIBUTION: "reward-distributor.execute-distribution"
+	EXECUTE_DISTRIBUTION: "reward-distributor.execute-distribution",
+	SEND_FEE_SOL: "reward-distributor.send-fee-sol"
 } as const
 
 @Injectable()
@@ -24,10 +27,11 @@ export class TokenJobs {
 	constructor(
 		private readonly tokenRepository: TokenRepository,
 		@InjectEnv() private env: Env,
-		private readonly rabbitMQService: RabbitMQService
+		private readonly rabbitMQService: RabbitMQService,
+		@InjectConnection() private connection: web3.Connection
 	) {}
 
-	@Cron(CronExpression.EVERY_MINUTE)
+	@Cron(CronExpression.EVERY_5_MINUTES)
 	async collectFeesFromAllMints() {
 		const tokens = await this.tokenRepository.getAllTokenAddress()
 
@@ -50,7 +54,6 @@ export class TokenJobs {
 	@Cron(CronExpression.EVERY_MINUTE)
 	async sendJackpot() {
 		const tokens = await this.tokenRepository.getTokenWithJackpot()
-
 		for (const token of tokens) {
 			await this.rabbitMQService.emit(
 				"distribute-reward-distributor",

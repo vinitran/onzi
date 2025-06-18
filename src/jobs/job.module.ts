@@ -7,8 +7,12 @@ import { IndexerController } from "@root/indexer/indexer.controller"
 import { IndexerModule } from "@root/indexer/indexer.module"
 import { IndexerService } from "@root/indexer/indexer.service"
 import { ScannerJobs } from "@root/jobs/scanner/scanner.job"
-import { DistributorController } from "@root/jobs/tokens/distribution/distribute.controller"
-import { TokenJobsController } from "@root/jobs/tokens/token.controller"
+import { BurnTokenController } from "@root/jobs/tokens/distribution/burn-token.controller"
+import { CollectFeeController } from "@root/jobs/tokens/distribution/collect-fee.controller"
+import { DistributeSolController } from "@root/jobs/tokens/distribution/distribute-sol.controller"
+import { ExecuteDistributionController } from "@root/jobs/tokens/distribution/execute-distribution.controller"
+import { JackpotController } from "@root/jobs/tokens/distribution/jackpot.controller"
+import { SwapController } from "@root/jobs/tokens/distribution/swap.controller"
 import { Ponz } from "@root/programs/ponz/program"
 import { ProgramsModule } from "@root/programs/programs.module"
 import { Raydium } from "@root/programs/raydium/program"
@@ -23,7 +27,15 @@ import { TokenJobs } from "./tokens/token.job"
 		DatabaseModule,
 		IndexerModule
 	],
-	controllers: [IndexerController, TokenJobsController, DistributorController],
+	controllers: [
+		IndexerController,
+		CollectFeeController,
+		SwapController,
+		BurnTokenController,
+		DistributeSolController,
+		ExecuteDistributionController,
+		JackpotController
+	],
 
 	providers: [IndexerService, TokenJobs, ScannerJobs]
 })

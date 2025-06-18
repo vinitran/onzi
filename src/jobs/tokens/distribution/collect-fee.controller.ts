@@ -1,10 +1,5 @@
-import { BN, web3 } from "@coral-xyz/anchor"
-import {
-	Controller,
-	InternalServerErrorException,
-	Logger,
-	NotFoundException
-} from "@nestjs/common"
+import { web3 } from "@coral-xyz/anchor"
+import { Controller, Logger, NotFoundException } from "@nestjs/common"
 import { Ctx, EventPattern, Payload, RmqContext } from "@nestjs/microservices"
 import { TokenKeyWithHeldRepository } from "@root/_database/repositories/token-key-with-held.repository"
 import { TokenTransactionDistributeRepository } from "@root/_database/repositories/token-tx-distribute"
@@ -13,11 +8,9 @@ import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
 import { keypairFromPrivateKey } from "@root/_shared/helpers/encode-decode-tx"
 import { IndexerService } from "@root/indexer/indexer.service"
-import { BurnFeePayload } from "@root/jobs/tokens/distribution/distribute.controller"
+import { BurnFeePayload } from "@root/jobs/tokens/distribution/burn-token.controller"
 import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
-import { Ponz } from "@root/programs/ponz/program"
 import { InjectConnection } from "@root/programs/programs.module"
-import { Raydium } from "@root/programs/raydium/program"
 import {
 	ASSOCIATED_TOKEN_PROGRAM_ID,
 	TOKEN_2022_PROGRAM_ID,
@@ -32,44 +25,46 @@ import { Keypair, PublicKey } from "@solana/web3.js"
 import bs58 from "bs58"
 
 export type SwapMessageType = {
-	id: string
-	address: string
-	amount?: string
-	type?: "raydium" | "ponz"
+	id: string // Token identifier
+	address: string // Token address
+	amount?: string // Amount to swap (optional)
+	type?: "raydium" | "ponz" // Protocol type for swapping
 }
 
 @Controller()
-export class TokenJobsController {
+export class CollectFeeController {
+	// Configure RPC endpoint based on environment (testnet/mainnet)
 	private HELIUS_RPC =
 		this.env.IS_TEST === "true"
 			? `https://devnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
 			: `https://mainnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
 
+	// System wallet keypair for transaction signing
 	private systemWalletKeypair: Keypair
 
 	constructor(
 		@InjectEnv() private env: Env,
 		private readonly indexer: IndexerService,
-		private raydium: Raydium,
-		private ponz: Ponz,
 		@InjectConnection() private connection: web3.Connection,
 		private readonly tokenKeyWithHeld: TokenKeyWithHeldRepository,
 		private readonly tokentxDistribute: TokenTransactionDistributeRepository,
 		private readonly tokenRepository: TokenRepository,
 		private readonly rabbitMQService: RabbitMQService
 	) {
+		// Initialize system wallet from private key stored in environment
 		this.systemWalletKeypair = Keypair.fromSecretKey(
 			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
 		)
 	}
 
+	// Handle collection of fee tokens from token holders
 	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.COLLECT_FEE)
 	async handleCollectFeeToken(
 		@Payload() data: SwapMessageType,
 		@Ctx() context: RmqContext
 	) {
 		const channel = context.getChannelRef()
-		channel.prefetch(20, false)
+		channel.prefetch(20, false) // Process up to 20 messages at a time
 		const originalMsg = context.getMessage()
 
 		try {
@@ -81,86 +76,19 @@ export class TokenJobsController {
 		}
 	}
 
-	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.SWAP_FEE_TO_SOL)
-	async handleSwapTokenToSol(
-		@Payload() data: SwapMessageType,
-		@Ctx() context: RmqContext
-	) {
-		const channel = context.getChannelRef()
-		channel.prefetch(1, false)
-		const originalMsg = context.getMessage()
-
-		try {
-			await this.swapToSol(data)
-			channel.ack(originalMsg, false)
-		} catch (error) {
-			Logger.error(error)
-			throw error
-		}
-	}
-
-	async swapToSol(data: SwapMessageType) {
-		const keyWithHeld = await this.tokenKeyWithHeld.find(data.id)
-		if (!keyWithHeld) {
-			throw new NotFoundException("not found key with held")
-		}
-
-		let txSign = ""
-		if (data.type === "ponz") {
-			txSign = await this.ponz.swapToSol(
-				new PublicKey(data.address),
-				keypairFromPrivateKey(keyWithHeld.privateKey),
-				this.systemWalletKeypair,
-				new BN(data.amount)
-			)
-		}
-
-		if (data.type === "raydium") {
-			txSign = await this.raydium.swap(
-				keypairFromPrivateKey(keyWithHeld.privateKey),
-				this.systemWalletKeypair,
-				new PublicKey(data.address),
-				new BN(data.amount),
-				new BN(10000),
-				false,
-				2000
-			)
-		}
-
-		const balanceChange = await this.getBalanceChange(
-			txSign,
-			keyWithHeld.publicKey
-		)
-
-		await this.tokentxDistribute.insert({
-			tokenId: data.id,
-			amountToken: BigInt(data.amount!),
-			lamport: BigInt(balanceChange),
-			signature: txSign,
-			type: "SwapToSolana"
-		})
-
-		await this.rabbitMQService.emit(
-			"distribute-reward-distributor",
-			REWARD_DISTRIBUTOR_EVENTS.PREPARE_REWARD_DISTRIBUTION,
-			{
-				id: data.id,
-				address: data.address,
-				lamport: balanceChange
-			}
-		)
-	}
-
+	// Collect fees from token holders
 	async collectFeesForToken(data: SwapMessageType) {
 		let page = 1
 		const pageSize = 1000 // Process 1000 users per page
 		const batchSize = 20 // Process max 20 users at a time
 
+		// Retrieve key with held information
 		const keyWithHeld = await this.tokenKeyWithHeld.find(data.id)
 		if (!keyWithHeld) {
 			throw new NotFoundException("not found key with held")
 		}
 
+		// Create or get destination token account for fee collection
 		const destinationTokenAccount = await getOrCreateAssociatedTokenAccount(
 			this.connection,
 			this.systemWalletKeypair,
@@ -174,19 +102,21 @@ export class TokenJobsController {
 		)
 
 		let feeAmountTotal = BigInt(0)
-
 		let lastSignature = ""
+
+		// Process token holders in batches
 		while (true) {
 			try {
+				// Get token holders for current page
 				const holders = await this.indexer.getTokenHoldersByPage(
 					data.address,
 					page,
 					pageSize
 				)
 				if (!holders) break
-
 				if (holders.length === 0) break
 
+				// Get associated token addresses for all holders
 				const sourceAddress = [...new Set(holders)].map(account =>
 					getAssociatedTokenAddressSync(
 						new PublicKey(data.address),
@@ -197,11 +127,11 @@ export class TokenJobsController {
 					)
 				)
 
-				// Process holders in batches of batchSize
+				// Process holders in batches
 				for (let i = 0; i < sourceAddress.length; i += batchSize) {
 					const batchSourceAddresses = sourceAddress.slice(i, i + batchSize)
 
-					// Filter source addresses that have transfer fees > 0
+					// Check for transfer fees in each account
 					const sourceAddressesWithFees = (
 						await Promise.all(
 							batchSourceAddresses.map(async address => {
@@ -229,6 +159,7 @@ export class TokenJobsController {
 						} => item !== null
 					)
 
+					// Filter addresses with fees and calculate total
 					const validSourceAddresses = sourceAddressesWithFees
 						.filter(
 							({ feeAmount }) => feeAmount && feeAmount.withheldAmount > 0
@@ -242,6 +173,7 @@ export class TokenJobsController {
 						continue
 					}
 
+					// Withdraw withheld tokens from valid addresses
 					const txSig = await withdrawWithheldTokensFromAccounts(
 						this.connection,
 						this.systemWalletKeypair,
@@ -267,6 +199,7 @@ export class TokenJobsController {
 			}
 		}
 
+		// Process collected fees if any were collected
 		if (feeAmountTotal > 0) {
 			await this.connection.confirmTransaction(lastSignature, "finalized")
 			const [tokenTax] = await Promise.all([
@@ -279,13 +212,18 @@ export class TokenJobsController {
 				})
 			])
 
+			// Calculate total tax percentage
 			const totalTotalTax =
 				tokenTax!.rewardTax + tokenTax!.jackpotTax + tokenTax!.burnTax
+
+			// Skip distribution if no taxes are configured
 			if (totalTotalTax === 0) {
 				return
 			}
 
+			// Handle burn tax if configured
 			if (tokenTax!.burnTax > 0) {
+				// Calculate burn amount based on tax proportion
 				const burnAmount =
 					(feeAmountTotal * BigInt(tokenTax!.burnTax)) / BigInt(totalTotalTax)
 				const burnFeeData: BurnFeePayload = {
@@ -294,6 +232,7 @@ export class TokenJobsController {
 					amount: burnAmount.toString()
 				}
 
+				// Emit burn event
 				await this.rabbitMQService.emit(
 					"swap-to-sol-reward-distributor",
 					REWARD_DISTRIBUTOR_EVENTS.BURN_FEE,
@@ -301,10 +240,12 @@ export class TokenJobsController {
 				)
 			}
 
+			// Calculate amount to be swapped to SOL (reward + jackpot portion)
 			const swapAmount =
 				(feeAmountTotal * BigInt(tokenTax!.rewardTax + tokenTax!.jackpotTax)) /
 				BigInt(totalTotalTax)
 
+			// Prepare swap message
 			const swapToSolMessage: SwapMessageType = {
 				id: data.id,
 				address: data.address,
@@ -312,58 +253,12 @@ export class TokenJobsController {
 				type: data.type
 			}
 
+			// Emit swap event
 			await this.rabbitMQService.emit(
 				"swap-to-sol-reward-distributor",
 				REWARD_DISTRIBUTOR_EVENTS.SWAP_FEE_TO_SOL,
 				swapToSolMessage
 			)
-		}
-	}
-
-	async getBalanceChange(signature: string, walletAddress: string) {
-		const payload = {
-			jsonrpc: "2.0",
-			id: "1",
-			method: "getTransaction",
-			params: [
-				signature,
-				{
-					commitment: "finalized"
-				}
-			]
-		}
-
-		try {
-			const response = await fetch(this.HELIUS_RPC, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(payload)
-			})
-
-			const data = (await response.json()).result
-
-			const accountKeys: string[] = data?.transaction?.message?.accountKeys
-			const preBalances: number[] = data?.meta?.preBalances
-			const postBalances: number[] = data?.meta?.postBalances
-
-			if (!accountKeys || !preBalances || !postBalances) {
-				throw new InternalServerErrorException("Missing transaction data")
-			}
-
-			const index = accountKeys.findIndex(key => key === walletAddress)
-			if (index === -1) {
-				throw new InternalServerErrorException(
-					"Wallet address not found in transaction"
-				)
-			}
-
-			const preLamports = preBalances[index]
-			const postLamports = postBalances[index]
-			const diffSol = postLamports - preLamports
-
-			return diffSol
-		} catch (_error) {
-			throw new InternalServerErrorException(_error)
 		}
 	}
 }

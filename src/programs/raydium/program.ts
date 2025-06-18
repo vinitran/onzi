@@ -273,37 +273,6 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 		return txSig
 	}
 
-	async burnToken(tokenAddress: PublicKey, amount: string, owner: Keypair) {
-		const tokenAta = getAssociatedTokenAddressSync(
-			tokenAddress,
-			owner.publicKey,
-			undefined,
-			TOKEN_2022_PROGRAM_ID
-		)
-
-		const tx = new Transaction().add(
-			createBurnCheckedInstruction(
-				tokenAta,
-				tokenAddress,
-				owner.publicKey,
-				BigInt(amount),
-				6,
-				[],
-				TOKEN_2022_PROGRAM_ID
-			)
-		)
-
-		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
-		tx.feePayer = owner.publicKey
-		tx.sign(owner)
-
-		return this.connection.sendRawTransaction(tx.serialize(), {
-			skipPreflight: true,
-			preflightCommitment: "processed",
-			maxRetries: 10
-		})
-	}
-
 	async burnLpToken(tokenAddress: PublicKey, creator: Keypair) {
 		const sortedTokenArray = this.sortTokens(tokenAddress, new BN(0), new BN(0))
 		if (sortedTokenArray.length !== 2)

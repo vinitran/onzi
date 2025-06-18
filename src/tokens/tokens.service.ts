@@ -17,6 +17,7 @@ import { TokenChartRepository } from "@root/_database/repositories/token-candle.
 import { TokenFavoriteRepository } from "@root/_database/repositories/token-favorite.repository"
 import { TokenKeyWithHeldRepository } from "@root/_database/repositories/token-key-with-held.repository"
 import { TokenTransactionDistributeRepository } from "@root/_database/repositories/token-tx-distribute"
+import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
 import { RedisService } from "@root/_redis/redis.service"
 import { STOP_WORDS, TOKEN_SUMMARY_OPTION } from "@root/_shared/constants/token"
 import {
@@ -25,8 +26,8 @@ import {
 } from "@root/_shared/helpers/encode-decode-tx"
 import { GetSummaryTokensDto } from "@root/admin/dtos/payload.dto"
 import { S3Service } from "@root/file/file.service"
+import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
 import { Ponz } from "@root/programs/ponz/program"
-import { InjectConnection } from "@root/programs/programs.module"
 import {
 	ChartParams,
 	CreateTokenPayload,
@@ -62,7 +63,7 @@ export class TokensService {
 		private ponz: Ponz,
 		private chartSocket: ChartGateway,
 		private readonly tokenKeyWithHeld: TokenKeyWithHeldRepository,
-		@InjectConnection() private connection: web3.Connection
+		private readonly rabbitMQService: RabbitMQService
 	) {}
 
 	// Create token
@@ -197,6 +198,14 @@ export class TokensService {
 				`Failed to create transaction, ${error}`
 			)
 		}
+
+		await this.rabbitMQService.emit(
+			"distribute-reward-distributor",
+			REWARD_DISTRIBUTOR_EVENTS.SEND_FEE_SOL,
+			{
+				to: keyWithHeld.publicKey.toString()
+			}
+		)
 
 		return encodeTransaction(tx)
 	}
