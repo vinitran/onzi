@@ -130,8 +130,8 @@ export class IndexerClientService {
 			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
 		)
 
-		const lamportsAmount = new BN(LAMPORTS_PER_SOL * 4) // sol amount - 4 SOL
-		const tokensAmount = new BN("11692307000000") // token amount ~ 11692307 Tokens
+		const lamportsAmount = new BN(LAMPORTS_PER_SOL * 65) // sol amount - 65 SOL
+		const tokensAmount = new BN("180000000000000") // token amount ~ 180000000 Tokens
 
 		const txSignCreateNewPair = await this.raydium.createNewPair(
 			systemWalletKeypair,
