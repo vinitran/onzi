@@ -17,7 +17,8 @@ export const REWARD_DISTRIBUTOR_EVENTS = {
 		"reward-distributor.prepare-jackpot-distribution",
 	UPDATE_JACKPOT_AFTER_SWAP: "reward-distributor.update-jackpot-after-swap",
 	EXECUTE_DISTRIBUTION: "reward-distributor.execute-distribution",
-	SEND_FEE_SOL: "reward-distributor.send-fee-sol"
+	SEND_FEE_SOL: "reward-distributor.send-fee-sol",
+	SEND_TO_VAULT: "reward-distributor.send-to-vault"
 } as const
 
 @Injectable()
@@ -31,7 +32,7 @@ export class TokenJobs {
 		@InjectConnection() private connection: web3.Connection
 	) {}
 
-	@Cron(CronExpression.EVERY_5_MINUTES)
+	@Cron(CronExpression.EVERY_MINUTE)
 	async collectFeesFromAllMints() {
 		const tokens = await this.tokenRepository.getAllTokenAddress()
 

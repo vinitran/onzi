@@ -23,7 +23,12 @@ export type ExecuteDistributionPayload = {
 	transactions: Transactionspayload[]
 }
 
-export type TransferFeePayload = {
+export type ExecuteTxWithKeyHeldPayload = {
+	tx: string
+	tokenId?: string
+}
+
+export type ExecuteTransactionPayload = {
 	to: string
 }
 
@@ -54,7 +59,7 @@ export class ExecuteDistributionController {
 
 	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.SEND_FEE_SOL)
 	async handleExecuteTransferFee(
-		@Payload() data: TransferFeePayload,
+		@Payload() data: ExecuteTransactionPayload,
 		@Ctx() context: RmqContext
 	) {
 		const channel = context.getChannelRef()
@@ -73,10 +78,46 @@ export class ExecuteDistributionController {
 		initTx.recentBlockhash = (
 			await this.connection.getLatestBlockhash()
 		).blockhash
+
 		await this.connection.sendTransaction(initTx, [this.systemWalletKeypair], {
 			preflightCommitment: "confirmed",
 			maxRetries: 5
 		})
+
+		channel.ack(originalMsg, false)
+	}
+
+	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.SEND_TO_VAULT)
+	async handleExecuteTransferToVault(
+		@Payload() data: ExecuteTxWithKeyHeldPayload,
+		@Ctx() context: RmqContext
+	) {
+		const channel = context.getChannelRef()
+		channel.prefetch(20, false)
+		const originalMsg = context.getMessage()
+
+		const keyWithHeld = await this.tokenKeyWithHeld.find(data.tokenId!)
+		if (!keyWithHeld) {
+			throw new NotFoundException("not found key with held")
+		}
+
+		const txBuffer = Buffer.from(data.tx, "base64")
+		const tx = Transaction.from(txBuffer)
+
+		const options: ConfirmOptions = {
+			skipPreflight: true,
+			commitment: "processed",
+			maxRetries: 5
+		}
+
+		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
+
+		tx.sign(
+			this.systemWalletKeypair,
+			keypairFromPrivateKey(keyWithHeld.privateKey)
+		)
+
+		await this.connection.sendRawTransaction(tx.serialize(), options)
 
 		channel.ack(originalMsg, false)
 	}
