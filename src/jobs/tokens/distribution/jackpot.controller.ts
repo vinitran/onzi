@@ -4,12 +4,12 @@ import { TokenKeyWithHeldRepository } from "@root/_database/repositories/token-k
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
-import { IndexerService } from "@root/indexer/indexer.service"
 import {
 	ExecuteDistributionPayload,
 	Transactionspayload
 } from "@root/jobs/tokens/distribution/execute-distribution.controller"
 import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
+import { HeliusService } from "@root/onchain/helius.service"
 import { Ponz } from "@root/programs/ponz/program"
 import { Raydium } from "@root/programs/raydium/program"
 import { NATIVE_MINT } from "@solana/spl-token"
@@ -40,7 +40,7 @@ export class JackpotController {
 		private readonly raydium: Raydium,
 		private readonly ponz: Ponz,
 		private readonly rabbitMQService: RabbitMQService,
-		private readonly indexer: IndexerService
+		private readonly helius: HeliusService
 	) {
 		this.systemWalletKeypair = Keypair.fromSecretKey(
 			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
@@ -74,8 +74,8 @@ export class JackpotController {
 		channel.prefetch(20, false)
 		const originalMsg = context.getMessage()
 
-		let page = 1
-		const pageSize = 1000
+		const _page = 1
+		const _pageSize = 1000
 
 		const [keyWithHeld, poolAddress, bondingCurve] = await Promise.all([
 			this.tokenKeyWithHeld.find(data.id),
@@ -87,40 +87,21 @@ export class JackpotController {
 			throw new NotFoundException("not found key with held")
 		}
 
-		let holdersAddress: string[] = []
-
-		while (true) {
-			const holders = await this.indexer.getTokenHoldersByPage(
-				data.address,
-				page,
-				pageSize
+		const listHolders = (await this.helius.getTokenHolders(data.address))
+			.filter(
+				holder =>
+					holder.address !== poolAddress?.toBase58() &&
+					holder.address !== keyWithHeld.publicKey &&
+					holder.address !== bondingCurve?.toBase58()
 			)
-			if (!holders || holders.length === 0) break
-
-			holdersAddress = [
-				...holdersAddress,
-				...holders
-					.filter(
-						holder =>
-							holder.owner !== poolAddress?.toBase58() &&
-							holder.owner !== keyWithHeld.publicKey &&
-							holder.owner !== bondingCurve?.toBase58()
-					)
-					.map(holder => holder.owner)
-			]
-
-			if (holders.length < pageSize) break
-			page++
-		}
-
-		const listHolders = [...new Set(holdersAddress)]
+			.map(holder => holder.address)
 
 		const createTokenTxDistribute: Transactionspayload[] = []
 		const tx = new Transaction()
 
 		for (let i = 0; i < data.times; i++) {
 			// Get random user from holders
-			const randomIndex = Math.floor(Math.random() * holdersAddress.length)
+			const randomIndex = Math.floor(Math.random() * listHolders.length)
 			const randomUser = listHolders[randomIndex]
 
 			tx.add(

@@ -9,6 +9,7 @@ import { IndexerService } from "@root/indexer/indexer.service"
 import { ExecuteDistributionPayload } from "@root/jobs/tokens/distribution/execute-distribution.controller"
 import { UpdateJackpotAfterSwapPayload } from "@root/jobs/tokens/distribution/jackpot.controller"
 import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
+import { HeliusService } from "@root/onchain/helius.service"
 import { Ponz } from "@root/programs/ponz/program"
 import { InjectConnection } from "@root/programs/programs.module"
 import { Raydium } from "@root/programs/raydium/program"
@@ -43,7 +44,8 @@ export class DistributeSolController {
 		private readonly tokenRepository: TokenRepository,
 		private readonly rabbitMQService: RabbitMQService,
 		private readonly raydium: Raydium,
-		private readonly ponz: Ponz
+		private readonly ponz: Ponz,
+		private readonly helius: HeliusService
 	) {
 		// Initialize system wallet from private key stored in environment
 		this.systemWalletKeypair = Keypair.fromSecretKey(
@@ -70,8 +72,6 @@ export class DistributeSolController {
 	}
 
 	async distributeSolToHolder(data: PrepareRewardDistributionPayload) {
-		let page = 1
-		const pageSize = 1000 // Get 1000 users per page
 		const batchSize = 10 // Process 5 users at a time
 
 		const keyWithHeld = await this.tokenKeyWithHeld.find(data.id)
@@ -86,95 +86,81 @@ export class DistributeSolController {
 
 		const totalTax = token.rewardTax + token.jackpotTax + token.burnTax
 
-		while (true) {
-			try {
-				const [holders, poolAddress, bondingCurve] = await Promise.all([
-					this.indexer.getTokenHoldersByPage(data.address, page, pageSize),
-					this.raydium.fetchPoolAddress(
-						NATIVE_MINT,
-						new PublicKey(data.address)
-					),
-					this.ponz.getBondingCurve(new PublicKey(data.address))
-				])
-				if (!holders || holders.length === 0) break
+		const [holders, poolAddress, bondingCurve] = await Promise.all([
+			this.helius.getTokenHolders(data.address),
+			this.raydium.fetchPoolAddress(NATIVE_MINT, new PublicKey(data.address)),
+			this.ponz.getBondingCurve(new PublicKey(data.address))
+		])
+		if (!holders || holders.length === 0) return
 
-				// Filter out pool address and keyWithHeld.publicKey from holders
-				const filteredHolders = holders.filter(
-					holder =>
-						holder.owner !== poolAddress?.toBase58() &&
-						holder.owner !== keyWithHeld.publicKey &&
-						holder.owner !== bondingCurve?.toBase58()
-				)
+		// Filter out pool address and keyWithHeld.publicKey from holders
+		const filteredHolders = holders.filter(
+			holder =>
+				holder.address !== poolAddress?.toBase58() &&
+				holder.address !== keyWithHeld.publicKey &&
+				holder.address !== bondingCurve?.toBase58()
+		)
 
-				const listHolders = [...new Set(filteredHolders)]
-				const holderPubkeys = listHolders.map(
-					holder => new PublicKey(holder.owner)
-				)
-				const accountsInfo =
-					await this.connection.getMultipleAccountsInfo(holderPubkeys)
+		const holderPubkeys = filteredHolders.map(
+			holder => new PublicKey(holder.address)
+		)
+		const accountsInfo =
+			await this.connection.getMultipleAccountsInfo(holderPubkeys)
 
-				// Filter out non-existent accounts
-				const existingHolders = listHolders.filter(
-					(_holder, index) => accountsInfo[index] !== null
-				)
+		// Filter out non-existent accounts
+		const existingHolders = filteredHolders.filter(
+			(_holder, index) => accountsInfo[index] !== null
+		)
 
-				// Process holders in batches of 5
-				for (let i = 0; i < existingHolders.length; i += batchSize) {
-					const batch = existingHolders.slice(i, i + batchSize)
+		// Process holders in batches of 5
+		for (let i = 0; i < existingHolders.length; i += batchSize) {
+			const batch = existingHolders.slice(i, i + batchSize)
 
-					const tx = new Transaction()
+			const tx = new Transaction()
 
-					const createTokenTxDistribute: DistributionTransaction[] = []
-					for (const holder of batch) {
-						const lamportToSend =
-							(BigInt(data.lamport) *
-								BigInt(holder.amount) *
-								BigInt(token.rewardTax)) /
-							(BigInt(totalTax) * BigInt(token.totalSupply))
+			const createTokenTxDistribute: DistributionTransaction[] = []
+			for (const holder of batch) {
+				const lamportToSend =
+					(BigInt(data.lamport) *
+						BigInt(holder.amount) *
+						BigInt(token.rewardTax)) /
+					(BigInt(totalTax) * BigInt(token.totalSupply))
 
-						tx.add(
-							SystemProgram.transfer({
-								fromPubkey: new PublicKey(keyWithHeld.publicKey),
-								toPubkey: new PublicKey(holder.owner),
-								lamports: lamportToSend
-							})
-						)
-						createTokenTxDistribute.push({
-							from: keyWithHeld.publicKey,
-							tokenId: data.id,
-							to: holder.owner,
-							lamport: lamportToSend.toString(),
-							type: "Distribute"
+				if (lamportToSend > 0) {
+					tx.add(
+						SystemProgram.transfer({
+							fromPubkey: new PublicKey(keyWithHeld.publicKey),
+							toPubkey: new PublicKey(holder.address),
+							lamports: lamportToSend
 						})
-					}
-
-					tx.feePayer = this.systemWalletKeypair.publicKey
-
-					// Set fake/dummy recentBlockhash
-					tx.recentBlockhash = PublicKey.default.toBase58()
-
-					await this.rabbitMQService.emit(
-						"distribute-reward-distributor",
-						REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION,
-						{
-							rawTx: tx
-								.serialize({
-									requireAllSignatures: false,
-									verifySignatures: false
-								})
-								.toString("base64"),
-							transactions: createTokenTxDistribute
-						} as ExecuteDistributionPayload
 					)
+					createTokenTxDistribute.push({
+						from: keyWithHeld.publicKey,
+						tokenId: data.id,
+						to: holder.address,
+						lamport: lamportToSend.toString(),
+						type: "Distribute"
+					})
 				}
 
-				// If we got less than pageSize users, we've reached the end
-				if (holders.length < pageSize) break
+				tx.feePayer = this.systemWalletKeypair.publicKey
 
-				page++
-			} catch (error) {
-				Logger.log("Error when distributing SOL:", error)
-				break
+				// Set fake/dummy recentBlockhash
+				tx.recentBlockhash = PublicKey.default.toBase58()
+
+				await this.rabbitMQService.emit(
+					"distribute-reward-distributor",
+					REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION,
+					{
+						rawTx: tx
+							.serialize({
+								requireAllSignatures: false,
+								verifySignatures: false
+							})
+							.toString("base64"),
+						transactions: createTokenTxDistribute
+					} as ExecuteDistributionPayload
+				)
 			}
 		}
 

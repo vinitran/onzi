@@ -32,7 +32,7 @@ export class TokenJobs {
 		@InjectConnection() private connection: web3.Connection
 	) {}
 
-	@Cron(CronExpression.EVERY_MINUTE)
+	@Cron(CronExpression.EVERY_5_MINUTES)
 	async collectFeesFromAllMints() {
 		const tokens = await this.tokenRepository.getAllTokenAddress()
 
