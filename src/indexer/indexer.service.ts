@@ -6,7 +6,7 @@ import { TokenTransactionRepository } from "@root/_database/repositories/token-t
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
 import { SETTING_KEYS } from "@root/_shared/constants/setting"
-import { HeliusService } from "@root/onchain/helius.service"
+import { TokenAccountResponse } from "@root/indexer/dtos/tokenAccount.dto"
 import {
 	BuyTokensEvent,
 	CompleteBondingCurveEvent,
@@ -16,6 +16,8 @@ import {
 	SellTokensEvent
 } from "@root/programs/ponz/events"
 import { Ponz } from "@root/programs/ponz/program"
+import axios from "axios"
+import WebSocket from "ws"
 
 @Injectable()
 export class IndexerService {
@@ -34,8 +36,7 @@ export class IndexerService {
 		private ponz: Ponz,
 		private readonly settingRepository: SettingRepository,
 		private readonly tokenTransactionRepository: TokenTransactionRepository,
-		private readonly rabbitMQService: RabbitMQService,
-		private readonly helius: HeliusService
+		private readonly rabbitMQService: RabbitMQService
 	) {}
 
 	private async handlePonzEvents(logData: Event[], signature: string) {
@@ -141,8 +142,28 @@ export class IndexerService {
 		}
 	}
 
-	async logSubcribe() {
-		const handlerEvent = async (data: string) => {
+	connectToWebSocketSolana() {
+		const wsSolana = new WebSocket(this.HELIUS_WS)
+
+		wsSolana.on("open", () => {
+			wsSolana.send(
+				JSON.stringify({
+					jsonrpc: "2.0",
+					id: 1,
+					method: "logsSubscribe",
+					params: [
+						{
+							mentions: [this.env.CONTRACT_ADDRESS]
+						},
+						{
+							commitment: "finalized"
+						}
+					]
+				})
+			)
+		})
+
+		wsSolana.on("message", async (data: string) => {
 			try {
 				const parsedData = JSON.parse(data)
 				if (parsedData?.params?.result?.value?.logs) {
@@ -155,9 +176,16 @@ export class IndexerService {
 			} catch (error) {
 				Logger.error("Error processing WebSocket message:", error)
 			}
-		}
+		})
 
-		await this.helius.logsSubscribe([this.env.CONTRACT_ADDRESS], handlerEvent)
+		wsSolana.on("close", () => {
+			Logger.log("WebSocket connection closed. Reconnecting...")
+			this.connectToWebSocketSolana()
+		})
+
+		wsSolana.on("error", error => {
+			Logger.error("WebSocket error:", error)
+		})
 	}
 
 	async scannerSolana() {
@@ -181,6 +209,78 @@ export class IndexerService {
 		await this.fetchSignatures(latestSignatureScanned)
 	}
 
+	async getUserTokenAccounts(
+		owner: string,
+		page = 1,
+		limit = 100
+	): Promise<TokenAccountResponse> {
+		try {
+			const response = await axios.post(
+				this.HELIUS_RPC,
+				{
+					jsonrpc: "2.0",
+					id: "",
+					method: "getTokenAccounts",
+					params: {
+						owner,
+						page,
+						limit
+					}
+				},
+				{
+					headers: {
+						"Content-Type": "application/json"
+					}
+				}
+			)
+
+			return response.data.result
+		} catch (error) {
+			console.error("Error fetching token accounts:", error)
+			throw error
+		}
+	}
+
+	async getTokenHoldersByPage(mint: string, page = 1, limit = 1000) {
+		try {
+			const response = await axios.post(
+				this.HELIUS_RPC,
+				{
+					jsonrpc: "2.0",
+					id: "",
+					method: "getTokenAccounts",
+					params: {
+						page,
+						limit,
+						mint
+					}
+				},
+				{
+					headers: {
+						"Content-Type": "application/json"
+					}
+				}
+			)
+
+			if (
+				!response.data.result ||
+				response.data.result.token_accounts.length === 0
+			) {
+				return
+			}
+
+			return response.data.result.token_accounts.map(
+				(account: { owner: string; amount: number }) => ({
+					owner: account.owner,
+					amount: account.amount.toString()
+				})
+			) as { owner: string; amount: string }[]
+		} catch (error) {
+			console.error("Error fetching token holders:", error)
+			throw error
+		}
+	}
+
 	private async isExistEvent(signature: string, type: TransactionType) {
 		const tokenBySig = await this.tokenTransactionRepository.findBySignature(
 			signature,
@@ -195,11 +295,37 @@ export class IndexerService {
 		let hasMore = true
 
 		while (hasMore) {
+			const payload = {
+				jsonrpc: "2.0",
+				id: "1",
+				method: "getSignaturesForAddress",
+				params: [
+					this.env.CONTRACT_ADDRESS,
+					{
+						commitment: "finalized",
+						limit: 1000,
+						until: currentSignature
+					}
+				]
+			}
+
 			try {
-				const signatures = await this.helius.getListSignature(currentSignature)
-				if (!signatures || signatures.length === 0) {
+				const response = await fetch(this.HELIUS_RPC, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(payload)
+				})
+
+				const { result } = await response.json()
+
+				if (!result || result.length === 0) {
+					hasMore = false
 					break
 				}
+
+				const signatures = result
+					.map((tx: { signature: string }) => tx.signature)
+					.reverse()
 
 				const nonExistentSignatures =
 					await this.tokenTransactionRepository.findNonExistentSignatures(
@@ -218,7 +344,7 @@ export class IndexerService {
 				)
 
 				// If we got less than 1000 results, we've reached the end
-				if (signatures.length < 1000 || nonExistentSignatures.length === 0) {
+				if (result.length < 1000 || nonExistentSignatures.length === 0) {
 					hasMore = false
 				} else {
 					// Update current signature for next iteration
@@ -234,10 +360,36 @@ export class IndexerService {
 	private async processSignatures(signatures: string[]) {
 		for (const signature of signatures) {
 			try {
-				const txLogs = await this.helius.getLogsTransaction(signature)
-				if (!txLogs) continue
+				const payload = {
+					jsonrpc: "2.0",
+					id: "1",
+					method: "getTransaction",
+					params: [
+						signature,
+						{
+							commitment: "finalized",
+							maxSupportedTransactionVersion: 0
+						}
+					]
+				}
 
-				const logData = Array.from(this.ponz.parseLogs(txLogs))
+				const response = await fetch(this.HELIUS_RPC, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(payload)
+				})
+
+				const data = await response.json()
+				const result = data.result
+
+				if (!result) {
+					console.warn(`No result for signature: ${signature}`)
+					continue
+				}
+
+				if (!result?.meta?.logMessages) continue
+
+				const logData = Array.from(this.ponz.parseLogs(result.meta.logMessages))
 				await this.handlePonzEvents(logData, signature)
 			} catch (error) {
 				console.error(`Error processing signature ${signature}:`, error)

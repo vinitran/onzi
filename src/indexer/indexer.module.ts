@@ -6,7 +6,6 @@ import { RedisModule } from "@root/_redis/redis.module"
 import { IndexerClientService } from "@root/indexer/client.service"
 import { IndexerService } from "@root/indexer/indexer.service"
 import { StorageIndexerService } from "@root/indexer/storage.service"
-import { OnchainModule } from "@root/onchain/onchain.module"
 import { Ponz } from "@root/programs/ponz/program"
 import { ProgramsModule } from "@root/programs/programs.module"
 import { Raydium } from "@root/programs/raydium/program"
@@ -19,8 +18,7 @@ import { SocketModule } from "@root/socket/socket.module"
 		SocketModule,
 		DatabaseModule,
 		RedisModule,
-		RabbitMQModule,
-		OnchainModule
+		RabbitMQModule
 	],
 	providers: [IndexerService, StorageIndexerService, IndexerClientService],
 	exports: [StorageIndexerService, IndexerClientService]

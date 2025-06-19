@@ -7,7 +7,7 @@ export class ScannerJobs implements OnModuleInit {
 	constructor(private readonly indexer: IndexerService) {}
 
 	async onModuleInit() {
-		await this.indexer.logSubcribe()
+		this.indexer.connectToWebSocketSolana()
 	}
 
 	@Cron(CronExpression.EVERY_MINUTE)

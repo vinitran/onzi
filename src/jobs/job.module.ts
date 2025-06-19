@@ -13,7 +13,6 @@ import { DistributeSolController } from "@root/jobs/tokens/distribution/distribu
 import { ExecuteDistributionController } from "@root/jobs/tokens/distribution/execute-distribution.controller"
 import { JackpotController } from "@root/jobs/tokens/distribution/jackpot.controller"
 import { SwapController } from "@root/jobs/tokens/distribution/swap.controller"
-import { OnchainModule } from "@root/onchain/onchain.module"
 import { Ponz } from "@root/programs/ponz/program"
 import { ProgramsModule } from "@root/programs/programs.module"
 import { Raydium } from "@root/programs/raydium/program"
@@ -26,8 +25,7 @@ import { TokenJobs } from "./tokens/token.job"
 		ProgramsModule.register(Ponz, Raydium),
 		ScheduleModule.forRoot(),
 		DatabaseModule,
-		IndexerModule,
-		OnchainModule
+		IndexerModule
 	],
 	controllers: [
 		IndexerController,
@@ -38,6 +36,7 @@ import { TokenJobs } from "./tokens/token.job"
 		ExecuteDistributionController,
 		JackpotController
 	],
+
 	providers: [IndexerService, TokenJobs, ScannerJobs]
 })
 export class JobsModule {}
