@@ -542,4 +542,5 @@ enum TokenTransactionDistributeType {
   Distribute
   Jackpot
   CollectFee
+  SendToVault
 }

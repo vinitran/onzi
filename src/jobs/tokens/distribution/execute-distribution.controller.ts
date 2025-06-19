@@ -87,41 +87,6 @@ export class ExecuteDistributionController {
 		channel.ack(originalMsg, false)
 	}
 
-	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.SEND_TO_VAULT)
-	async handleExecuteTransferToVault(
-		@Payload() data: ExecuteTxWithKeyHeldPayload,
-		@Ctx() context: RmqContext
-	) {
-		const channel = context.getChannelRef()
-		channel.prefetch(20, false)
-		const originalMsg = context.getMessage()
-
-		const keyWithHeld = await this.tokenKeyWithHeld.find(data.tokenId!)
-		if (!keyWithHeld) {
-			throw new NotFoundException("not found key with held")
-		}
-
-		const txBuffer = Buffer.from(data.tx, "base64")
-		const tx = Transaction.from(txBuffer)
-
-		const options: ConfirmOptions = {
-			skipPreflight: true,
-			commitment: "processed",
-			maxRetries: 5
-		}
-
-		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
-
-		tx.sign(
-			this.systemWalletKeypair,
-			keypairFromPrivateKey(keyWithHeld.privateKey)
-		)
-
-		await this.connection.sendRawTransaction(tx.serialize(), options)
-
-		channel.ack(originalMsg, false)
-	}
-
 	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION)
 	async handleExecuteDistribution(
 		@Payload() data: ExecuteDistributionPayload,

@@ -6,10 +6,7 @@ import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
 import { IndexerService } from "@root/indexer/indexer.service"
-import {
-	ExecuteDistributionPayload,
-	ExecuteTxWithKeyHeldPayload
-} from "@root/jobs/tokens/distribution/execute-distribution.controller"
+import { ExecuteDistributionPayload } from "@root/jobs/tokens/distribution/execute-distribution.controller"
 import { UpdateJackpotAfterSwapPayload } from "@root/jobs/tokens/distribution/jackpot.controller"
 import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
 import { Ponz } from "@root/programs/ponz/program"
@@ -196,16 +193,24 @@ export class DistributeSolController {
 
 		await this.rabbitMQService.emit(
 			"distribute-reward-distributor",
-			REWARD_DISTRIBUTOR_EVENTS.SEND_TO_VAULT,
+			REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION,
 			{
-				tokenId: data.id,
-				tx: sendVaultTx
+				transactions: [
+					{
+						from: keyWithHeld.publicKey,
+						tokenId: data.id,
+						to: this.env.MULTI_SIG_PUBKEY,
+						lamport: (BigInt(data.lamport) / BigInt(100)).toString(),
+						type: "SendToVault"
+					}
+				],
+				rawTx: sendVaultTx
 					.serialize({
 						requireAllSignatures: false,
 						verifySignatures: false
 					})
 					.toString("base64")
-			} as ExecuteTxWithKeyHeldPayload
+			} as ExecuteDistributionPayload
 		)
 
 		if (token.jackpotTax > 0) {
