@@ -8,18 +8,17 @@ datasource db {
 }
 
 model User {
-  id                  String    @id @default(uuid()) @db.Uuid
-  address             String    @unique @db.VarChar
-  username            String?   @unique @db.VarChar
-  bio                 String?   @db.VarChar
-  avatarUrl           String?   @map("avatar_url") @db.VarChar
-  network             Network   @default(Solana)
-  premium             Boolean   @default(false)
-  backgroundUrl       String?   @map("background_url") @db.VarChar
-  usernameChangeCount Float     @default(0) @map("username_change_count")
-  role                Role      @default(User)
-  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt           DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id            String    @id @default(uuid()) @db.Uuid
+  address       String    @unique @db.VarChar
+  username      String?   @unique @db.VarChar
+  bio           String?   @db.VarChar
+  avatarUrl     String?   @map("avatar_url") @db.VarChar
+  network       Network   @default(Solana)
+  premium       Boolean   @default(false)
+  backgroundUrl String?   @map("background_url") @db.VarChar
+  role          Role      @default(User)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   tokens             Token[]
   tokenOwners        TokenOwner[]

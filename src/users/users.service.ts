@@ -162,18 +162,12 @@ export class UsersService {
 
 			if (!user) throw new NotFoundException("not found user")
 
-			if (user.usernameChangeCount > 2)
-				throw new InternalServerErrorException(
-					"can not change username more than 2 times"
-				)
-
 			if (userWithUsername)
 				throw new BadRequestException(
 					"Username is already taken. Please choose another one."
 				)
 
 			updateUser.username = payload.username
-			updateUser.usernameChangeCount = user.usernameChangeCount + 1
 		}
 
 		let avatarAttachment:
