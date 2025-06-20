@@ -28,6 +28,7 @@ import {
 	PaginateStickerParams
 } from "./dtos/payload.dto"
 import {
+	CheckOwnedStickerResponse,
 	CreateStickerResponse,
 	GetFrequentlyUsedStickersResponse,
 	GetStickersResponse
@@ -131,8 +132,29 @@ export class StickersController {
 	}
 
 	@Auth()
+	@Get("/:id/is-owner")
+	@ApiOperation({ summary: "Check owned sticker" })
+	@ApiResponse({
+		status: 200,
+		description: "Check owned sticker successfully",
+		type: CheckOwnedStickerResponse
+	})
+	async checkOwner(
+		@Param("id", ParseUUIDPipe) id: string,
+		@User() user: Claims
+	) {
+		const result = await this.stickersService.checkStickerOwner({
+			stickerId: id,
+			ownerAddress: user.address
+		})
+		return plainToInstance(CheckOwnedStickerResponse, result, {
+			excludeExtraneousValues: true
+		})
+	}
+
+	@Auth()
 	@Delete("/:id/owner")
-	@ApiOperation({ summary: "Add a sticker" })
+	@ApiOperation({ summary: "Remove a sticker" })
 	@ApiResponse({
 		status: 200,
 		description: "Sticker added successfully"

@@ -33,3 +33,15 @@ export class GetStickersResponse extends StickerOwner {
 }
 
 export class GetFrequentlyUsedStickersResponse extends StickerOwner {}
+
+export class CheckOwnedStickerResponse {
+	@ApiProperty({
+		description: "Indicates whether the sticker is owned by the user"
+	})
+	@Expose()
+	isOwned: boolean
+
+	constructor(partial: Partial<CheckOwnedStickerResponse>) {
+		Object.assign(this, partial)
+	}
+}

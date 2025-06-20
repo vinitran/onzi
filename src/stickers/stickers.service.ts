@@ -121,6 +121,15 @@ export class StickersService {
 		return this.stickerOwner.delete(payload)
 	}
 
+	async checkStickerOwner(payload: {
+		ownerAddress: string
+		stickerId: string
+	}) {
+		return {
+			isOwned: !!(await this.stickerOwner.findOne(payload))
+		}
+	}
+
 	//   Get uri
 	async getAttachmentPresignedUrl(payload: {
 		userAddress: string
