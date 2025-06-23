@@ -106,15 +106,14 @@ export class DistributeSolController {
 				holder.address !== tokenPoolVault?.toBase58()
 		)
 
-		const listHolders = [...new Set(filteredHolders)]
-		const holderPubkeys = listHolders.map(
+		const holderPubkeys = filteredHolders.map(
 			holder => new PublicKey(holder.address)
 		)
 		const accountsInfo =
 			await this.connection.getMultipleAccountsInfo(holderPubkeys)
 
 		// Filter out non-existent accounts
-		const existingHolders = listHolders.filter(
+		const existingHolders = filteredHolders.filter(
 			(_holder, index) => accountsInfo[index] !== null
 		)
 
@@ -132,40 +131,42 @@ export class DistributeSolController {
 						BigInt(token.rewardTax)) /
 					(BigInt(totalTax) * BigInt(token.totalSupply))
 
-				tx.add(
-					SystemProgram.transfer({
-						fromPubkey: new PublicKey(keyWithHeld.publicKey),
-						toPubkey: new PublicKey(holder.address),
-						lamports: lamportToSend
-					})
-				)
-				createTokenTxDistribute.push({
-					from: keyWithHeld.publicKey,
-					tokenId: data.id,
-					to: holder.address,
-					lamport: lamportToSend.toString(),
-					type: "Distribute"
-				})
-			}
-
-			tx.feePayer = this.systemWalletKeypair.publicKey
-
-			// Set fake/dummy recentBlockhash
-			tx.recentBlockhash = PublicKey.default.toBase58()
-
-			await this.rabbitMQService.emit(
-				"distribute-reward-distributor",
-				REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION,
-				{
-					rawTx: tx
-						.serialize({
-							requireAllSignatures: false,
-							verifySignatures: false
+				if (lamportToSend > 0) {
+					tx.add(
+						SystemProgram.transfer({
+							fromPubkey: new PublicKey(keyWithHeld.publicKey),
+							toPubkey: new PublicKey(holder.address),
+							lamports: lamportToSend
 						})
-						.toString("base64"),
-					transactions: createTokenTxDistribute
-				} as ExecuteDistributionPayload
-			)
+					)
+					createTokenTxDistribute.push({
+						from: keyWithHeld.publicKey,
+						tokenId: data.id,
+						to: holder.address,
+						lamport: lamportToSend.toString(),
+						type: "Distribute"
+					})
+				}
+
+				tx.feePayer = this.systemWalletKeypair.publicKey
+
+				// Set fake/dummy recentBlockhash
+				tx.recentBlockhash = PublicKey.default.toBase58()
+
+				await this.rabbitMQService.emit(
+					"distribute-reward-distributor",
+					REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION,
+					{
+						rawTx: tx
+							.serialize({
+								requireAllSignatures: false,
+								verifySignatures: false
+							})
+							.toString("base64"),
+						transactions: createTokenTxDistribute
+					} as ExecuteDistributionPayload
+				)
+			}
 		}
 
 		const sendVaultTx = new Transaction().add(

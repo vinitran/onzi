@@ -7,9 +7,9 @@ import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
 import { keypairFromPrivateKey } from "@root/_shared/helpers/encode-decode-tx"
-import { IndexerService } from "@root/indexer/indexer.service"
 import { BurnFeePayload } from "@root/jobs/tokens/distribution/burn-token.controller"
 import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
+import { HeliusService } from "@root/onchain/helius.service"
 import { InjectConnection } from "@root/programs/programs.module"
 import {
 	ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -33,23 +33,17 @@ export type SwapMessageType = {
 
 @Controller()
 export class CollectFeeController {
-	// Configure RPC endpoint based on environment (testnet/mainnet)
-	private HELIUS_RPC =
-		this.env.IS_TEST === "true"
-			? `https://devnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
-			: `https://mainnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
-
 	// System wallet keypair for transaction signing
 	private systemWalletKeypair: Keypair
 
 	constructor(
 		@InjectEnv() private env: Env,
-		private readonly indexer: IndexerService,
 		@InjectConnection() private connection: web3.Connection,
 		private readonly tokenKeyWithHeld: TokenKeyWithHeldRepository,
 		private readonly tokentxDistribute: TokenTransactionDistributeRepository,
 		private readonly tokenRepository: TokenRepository,
-		private readonly rabbitMQService: RabbitMQService
+		private readonly rabbitMQService: RabbitMQService,
+		private readonly helius: HeliusService
 	) {
 		// Initialize system wallet from private key stored in environment
 		this.systemWalletKeypair = Keypair.fromSecretKey(
@@ -78,8 +72,6 @@ export class CollectFeeController {
 
 	// Collect fees from token holders
 	async collectFeesForToken(data: SwapMessageType) {
-		let page = 1
-		const pageSize = 1000 // Process 1000 users per page
 		const batchSize = 20 // Process max 20 users at a time
 
 		// Retrieve key with held information
@@ -104,99 +96,81 @@ export class CollectFeeController {
 		let feeAmountTotal = BigInt(0)
 		let lastSignature = ""
 
-		// Process token holders in batches
-		while (true) {
-			try {
-				// Get token holders for current page
-				const holders = await this.indexer.getTokenHoldersByPage(
-					data.address,
-					page,
-					pageSize
+		const holders = await this.helius.getTokenHolders(data.address)
+		if (!holders || holders.length === 0) return
+
+		// Get associated token addresses for all holders
+		const sourceAddress = holders.map(account =>
+			getAssociatedTokenAddressSync(
+				new PublicKey(data.address),
+				new PublicKey(account.address),
+				true,
+				TOKEN_2022_PROGRAM_ID,
+				ASSOCIATED_TOKEN_PROGRAM_ID
+			)
+		)
+
+		// Process holders in batches
+		for (let i = 0; i < sourceAddress.length; i += batchSize) {
+			const batchSourceAddresses = sourceAddress.slice(i, i + batchSize)
+
+			// Check for transfer fees in each account
+			const sourceAddressesWithFees = (
+				await Promise.all(
+					batchSourceAddresses.map(async address => {
+						try {
+							const account = await getAccount(
+								this.connection,
+								address,
+								"finalized",
+								TOKEN_2022_PROGRAM_ID
+							)
+
+							const feeAmount = getTransferFeeAmount(account)
+							return { address, feeAmount }
+						} catch (_error) {
+							return null
+						}
+					})
 				)
-				if (!holders) break
-				if (holders.length === 0) break
+			).filter(
+				(
+					item
+				): item is {
+					address: PublicKey
+					feeAmount: TransferFeeAmount | null
+				} => item !== null
+			)
 
-				// Get associated token addresses for all holders
-				const sourceAddress = [...new Set(holders)].map(account =>
-					getAssociatedTokenAddressSync(
-						new PublicKey(data.address),
-						new PublicKey(account.owner),
-						true,
-						TOKEN_2022_PROGRAM_ID,
-						ASSOCIATED_TOKEN_PROGRAM_ID
-					)
-				)
+			// Filter addresses with fees and calculate total
+			const validSourceAddresses = sourceAddressesWithFees
+				.filter(({ feeAmount }) => feeAmount && feeAmount.withheldAmount > 0)
+				.map(({ address, feeAmount }) => {
+					feeAmountTotal = feeAmountTotal + feeAmount!.withheldAmount
+					return address
+				})
 
-				// Process holders in batches
-				for (let i = 0; i < sourceAddress.length; i += batchSize) {
-					const batchSourceAddresses = sourceAddress.slice(i, i + batchSize)
-
-					// Check for transfer fees in each account
-					const sourceAddressesWithFees = (
-						await Promise.all(
-							batchSourceAddresses.map(async address => {
-								try {
-									const account = await getAccount(
-										this.connection,
-										address,
-										"finalized",
-										TOKEN_2022_PROGRAM_ID
-									)
-
-									const feeAmount = getTransferFeeAmount(account)
-									return { address, feeAmount }
-								} catch (_error) {
-									return null
-								}
-							})
-						)
-					).filter(
-						(
-							item
-						): item is {
-							address: PublicKey
-							feeAmount: TransferFeeAmount | null
-						} => item !== null
-					)
-
-					// Filter addresses with fees and calculate total
-					const validSourceAddresses = sourceAddressesWithFees
-						.filter(
-							({ feeAmount }) => feeAmount && feeAmount.withheldAmount > 0
-						)
-						.map(({ address, feeAmount }) => {
-							feeAmountTotal = feeAmountTotal + feeAmount!.withheldAmount
-							return address
-						})
-
-					if (validSourceAddresses.length === 0) {
-						continue
-					}
-
-					// Withdraw withheld tokens from valid addresses
-					const txSig = await withdrawWithheldTokensFromAccounts(
-						this.connection,
-						this.systemWalletKeypair,
-						new PublicKey(data.address),
-						destinationTokenAccount.address,
-						keypairFromPrivateKey(keyWithHeld.privateKey),
-						[],
-						validSourceAddresses,
-						{
-							commitment: "processed"
-						},
-						TOKEN_2022_PROGRAM_ID
-					)
-
-					lastSignature = txSig
-					Logger.log("txSign collect fee", txSig)
-				}
-
-				page++
-			} catch (error) {
-				Logger.log("err when collect fee:", error)
-				break
+			if (validSourceAddresses.length === 0) {
+				continue
 			}
+
+			// Withdraw withheld tokens from valid addresses
+			const txSig = await withdrawWithheldTokensFromAccounts(
+				this.connection,
+				this.systemWalletKeypair,
+				new PublicKey(data.address),
+				destinationTokenAccount.address,
+				keypairFromPrivateKey(keyWithHeld.privateKey),
+				[],
+				validSourceAddresses,
+				{
+					commitment: "processed"
+				},
+				TOKEN_2022_PROGRAM_ID
+			)
+
+			lastSignature = txSig
+			Logger.log("txSign collect fee", txSig)
 		}
 
 		// Process collected fees if any were collected

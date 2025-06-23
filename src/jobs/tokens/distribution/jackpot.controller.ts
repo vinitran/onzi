@@ -41,8 +41,8 @@ export class JackpotController {
 		private readonly raydium: Raydium,
 		private readonly ponz: Ponz,
 		private readonly rabbitMQService: RabbitMQService,
-		private readonly ponzVault: PonzVault,
-		private readonly helius: HeliusService
+		private readonly helius: HeliusService,
+		private readonly ponzVault: PonzVault
 	) {
 		this.systemWalletKeypair = Keypair.fromSecretKey(
 			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
@@ -88,25 +88,22 @@ export class JackpotController {
 			throw new NotFoundException("not found key with held")
 		}
 
-		const holdersAddress = (
-			await this.helius.getTokenHolders(data.address)
-		).filter(
-			holder =>
-				holder.address !== poolAddress?.toBase58() &&
-				holder.address !== keyWithHeld.publicKey &&
-				holder.address !== bondingCurve?.toBase58() &&
-				holder.address !== tokenPoolVault?.toBase58()
-		)
-		if (!holdersAddress || holdersAddress.length === 0) return
-
-		const listHolders = [...new Set(holdersAddress)]
+		const listHolders = (await this.helius.getTokenHolders(data.address))
+			.filter(
+				holder =>
+					holder.address !== poolAddress?.toBase58() &&
+					holder.address !== keyWithHeld.publicKey &&
+					holder.address !== bondingCurve?.toBase58() &&
+					holder.address !== tokenPoolVault?.toBase58()
+			)
+			.map(holder => holder.address)
 
 		const createTokenTxDistribute: Transactionspayload[] = []
 		const tx = new Transaction()
 
 		for (let i = 0; i < data.times; i++) {
 			// Get random user from holders
-			const randomIndex = Math.floor(Math.random() * holdersAddress.length)
+			const randomIndex = Math.floor(Math.random() * listHolders.length)
 			const randomUser = listHolders[randomIndex]
 
 			tx.add(
@@ -120,7 +117,7 @@ export class JackpotController {
 			createTokenTxDistribute.push({
 				from: keyWithHeld.publicKey,
 				tokenId: data.id,
-				to: randomUser.address,
+				to: randomUser,
 				lamport: data.amount,
 				type: "Jackpot"
 			})
