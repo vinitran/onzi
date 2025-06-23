@@ -4,12 +4,12 @@ import { TokenKeyWithHeldRepository } from "@root/_database/repositories/token-k
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
-import { IndexerService } from "@root/indexer/indexer.service"
 import {
 	ExecuteDistributionPayload,
 	Transactionspayload
 } from "@root/jobs/tokens/distribution/execute-distribution.controller"
 import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
+import { HeliusService } from "@root/onchain/helius.service"
 import { Ponz } from "@root/programs/ponz/program"
 import { Raydium } from "@root/programs/raydium/program"
 import { PonzVault } from "@root/programs/vault/program"
@@ -41,8 +41,8 @@ export class JackpotController {
 		private readonly raydium: Raydium,
 		private readonly ponz: Ponz,
 		private readonly rabbitMQService: RabbitMQService,
-		private readonly helius: HeliusService,
-		private readonly ponzVault: PonzVault
+		private readonly ponzVault: PonzVault,
+		private readonly helius: HeliusService
 	) {
 		this.systemWalletKeypair = Keypair.fromSecretKey(
 			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
@@ -76,9 +76,6 @@ export class JackpotController {
 		channel.prefetch(20, false)
 		const originalMsg = context.getMessage()
 
-		let page = 1
-		const pageSize = 1000
-
 		const [keyWithHeld, poolAddress, bondingCurve, tokenPoolVault] =
 			await Promise.all([
 				this.tokenKeyWithHeld.find(data.id),
@@ -91,31 +88,16 @@ export class JackpotController {
 			throw new NotFoundException("not found key with held")
 		}
 
-		const listHolders = (await this.helius.getTokenHolders(data.address))
-			.filter(
-				holder =>
-					holder.address !== poolAddress?.toBase58() &&
-					holder.address !== keyWithHeld.publicKey &&
-					holder.address !== bondingCurve?.toBase58() &&
-					holder.address !== tokenPoolVault?.toBase58()
-			)
-			if (!holders || holders.length === 0) break
-
-			holdersAddress = [
-				...holdersAddress,
-				...holders
-					.filter(
-						holder =>
-							holder.owner !== poolAddress?.toBase58() &&
-							holder.owner !== keyWithHeld.publicKey &&
-							holder.owner !== bondingCurve?.toBase58()
-					)
-					.map(holder => holder.owner)
-			]
-
-			if (holders.length < pageSize) break
-			page++
-		}
+		const holdersAddress = (
+			await this.helius.getTokenHolders(data.address)
+		).filter(
+			holder =>
+				holder.address !== poolAddress?.toBase58() &&
+				holder.address !== keyWithHeld.publicKey &&
+				holder.address !== bondingCurve?.toBase58() &&
+				holder.address !== tokenPoolVault?.toBase58()
+		)
+		if (!holdersAddress || holdersAddress.length === 0) return
 
 		const listHolders = [...new Set(holdersAddress)]
 
@@ -138,7 +120,7 @@ export class JackpotController {
 			createTokenTxDistribute.push({
 				from: keyWithHeld.publicKey,
 				tokenId: data.id,
-				to: randomUser,
+				to: randomUser.address,
 				lamport: data.amount,
 				type: "Jackpot"
 			})
