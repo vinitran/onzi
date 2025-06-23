@@ -13,7 +13,6 @@ import { UserConnectionRepository } from "@root/_database/repositories/user-conn
 import { UserRepository } from "@root/_database/repositories/user.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { PaginatedParams } from "@root/dtos/common.dto"
-import { Token as TokenResponse } from "@root/dtos/token.dto"
 import { S3Service } from "@root/file/file.service"
 import {
 	GetCoinCreatedParams,
@@ -118,14 +117,7 @@ export class UsersService {
 	}
 
 	async getCoinCreated(id: string, query: GetCoinCreatedParams) {
-		return this.token.getCoinCreated(id, query).then(result => ({
-			data: plainToInstance(TokenResponse, result.data, {
-				excludeExtraneousValues: true,
-				enableImplicitConversion: true
-			}),
-			total: result.total,
-			maxPage: result.maxPage
-		}))
+		return this.token.getCoinCreated(id, query)
 	}
 
 	async getReplies(id: string, query: PaginatedParams) {

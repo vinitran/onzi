@@ -1,5 +1,6 @@
 import {
 	Body,
+	ClassSerializerInterceptor,
 	Controller,
 	Delete,
 	Get,
@@ -7,7 +8,9 @@ import {
 	ParseUUIDPipe,
 	Post,
 	Put,
-	Query
+	Query,
+	SerializeOptions,
+	UseInterceptors
 } from "@nestjs/common"
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
@@ -15,9 +18,9 @@ import { Claims } from "@root/auth/auth.service"
 import { Comment as CommentResponse } from "@root/dtos/comment.dto"
 import { ApiPaginatedResponse, PaginatedParams } from "@root/dtos/common.dto"
 import { Paginate as PaginatedResponse } from "@root/dtos/common.dto"
-import { Token as TokenResponse } from "@root/dtos/token.dto"
 import { UserConnection as UserConnectionResponse } from "@root/dtos/user-connection.dto"
 import { User as UserResponse } from "@root/dtos/user.dto"
+import { PaginateTokenResponse } from "@root/tokens/dtos/response.dto"
 import {
 	FollowingPayload,
 	GetCoinCreatedParams,
@@ -140,30 +143,25 @@ export class UsersController {
 	}
 
 	@Get(":id/coin-created")
-	@ApiPaginatedResponse(TokenResponse)
 	@ApiOperation({
 		summary: "Get paginated list of tokens created by the current user"
 	})
 	@ApiResponse({
 		status: 200,
-		description: "Successfully retrieved user's created tokens",
-		type: PaginatedResponse
+		description: "Paginate tokens successfully",
+		type: PaginateTokenResponse
+	})
+	@UseInterceptors(ClassSerializerInterceptor)
+	@SerializeOptions({
+		type: PaginateTokenResponse,
+		enableImplicitConversion: true,
+		excludeExtraneousValues: true
 	})
 	async getCoinCreated(
 		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
 		@Query() query: GetCoinCreatedParams
 	) {
-		const { total, maxPage, data } = await this.userService.getCoinCreated(
-			id,
-			query
-		)
-		return plainToInstance(
-			PaginatedResponse<TokenResponse>,
-			new PaginatedResponse(data, total, maxPage),
-			{
-				excludeExtraneousValues: true
-			}
-		)
+		return this.userService.getCoinCreated(id, query)
 	}
 
 	@Get(":id/replies")
