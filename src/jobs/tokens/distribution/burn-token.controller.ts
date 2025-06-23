@@ -96,7 +96,7 @@ export class BurnTokenController {
 
 		return this.connection.sendRawTransaction(tx.serialize(), {
 			skipPreflight: true,
-			preflightCommitment: "processed",
+			preflightCommitment: "confirmed",
 			maxRetries: 10
 		})
 	}

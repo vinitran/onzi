@@ -87,7 +87,7 @@ export class CollectFeeController {
 			new PublicKey(data.address),
 			new PublicKey(keyWithHeld.publicKey),
 			true,
-			"processed",
+			"confirmed",
 			{},
 			TOKEN_2022_PROGRAM_ID,
 			ASSOCIATED_TOKEN_PROGRAM_ID
@@ -164,7 +164,7 @@ export class CollectFeeController {
 				[],
 				validSourceAddresses,
 				{
-					commitment: "processed"
+					commitment: "confirmed"
 				},
 				TOKEN_2022_PROGRAM_ID
 			)

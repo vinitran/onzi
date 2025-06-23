@@ -114,7 +114,7 @@ export class ExecuteDistributionController {
 
 			const options: ConfirmOptions = {
 				skipPreflight: true,
-				commitment: "processed",
+				commitment: "confirmed",
 				maxRetries: 5
 			}
 
