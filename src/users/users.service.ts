@@ -54,6 +54,7 @@ export class UsersService {
 					select: {
 						id: true,
 						name: true,
+						address: true,
 						ticker: true,
 						imageUri: true,
 						price: true
