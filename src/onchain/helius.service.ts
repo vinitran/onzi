@@ -97,7 +97,13 @@ export class HeliusService {
 			page++
 		}
 
-		return [...new Set(holders)]
+		// Lọc trùng theo address, giữ lại holder cuối cùng (nếu có nhiều bản ghi trùng)
+		const uniqueMap = new Map<string, TokenHolder>()
+		for (const holder of holders) {
+			uniqueMap.set(holder.address, holder)
+		}
+
+		return Array.from(uniqueMap.values())
 	}
 
 	async getListSignature(from: string, commitment = "finalized") {
