@@ -12,6 +12,7 @@ import {
 import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
 import { Ponz } from "@root/programs/ponz/program"
 import { Raydium } from "@root/programs/raydium/program"
+import { PonzVault } from "@root/programs/vault/program"
 import { NATIVE_MINT } from "@solana/spl-token"
 import { Keypair, PublicKey, SystemProgram, Transaction } from "@solana/web3.js"
 import bs58 from "bs58"
@@ -40,7 +41,8 @@ export class JackpotController {
 		private readonly raydium: Raydium,
 		private readonly ponz: Ponz,
 		private readonly rabbitMQService: RabbitMQService,
-		private readonly indexer: IndexerService
+		private readonly helius: HeliusService,
+		private readonly ponzVault: PonzVault
 	) {
 		this.systemWalletKeypair = Keypair.fromSecretKey(
 			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
@@ -77,23 +79,25 @@ export class JackpotController {
 		let page = 1
 		const pageSize = 1000
 
-		const [keyWithHeld, poolAddress, bondingCurve] = await Promise.all([
-			this.tokenKeyWithHeld.find(data.id),
-			this.raydium.fetchPoolAddress(NATIVE_MINT, new PublicKey(data.address)),
-			this.ponz.getBondingCurve(new PublicKey(data.address))
-		])
+		const [keyWithHeld, poolAddress, bondingCurve, tokenPoolVault] =
+			await Promise.all([
+				this.tokenKeyWithHeld.find(data.id),
+				this.raydium.fetchPoolAddress(NATIVE_MINT, new PublicKey(data.address)),
+				this.ponz.getBondingCurve(new PublicKey(data.address)),
+				this.ponzVault.tokenPoolPDA(new PublicKey(data.address))
+			])
 
 		if (!keyWithHeld) {
 			throw new NotFoundException("not found key with held")
 		}
 
-		let holdersAddress: string[] = []
-
-		while (true) {
-			const holders = await this.indexer.getTokenHoldersByPage(
-				data.address,
-				page,
-				pageSize
+		const listHolders = (await this.helius.getTokenHolders(data.address))
+			.filter(
+				holder =>
+					holder.address !== poolAddress?.toBase58() &&
+					holder.address !== keyWithHeld.publicKey &&
+					holder.address !== bondingCurve?.toBase58() &&
+					holder.address !== tokenPoolVault?.toBase58()
 			)
 			if (!holders || holders.length === 0) break
 

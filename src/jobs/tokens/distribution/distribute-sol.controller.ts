@@ -12,6 +12,7 @@ import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
 import { Ponz } from "@root/programs/ponz/program"
 import { InjectConnection } from "@root/programs/programs.module"
 import { Raydium } from "@root/programs/raydium/program"
+import { PonzVault } from "@root/programs/vault/program"
 import { NATIVE_MINT } from "@solana/spl-token"
 import { Keypair, PublicKey, SystemProgram, Transaction } from "@solana/web3.js"
 import bs58 from "bs58"
@@ -43,7 +44,9 @@ export class DistributeSolController {
 		private readonly tokenRepository: TokenRepository,
 		private readonly rabbitMQService: RabbitMQService,
 		private readonly raydium: Raydium,
-		private readonly ponz: Ponz
+		private readonly ponz: Ponz,
+		private readonly helius: HeliusService,
+		private readonly ponzVault: PonzVault
 	) {
 		// Initialize system wallet from private key stored in environment
 		this.systemWalletKeypair = Keypair.fromSecretKey(
@@ -86,25 +89,23 @@ export class DistributeSolController {
 
 		const totalTax = token.rewardTax + token.jackpotTax + token.burnTax
 
-		while (true) {
-			try {
-				const [holders, poolAddress, bondingCurve] = await Promise.all([
-					this.indexer.getTokenHoldersByPage(data.address, page, pageSize),
-					this.raydium.fetchPoolAddress(
-						NATIVE_MINT,
-						new PublicKey(data.address)
-					),
-					this.ponz.getBondingCurve(new PublicKey(data.address))
-				])
-				if (!holders || holders.length === 0) break
+		const [holders, poolAddress, bondingCurve, tokenPoolVault] =
+			await Promise.all([
+				this.helius.getTokenHolders(data.address),
+				this.raydium.fetchPoolAddress(NATIVE_MINT, new PublicKey(data.address)),
+				this.ponz.getBondingCurve(new PublicKey(data.address)),
+				this.ponzVault.tokenPoolPDA(new PublicKey(data.address))
+			])
+		if (!holders || holders.length === 0) return
 
-				// Filter out pool address and keyWithHeld.publicKey from holders
-				const filteredHolders = holders.filter(
-					holder =>
-						holder.owner !== poolAddress?.toBase58() &&
-						holder.owner !== keyWithHeld.publicKey &&
-						holder.owner !== bondingCurve?.toBase58()
-				)
+		// Filter out pool address and keyWithHeld.publicKey from holders
+		const filteredHolders = holders.filter(
+			holder =>
+				holder.address !== poolAddress?.toBase58() &&
+				holder.address !== keyWithHeld.publicKey &&
+				holder.address !== bondingCurve?.toBase58() &&
+				holder.address !== tokenPoolVault?.toBase58()
+		)
 
 				const listHolders = [...new Set(filteredHolders)]
 				const holderPubkeys = listHolders.map(

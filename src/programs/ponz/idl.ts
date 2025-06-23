@@ -10,7 +10,7 @@ export type PonzSc = {
 		name: "ponz"
 		version: "0.1.0"
 		spec: "0.1.0"
-		description: "Ponz platform program created with Anchor"
+		description: "Ponz platform program"
 	}
 	instructions: [
 		{
@@ -616,7 +616,7 @@ export type PonzSc = {
 				},
 				{
 					name: "ponzVault"
-					address: "ponzDgxsuynKG8FcHU9xGygwHd9jj2c8ZjfdgxgdLHs"
+					address: "ponzfzUKxc1MGndnnCNX8GZKpW7BUQrRDenK4JDcgFG"
 				},
 				{
 					name: "tokenProgram"
@@ -683,7 +683,7 @@ export type PonzSc = {
 				},
 				{
 					name: "ponzProgram"
-					address: "ponzDBbYFNQ7D2qzeJg5MjdwYZFgp6uJhT7VHLMAxpv"
+					address: "ponzXJ4pkXY4KwhxfTT4onNfCDURtRTt2EuShiAiBnf"
 				},
 				{
 					name: "ponzProgramData"
@@ -1605,93 +1605,108 @@ export type PonzSc = {
 		},
 		{
 			code: 6005
+			name: "bondingCurveIsNotCompleted"
+			msg: "Bonding Curve is not completed"
+		},
+		{
+			code: 6006
+			name: "insufficientLiquidityToWithdraw"
+			msg: "No liquidity to withdraw"
+		},
+		{
+			code: 6007
 			name: "insufficientPoolFeeToWithdraw"
 			msg: "No pool fee to withdraw"
 		},
 		{
-			code: 6006
+			code: 6008
 			name: "notOwnerWallet"
 			msg: "Not the Owner Wallet"
 		},
 		{
-			code: 6007
+			code: 6009
 			name: "notPonzSystemWallet"
 			msg: "Not the Ponz System Wallet"
 		},
 		{
-			code: 6008
+			code: 6010
 			name: "notPonzTokenMintAuthorityWallet"
 			msg: "Not the Ponz Token Mint Authority Wallet"
 		},
 		{
-			code: 6009
+			code: 6011
 			name: "notPonzMultiSigWallet"
 			msg: "Not the Ponz Multi Sig Wallet"
 		},
 		{
-			code: 6010
+			code: 6012
 			name: "notPendingOwnerWallet"
 			msg: "Not the Pending Owner Wallet"
 		},
 		{
-			code: 6011
+			code: 6013
 			name: "notPendingPonzSystemWallet"
 			msg: "Not the Pending Ponz System Wallet"
 		},
 		{
-			code: 6012
+			code: 6014
 			name: "notPendingPonzTokenMintAuthorityWallet"
 			msg: "Not the Pending Ponz Mint Authority Wallet"
 		},
 		{
-			code: 6013
+			code: 6015
 			name: "notPendingPonzMultiSigWallet"
 			msg: "Not the Pending Ponz Multi Sig Wallet"
 		},
 		{
-			code: 6014
+			code: 6016
 			name: "emptyWallet"
 			msg: "Empty wallet"
 		},
 		{
-			code: 6015
+			code: 6017
 			name: "unAuthorized"
 			msg: "You are not the Ponz SYSTEM Wallet or Ponz OWNER Wallet"
 		},
 		{
-			code: 6016
+			code: 6018
 			name: "invalidSwapFee"
 			msg: "Invalid swap fee"
 		},
 		{
-			code: 6017
+			code: 6019
 			name: "tokenPoolLockNotExpired"
 			msg: "Token pool lock not expired"
 		},
 		{
-			code: 6018
+			code: 6020
 			name: "zeroLamportsInputAmount"
 			msg: "Zero lamports input amount"
 		},
 		{
-			code: 6019
+			code: 6021
 			name: "zeroTokenInputAmount"
 			msg: "Zero token input amount"
 		},
 		{
-			code: 6020
+			code: 6022
 			name: "mathOverflow"
 			msg: "Math Overflow"
 		},
 		{
-			code: 6021
+			code: 6023
 			name: "invalidLockTime"
 			msg: "Invalid Lock Time"
 		},
 		{
-			code: 6022
+			code: 6024
 			name: "invalidLockPercent"
 			msg: "Invalid Lock Percent"
+		},
+		{
+			code: 6025
+			name: "invalidTokenPoolData"
+			msg: "Invalid Token Pool Owner"
 		}
 	]
 	types: [
@@ -1778,6 +1793,10 @@ export type PonzSc = {
 					},
 					{
 						name: "amount"
+						type: "u64"
+					},
+					{
+						name: "netAmount"
 						type: "u64"
 					},
 					{
@@ -1997,6 +2016,10 @@ export type PonzSc = {
 					},
 					{
 						name: "amount"
+						type: "u64"
+					},
+					{
+						name: "netAmount"
 						type: "u64"
 					},
 					{

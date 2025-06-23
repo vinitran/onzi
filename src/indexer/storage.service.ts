@@ -134,6 +134,7 @@ export class StorageIndexerService {
 
 	async handlerBuyToken(data: BuyTokensEvent) {
 		data.amount = BigInt(`0x${data.amount}`).toString()
+		data.netAmount = BigInt(`0x${data.netAmount}`).toString()
 		data.timestamp = BigInt(`0x${data.timestamp}`).toString()
 		data.lamports = BigInt(`0x${data.lamports}`).toString()
 
@@ -169,7 +170,7 @@ export class StorageIndexerService {
 						},
 						price: data.previousPrice,
 						newPrice: data.newPrice,
-						amount: BigInt(data.amount),
+						amount: BigInt(data.netAmount),
 						lamports: BigInt(data.lamports),
 						createdBy: {
 							connect: {
@@ -200,7 +201,7 @@ export class StorageIndexerService {
 			type: TransactionType.BUY,
 			date: DateTime.fromSeconds(Number(data.timestamp)).toJSDate(),
 			signature: data.signature,
-			amount: data.amount,
+			amount: data.netAmount,
 			lamports: data.lamports,
 			tokenAddress: data.mint,
 			signer: data.buyer,
@@ -392,7 +393,7 @@ export class StorageIndexerService {
 			{
 				userAddress: userAddress,
 				tokenAddress: tokenAddress,
-				amount: event.amount,
+				amount: isBuy ? event.netAmount : event.amount,
 				type: isBuy ? "Buy" : "Sell"
 			},
 			tx

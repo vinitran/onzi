@@ -16,13 +16,14 @@ import { SwapController } from "@root/jobs/tokens/distribution/swap.controller"
 import { Ponz } from "@root/programs/ponz/program"
 import { ProgramsModule } from "@root/programs/programs.module"
 import { Raydium } from "@root/programs/raydium/program"
+import { PonzVault } from "@root/programs/vault/program"
 import { TokenJobs } from "./tokens/token.job"
 
 @Module({
 	imports: [
 		EnvModule,
 		RedisModule,
-		ProgramsModule.register(Ponz, Raydium),
+		ProgramsModule.register(Ponz, Raydium, PonzVault),
 		ScheduleModule.forRoot(),
 		DatabaseModule,
 		IndexerModule

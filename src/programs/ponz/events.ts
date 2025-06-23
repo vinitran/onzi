@@ -20,6 +20,7 @@ export type BuyTokensEvent = {
 	newPrice: string
 	timestamp: string
 	signature: string
+	netAmount: string
 	type: "Buy"
 }
 
