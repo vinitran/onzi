@@ -19,6 +19,8 @@ export type Env = {
 	SYSTEM_WALLET_PRIVATE_KEY: string
 	CREATE_POOL_FEE_PUBLIC_KEY: string
 	MULTI_SIG_PUBKEY: string
+	TELEGRAM_FEEDBACK_BOT_ID: string
+	TELEGRAM_FEEDBACK_GROUP_ID: string
 }
 
 export const InjectEnv = () => Inject(ENV_TOKEN)
@@ -53,6 +55,12 @@ const provider: Provider = {
 		)
 
 		const MULTI_SIG_PUBKEY = configService.get<string>("MULTI_SIG_PUBKEY")
+		const TELEGRAM_FEEDBACK_BOT_ID = configService.get<string>(
+			"TELEGRAM_FEEDBACK_BOT_ID"
+		)
+		const TELEGRAM_FEEDBACK_GROUP_ID = configService.get<string>(
+			"TELEGRAM_FEEDBACK_GROUP_ID"
+		)
 
 		if (!DATABASE_URL) throw new Error("missing DATABASE_URL env")
 		if (!JWT_SECRET) throw new Error("missing JWT_SECRET env")
@@ -77,6 +85,11 @@ const provider: Provider = {
 
 		if (!MULTI_SIG_PUBKEY) throw new Error("missing MULTI_SIG_PUBKEY env")
 
+		if (!TELEGRAM_FEEDBACK_BOT_ID)
+			throw new Error("missing TELEGRAM_FEEDBACK_BOT_ID env")
+		if (!TELEGRAM_FEEDBACK_GROUP_ID)
+			throw new Error("missing TELEGRAM_FEEDBACK_GROUP_ID env")
+
 		return {
 			JWT_SECRET,
 			S3_REGION,
@@ -92,7 +105,9 @@ const provider: Provider = {
 			TOKEN_MINT_AUTHORITY_WALLET,
 			SYSTEM_WALLET_PRIVATE_KEY,
 			CREATE_POOL_FEE_PUBLIC_KEY,
-			MULTI_SIG_PUBKEY
+			MULTI_SIG_PUBKEY,
+			TELEGRAM_FEEDBACK_BOT_ID,
+			TELEGRAM_FEEDBACK_GROUP_ID
 		} satisfies Env
 	},
 	inject: [ConfigService]

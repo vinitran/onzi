@@ -9,8 +9,10 @@ import { AuthModule } from "@root/auth/auth.module"
 import { FileModule } from "@root/file/file.module"
 import { JobsModule } from "@root/jobs/job.module"
 import { UsersModule } from "@root/users/users.module"
+import { TelegramFeedbackModule } from "./_telegram/feedback/telegram-feedback.module"
 import { AdminModule } from "./admin/admin.module"
 import { CommentModule } from "./comments/comment.module"
+import { FeedbackModule } from "./feedback/feedback.module"
 import { NotificationsModule } from "./notifications/notifications.module"
 import { ReelCommentsModule } from "./reel-comments/reel-comments.module"
 import { ReelsModule } from "./reels/reels.module"
@@ -26,9 +28,6 @@ import { TokensModule } from "./tokens/tokens.module"
 		UsersModule,
 		CommentModule,
 		TokensModule,
-		JwtModule.register({
-			global: true
-		}),
 		FileModule,
 		NotificationsModule,
 		StickersModule,
@@ -37,7 +36,12 @@ import { TokensModule } from "./tokens/tokens.module"
 		ReelCommentsModule,
 		AdminModule,
 		TokenReportsModule,
-		JobsModule
+		JobsModule,
+		TelegramFeedbackModule,
+		JwtModule.register({
+			global: true
+		}),
+		FeedbackModule
 	],
 	controllers: [AppController],
 	providers: [AppService]
