@@ -89,7 +89,7 @@ export class CollectFeeController {
 			new PublicKey(data.address),
 			new PublicKey(keyWithHeld.publicKey),
 			true,
-			"confirmed",
+			"finalized",
 			{},
 			TOKEN_2022_PROGRAM_ID,
 			ASSOCIATED_TOKEN_PROGRAM_ID
@@ -130,7 +130,11 @@ export class CollectFeeController {
 
 							const feeAmount = getTransferFeeAmount(account)
 							return { address, feeAmount }
-						} catch (_error) {
+						} catch (error) {
+							Logger.warn(
+								`Skip invalid token account: ${address.toBase58()}`,
+								error
+							)
 							return null
 						}
 					})
