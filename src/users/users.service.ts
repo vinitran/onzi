@@ -55,6 +55,7 @@ export class UsersService {
 						id: true,
 						name: true,
 						address: true,
+						raydiumStatus: true,
 						ticker: true,
 						imageUri: true,
 						price: true
