@@ -36,7 +36,7 @@ export class FeedbackService {
 		let message = `⌚ ${time} \n\👤 *${user.username}* \n👉 ${content}`
 
 		if (twitterUsername) {
-			message += `\n🐦Twitter name: *${twitterUsername}*`
+			message += `\n 🔊Twitter name: *${twitterUsername}*`
 		}
 
 		await this.telegramFeedbackService.sendMessage(message)

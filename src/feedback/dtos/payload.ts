@@ -13,7 +13,7 @@ export class FeedbackCreatePayload {
 	content: string
 
 	@ApiProperty({
-		description: "Telegram user",
+		description: "Twitter username",
 		example: "ponz"
 	})
 	@OptionalProp()
