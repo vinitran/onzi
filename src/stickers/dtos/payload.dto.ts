@@ -1,0 +1,23 @@
+import { ApiProperty, PickType } from "@nestjs/swagger"
+import { Prop } from "@root/_shared/utils/decorators"
+import { PaginatedParams } from "@root/dtos/common.dto"
+import { ContentType } from "@root/tokens/dtos/payload.dto"
+import { IsEnum } from "class-validator"
+
+export class PaginateStickerParams extends PaginatedParams {}
+
+export class CreateStickerPayload {
+	@ApiProperty({
+		description: "Content type of the token",
+		example: ContentType.PNG,
+		enum: ContentType,
+		required: false
+	})
+	@Prop()
+	@IsEnum(ContentType)
+	contentType: ContentType
+}
+
+export class GetFrequentlyUsedStickersParams extends PickType(PaginatedParams, [
+	"take"
+] as const) {}
