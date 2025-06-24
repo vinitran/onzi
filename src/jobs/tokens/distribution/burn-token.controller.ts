@@ -46,6 +46,7 @@ export class BurnTokenController {
 		const originalMsg = context.getMessage()
 
 		try {
+			Logger.log("start burning token address: ", data.address)
 			const txSign = await this.burnToken(data)
 			await this.tokentxDistribute.insert({
 				from: this.systemWalletKeypair.publicKey.toBase58(),
@@ -54,6 +55,7 @@ export class BurnTokenController {
 				signature: txSign,
 				type: "Burn"
 			})
+			Logger.log("end burning token address: ", data.address)
 
 			channel.ack(originalMsg, false)
 		} catch (error) {

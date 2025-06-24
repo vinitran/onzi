@@ -86,7 +86,15 @@ export class IndexerController {
 		channel.prefetch(1, false)
 
 		try {
+			Logger.log(
+				"start handler complete bonding curve for token address: ",
+				data.mint
+			)
 			await this.indexerClientService.handleCompleteBondingCurve(data)
+			Logger.log(
+				"end handler complete bonding curve for token address: ",
+				data.mint
+			)
 			channel.ack(originalMsg, false)
 		} catch (error) {
 			Logger.error(error)
@@ -104,7 +112,9 @@ export class IndexerController {
 		channel.prefetch(1, false)
 
 		try {
+			Logger.log("end handler remove liquidity for token address: ", data.mint)
 			await this.indexerClientService.handleRemoveLiquidity(data)
+			Logger.log("end handler remove liquidity for token address: ", data.mint)
 			channel.ack(originalMsg, false)
 		} catch (error) {
 			Logger.error(error)

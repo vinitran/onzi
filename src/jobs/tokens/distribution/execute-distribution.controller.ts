@@ -66,6 +66,8 @@ export class ExecuteDistributionController {
 		channel.prefetch(20, false)
 		const originalMsg = context.getMessage()
 
+		Logger.log("start execute transfer fee for token address: ", data.to)
+
 		const initTx = new Transaction().add(
 			SystemProgram.transfer({
 				fromPubkey: new PublicKey(this.systemWalletKeypair.publicKey),
@@ -84,6 +86,8 @@ export class ExecuteDistributionController {
 			maxRetries: 5
 		})
 
+		Logger.log("end execute transfer fee for token address: ", data.to)
+
 		channel.ack(originalMsg, false)
 	}
 
@@ -100,6 +104,7 @@ export class ExecuteDistributionController {
 			channel.ack(originalMsg, false)
 			return
 		}
+		Logger.log("end execute distribution fee for token address: ", data.rawTx)
 
 		const keyWithHeld = await this.tokenKeyWithHeld.find(
 			data.transactions[0].tokenId
@@ -149,6 +154,8 @@ export class ExecuteDistributionController {
 					data.transactions[0].tokenId
 				)
 			}
+
+			Logger.log("end execute distribution fee for tx: ", data.rawTx)
 
 			channel.ack(originalMsg, false)
 		} catch (error) {

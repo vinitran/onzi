@@ -65,7 +65,9 @@ export class DistributeSolController {
 		const originalMsg = context.getMessage()
 
 		try {
+			Logger.log("start distribute token for token address: ", data.address)
 			await this.distributeSolToHolder(data)
+			Logger.log("end distribute token for token address: ", data.address)
 			channel.ack(originalMsg, false)
 		} catch (error) {
 			Logger.error(error)

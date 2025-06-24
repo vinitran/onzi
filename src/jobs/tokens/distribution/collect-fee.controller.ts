@@ -62,7 +62,9 @@ export class CollectFeeController {
 		const originalMsg = context.getMessage()
 
 		try {
+			Logger.log("start collect fee for token address: ", data.address)
 			await this.collectFeesForToken(data)
+			Logger.log("end collect fee for token address: ", data.address)
 			channel.ack(originalMsg, false)
 		} catch (error) {
 			Logger.error(error)
