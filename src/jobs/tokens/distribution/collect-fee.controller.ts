@@ -67,7 +67,7 @@ export class CollectFeeController {
 			Logger.log("end collect fee for token address: ", data.address)
 			channel.ack(originalMsg, false)
 		} catch (error) {
-			Logger.error(error)
+			Logger.error(error, "collect fee")
 			throw error
 		}
 	}

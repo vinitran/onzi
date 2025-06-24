@@ -35,7 +35,7 @@ export class IndexerController {
 			await this.indexerService.handlerCreateToken(data)
 			channel.ack(originalMsg, false)
 		} catch (error) {
-			Logger.error(error)
+			Logger.error(error, "create token")
 			throw error
 		}
 	}
@@ -53,7 +53,7 @@ export class IndexerController {
 			await this.indexerService.handlerBuyToken(data)
 			channel.ack(originalMsg, false)
 		} catch (error) {
-			Logger.error(error)
+			Logger.error(error, "buy token")
 			throw error
 		}
 	}
@@ -71,7 +71,7 @@ export class IndexerController {
 			await this.indexerService.handlerSellToken(data)
 			channel.ack(originalMsg, false)
 		} catch (error) {
-			Logger.error(error)
+			Logger.error(error, "sell token")
 			throw error
 		}
 	}
@@ -97,7 +97,7 @@ export class IndexerController {
 			)
 			channel.ack(originalMsg, false)
 		} catch (error) {
-			Logger.error(error)
+			Logger.error(error, "complete bonding curve")
 			throw error
 		}
 	}
@@ -117,7 +117,7 @@ export class IndexerController {
 			Logger.log("end handler remove liquidity for token address: ", data.mint)
 			channel.ack(originalMsg, false)
 		} catch (error) {
-			Logger.error(error)
+			Logger.error(error, "remove liquidity")
 			throw error
 		}
 	}

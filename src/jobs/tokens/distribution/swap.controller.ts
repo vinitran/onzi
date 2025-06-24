@@ -68,7 +68,7 @@ export class SwapController {
 			Logger.log("start swap for token address: ", data.address)
 			channel.ack(originalMsg, false)
 		} catch (error) {
-			Logger.error(error)
+			Logger.error(error, "swap")
 			throw error
 		}
 	}

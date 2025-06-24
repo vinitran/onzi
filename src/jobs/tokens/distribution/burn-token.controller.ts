@@ -59,7 +59,7 @@ export class BurnTokenController {
 
 			channel.ack(originalMsg, false)
 		} catch (error) {
-			Logger.error(error)
+			Logger.error(error, "burn token")
 			throw error
 		}
 	}

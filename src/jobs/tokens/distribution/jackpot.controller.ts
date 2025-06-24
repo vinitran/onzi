@@ -64,7 +64,7 @@ export class JackpotController {
 			Logger.log("start add jackpot for token address: ", data.address)
 			channel.ack(originalMsg, false)
 		} catch (error) {
-			Logger.error(error)
+			Logger.error(error, "jackpot")
 			throw error
 		}
 	}

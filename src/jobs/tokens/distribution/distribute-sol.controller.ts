@@ -70,7 +70,7 @@ export class DistributeSolController {
 			Logger.log("end distribute token for token address: ", data.address)
 			channel.ack(originalMsg, false)
 		} catch (error) {
-			Logger.error(error)
+			Logger.error(error, "distribute token")
 			throw error
 		}
 	}
