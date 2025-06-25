@@ -4,7 +4,6 @@ import { TelegrafModule } from "nestjs-telegraf"
 import { TelegramFeedbackConfigService } from "./telegram-feedback.config"
 import { TelegramFeedbackService } from "./telegram-feedback.service"
 import { TelegramUpdate } from "./telegram-feedback.update"
-
 @Module({
 	imports: [
 		ConfigModule.forRoot(),
