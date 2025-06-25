@@ -21,6 +21,7 @@ export type Env = {
 	MULTI_SIG_PUBKEY: string
 	TELEGRAM_FEEDBACK_BOT_ID: string
 	TELEGRAM_FEEDBACK_GROUP_ID: string
+	BE_DOMAIN: string
 }
 
 export const InjectEnv = () => Inject(ENV_TOKEN)
@@ -62,6 +63,8 @@ const provider: Provider = {
 			"TELEGRAM_FEEDBACK_GROUP_ID"
 		)
 
+		const BE_DOMAIN = configService.get<string>("BE_DOMAIN")
+
 		if (!DATABASE_URL) throw new Error("missing DATABASE_URL env")
 		if (!JWT_SECRET) throw new Error("missing JWT_SECRET env")
 		if (!S3_REGION) throw new Error("missing S3_REGION env")
@@ -90,6 +93,8 @@ const provider: Provider = {
 		if (!TELEGRAM_FEEDBACK_GROUP_ID)
 			throw new Error("missing TELEGRAM_FEEDBACK_GROUP_ID env")
 
+		if (!BE_DOMAIN) throw new Error("missing BE_DOMAIN env")
+
 		return {
 			JWT_SECRET,
 			S3_REGION,
@@ -107,7 +112,8 @@ const provider: Provider = {
 			CREATE_POOL_FEE_PUBLIC_KEY,
 			MULTI_SIG_PUBKEY,
 			TELEGRAM_FEEDBACK_BOT_ID,
-			TELEGRAM_FEEDBACK_GROUP_ID
+			TELEGRAM_FEEDBACK_GROUP_ID,
+			BE_DOMAIN
 		} satisfies Env
 	},
 	inject: [ConfigService]

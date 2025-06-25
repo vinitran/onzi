@@ -8,7 +8,13 @@ export class TelegramFeedbackConfigService implements TelegrafOptionsFactory {
 
 	createTelegrafOptions(): TelegrafModuleOptions {
 		return {
-			token: this.env.TELEGRAM_FEEDBACK_BOT_ID
+			token: this.env.TELEGRAM_FEEDBACK_BOT_ID,
+			launchOptions: {
+				webhook: {
+					domain: this.env.BE_DOMAIN,
+					hookPath: "/bot"
+				}
+			}
 		}
 	}
 }
