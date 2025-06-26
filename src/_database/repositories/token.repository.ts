@@ -547,6 +547,7 @@ export class TokenRepository {
 			select: { id: true, address: true, raydiumStatus: true },
 			where: {
 				isDeleted: false,
+				bump: true,
 				OR: [
 					{
 						raydiumStatus: RaydiumStatusType.Listed

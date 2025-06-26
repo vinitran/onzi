@@ -44,6 +44,11 @@ export class IndexerClientService {
 			return
 		}
 
+		Logger.log(
+			"start handler complete bonding curve for token address: ",
+			data.mint
+		)
+
 		const systemWalletKeypair = Keypair.fromSecretKey(
 			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
 		)
@@ -107,6 +112,10 @@ export class IndexerClientService {
 					isolationLevel: Prisma.TransactionIsolationLevel.Serializable
 				}
 			)
+			Logger.log(
+				"end handler complete bonding curve for token address: ",
+				data.mint
+			)
 		} catch (e) {
 			Logger.error(e)
 			throw new InternalServerErrorException(
@@ -125,6 +134,8 @@ export class IndexerClientService {
 		) {
 			return
 		}
+
+		Logger.log("start handler remove liquidity for token address: ", data.mint)
 
 		const systemWalletKeypair = Keypair.fromSecretKey(
 			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
@@ -183,6 +194,7 @@ export class IndexerClientService {
 					isolationLevel: Prisma.TransactionIsolationLevel.Serializable
 				}
 			)
+			Logger.log("end handler remove liquidity for token address: ", data.mint)
 		} catch (e) {
 			Logger.error(e)
 			throw new InternalServerErrorException(
