@@ -65,7 +65,7 @@ export class SwapController {
 		try {
 			Logger.log("start swap for token address: ", data.address)
 			await this.swapToSol(data)
-			Logger.log("start swap for token address: ", data.address)
+			Logger.log("end swap for token address: ", data.address)
 			channel.ack(originalMsg, false)
 		} catch (error) {
 			Logger.error(error, "swap")
