@@ -349,7 +349,7 @@ export class StorageIndexerService {
 
 			if (lockData) {
 				updateTokenParams.lockAmount = lockData.lockAmount
-				updateTokenParams.unlockAt = new Date(lockData.unlockAt * 1000)
+				updateTokenParams.unlockAt = lockData.unlockAt
 			}
 		}
 

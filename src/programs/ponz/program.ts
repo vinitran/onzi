@@ -353,8 +353,15 @@ export class Ponz extends SolanaProgram<PonzSc> {
 				this.connection.getTokenAccountBalance(poolLock)
 			])
 
+			const unlockTimeBigInt = BigInt(timeUnlock.unlockTime.toString()) * 1000n
+			const maxTimestamp = 8640000000000000n // max Date in JS
+			const clampedUnlockTime =
+				unlockTimeBigInt > maxTimestamp ? maxTimestamp : unlockTimeBigInt
+
+			const maxDate = new Date("9999-12-31T23:59:59.999Z")
+			const finalUnlockDate = new Date(Number(clampedUnlockTime))
 			return {
-				unlockAt: timeUnlock.unlockTime,
+				unlockAt: finalUnlockDate > maxDate ? maxDate : finalUnlockDate,
 				lockAmount: BigInt(lockAmount.value.amount)
 			}
 		} catch (error) {
