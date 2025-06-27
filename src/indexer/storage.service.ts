@@ -125,11 +125,9 @@ export class StorageIndexerService {
 		event: BuyTokensEvent | SellTokensEvent,
 		tx?: Prisma.TransactionClient
 	) {
-		await Promise.all([
-			this.updateToken(mint, event, tx),
-			this.updateBalanceUser(event, tx),
-			this.updateTokenChart(mint, event, tx)
-		])
+		await this.updateToken(mint, event, tx)
+		await this.updateBalanceUser(event, tx)
+		await this.updateTokenChart(mint, event, tx)
 	}
 
 	async handlerBuyToken(data: BuyTokensEvent) {
