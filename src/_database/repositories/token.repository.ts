@@ -726,6 +726,45 @@ export class TokenRepository {
 		})
 	}
 
+	async updateDistributionPending(
+		address: string,
+		amount: bigint,
+		tx?: Prisma.TransactionClient
+	) {
+		const client = tx ?? this.prisma
+
+		return client.token.update({
+			where: { address },
+			data: {
+				distributionPending: {
+					increment: amount
+				}
+			},
+			select: {
+				distributionPending: true,
+				raydiumStatus: true
+			}
+		})
+	}
+
+	async resetDistributionPending(
+		address: string,
+		tx?: Prisma.TransactionClient
+	) {
+		const client = tx ?? this.prisma
+
+		return client.token.update({
+			where: { address },
+			data: {
+				distributionPending: 0
+			},
+			select: {
+				distributionPending: true,
+				raydiumStatus: true
+			}
+		})
+	}
+
 	async updateTokenOnchain(
 		address: string,
 		data: Prisma.TokenUpdateInput,

@@ -100,8 +100,8 @@ export class StorageIndexerService {
 					await this.updateToken(data.mint, undefined, tx)
 				},
 				{
-					maxWait: 5000, // 5s
-					timeout: 10000, // 10s
+					maxWait: 50000, // 5s
+					timeout: 100000, // 10s
 					isolationLevel: Prisma.TransactionIsolationLevel.Serializable
 				}
 			)
@@ -182,8 +182,8 @@ export class StorageIndexerService {
 					await this.tokenTxRepository.create(txCreateInput, tx)
 				},
 				{
-					maxWait: 5000, // 5s
-					timeout: 10000, // 10s
+					maxWait: 50000, // 5s
+					timeout: 100000, // 10s
 					isolationLevel: Prisma.TransactionIsolationLevel.Serializable
 				}
 			)
@@ -277,8 +277,8 @@ export class StorageIndexerService {
 					await this.tokenTxRepository.create(txCreateInput, tx)
 				},
 				{
-					maxWait: 5000, // 5s
-					timeout: 10000, // 10s
+					maxWait: 50000, // 5s
+					timeout: 100000, // 10s
 					isolationLevel: Prisma.TransactionIsolationLevel.Serializable
 				}
 			)

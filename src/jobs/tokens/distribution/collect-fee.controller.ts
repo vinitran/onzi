@@ -29,6 +29,7 @@ export type SwapMessageType = {
 	address: string // Token address
 	amount?: string // Amount to swap (optional)
 	type?: "raydium" | "ponz" // Protocol type for swapping
+	amountHolder?: number
 }
 
 @Controller()
@@ -89,7 +90,7 @@ export class CollectFeeController {
 			new PublicKey(data.address),
 			new PublicKey(keyWithHeld.publicKey),
 			true,
-			"finalized",
+			"confirmed",
 			{},
 			TOKEN_2022_PROGRAM_ID,
 			ASSOCIATED_TOKEN_PROGRAM_ID
@@ -121,18 +122,19 @@ export class CollectFeeController {
 				await Promise.all(
 					batchSourceAddresses.map(async address => {
 						try {
+							// Logger.log(`Checking token account: ${address.toBase58()}`)
 							const account = await getAccount(
 								this.connection,
 								address,
-								"finalized",
+								"confirmed",
 								TOKEN_2022_PROGRAM_ID
 							)
 
 							const feeAmount = getTransferFeeAmount(account)
 							return { address, feeAmount }
 						} catch (error) {
-							Logger.warn(
-								`Skip invalid token account: ${address.toBase58()}`,
+							Logger.error(
+								`TokenAccountNotFoundError for address: ${address.toBase58()}`,
 								error
 							)
 							return null
@@ -230,7 +232,8 @@ export class CollectFeeController {
 				id: data.id,
 				address: data.address,
 				amount: swapAmount.toString(),
-				type: data.type
+				type: data.type,
+				amountHolder: holders.length
 			}
 
 			// Emit swap event

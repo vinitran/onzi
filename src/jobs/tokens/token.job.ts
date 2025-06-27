@@ -5,7 +5,7 @@ import { PrismaClient, RaydiumStatusType } from "@prisma/client"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
-import { SwapMessageType } from "@root/jobs/tokens/distribution/swap.controller"
+import { SwapMessageType } from "@root/jobs/tokens/distribution/collect-fee.controller"
 import { InjectConnection } from "@root/programs/programs.module"
 
 export const REWARD_DISTRIBUTOR_EVENTS = {

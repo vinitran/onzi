@@ -8,9 +8,11 @@ import {
 import { Ctx, EventPattern, Payload, RmqContext } from "@nestjs/microservices"
 import { TokenKeyWithHeldRepository } from "@root/_database/repositories/token-key-with-held.repository"
 import { TokenTransactionDistributeRepository } from "@root/_database/repositories/token-tx-distribute"
+import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
 import { keypairFromPrivateKey } from "@root/_shared/helpers/encode-decode-tx"
+import { SwapMessageType } from "@root/jobs/tokens/distribution/collect-fee.controller"
 import { PrepareRewardDistributionPayload } from "@root/jobs/tokens/distribution/distribute-sol.controller"
 import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
 import { Ponz } from "@root/programs/ponz/program"
@@ -18,13 +20,6 @@ import { InjectConnection } from "@root/programs/programs.module"
 import { Raydium } from "@root/programs/raydium/program"
 import { Keypair, PublicKey } from "@solana/web3.js"
 import bs58 from "bs58"
-
-export type SwapMessageType = {
-	id: string // Token identifier
-	address: string // Token address
-	amount?: string // Amount to swap (optional)
-	type?: "raydium" | "ponz" // Protocol type for swapping
-}
 
 @Controller()
 export class SwapController {
@@ -44,6 +39,7 @@ export class SwapController {
 		@InjectConnection() private connection: web3.Connection,
 		private readonly tokenKeyWithHeld: TokenKeyWithHeldRepository,
 		private readonly tokentxDistribute: TokenTransactionDistributeRepository,
+		private readonly tokenRepository: TokenRepository,
 		private readonly rabbitMQService: RabbitMQService
 	) {
 		// Initialize system wallet from private key stored in environment
@@ -119,16 +115,26 @@ export class SwapController {
 			type: "SwapToSolana"
 		})
 
-		// Emit event for reward distribution
-		await this.rabbitMQService.emit(
-			"distribute-reward-distributor",
-			REWARD_DISTRIBUTOR_EVENTS.PREPARE_REWARD_DISTRIBUTION,
-			{
-				id: data.id,
-				address: data.address,
-				lamport: balanceChange
-			} as PrepareRewardDistributionPayload
-		)
+		const distributionPending =
+			await this.tokenRepository.updateDistributionPending(
+				data.address,
+				BigInt(balanceChange)
+			)
+
+		const estimateFee = data.amountHolder! * 10000
+		if (distributionPending.distributionPending > 4 * estimateFee) {
+			// Emit event for reward distribution
+			await this.rabbitMQService.emit(
+				"distribute-reward-distributor",
+				REWARD_DISTRIBUTOR_EVENTS.PREPARE_REWARD_DISTRIBUTION,
+				{
+					id: data.id,
+					address: data.address,
+					lamport: distributionPending.distributionPending.toString()
+				} as PrepareRewardDistributionPayload
+			)
+			await this.tokenRepository.resetDistributionPending(data.address)
+		}
 	}
 
 	// Calculate balance change for a transaction

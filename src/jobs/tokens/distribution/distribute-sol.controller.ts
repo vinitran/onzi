@@ -21,7 +21,7 @@ import bs58 from "bs58"
 export type PrepareRewardDistributionPayload = {
 	id: string
 	address: string
-	lamport: number
+	lamport: string
 }
 
 export type DistributionTransaction = {
@@ -174,7 +174,7 @@ export class DistributeSolController {
 		const sendVaultTx = new Transaction().add(
 			SystemProgram.transfer({
 				fromPubkey: new PublicKey(keyWithHeld.publicKey),
-				toPubkey: new PublicKey(this.env.MULTI_SIG_PUBKEY),
+				toPubkey: new PublicKey(this.env.REWARD_VAULT_ADDRESS),
 				lamports: BigInt(data.lamport) / BigInt(100)
 			})
 		)
