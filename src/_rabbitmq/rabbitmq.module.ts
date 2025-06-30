@@ -12,6 +12,10 @@ import { RabbitMQService } from "./rabbitmq.service"
 				useFactory: () => RabbitMQConfig("blockchain")
 			},
 			{
+				name: "RAYDIUM_RABBITMQ_SERVICE",
+				useFactory: () => RabbitMQConfig("raydium")
+			},
+			{
 				name: "SOCKET_RABBITMQ_SERVICE",
 				useFactory: () => RabbitMQConfig("socket")
 			},
