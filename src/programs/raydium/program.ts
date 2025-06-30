@@ -208,16 +208,11 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 		tx.feePayer = creator.publicKey
 		tx.sign(creator)
 
-		const simulationResult = await this.connection.simulateTransaction(tx)
+		const txSig = await this.connection.sendRawTransaction(tx.serialize(), {
+			skipPreflight: true,
+			maxRetries: 5
+		})
 
-		if (simulationResult.value.err) {
-			throw new InternalServerErrorException(
-				"Simulation failed",
-				simulationResult.value.err
-			)
-		}
-
-		const txSig = await this.connection.sendRawTransaction(tx.serialize())
 		await this.connection.confirmTransaction(txSig, "finalized")
 
 		return txSig
