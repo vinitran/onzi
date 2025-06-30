@@ -104,7 +104,7 @@ export class IndexerService {
 							break
 						}
 						await this.rabbitMQService.emit(
-							"blockchain",
+							"raydium",
 							EVENTS.CompleteBondingCurve,
 							event
 						)
@@ -121,7 +121,7 @@ export class IndexerService {
 							break
 						}
 						await this.rabbitMQService.emit(
-							"blockchain",
+							"raydium",
 							EVENTS.RemoveLiquidity,
 							event
 						)

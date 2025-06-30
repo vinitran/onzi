@@ -4,6 +4,7 @@ import { firstValueFrom } from "rxjs"
 
 export type RabbitMQServiceType =
 	| "blockchain"
+	| "raydium"
 	| "socket"
 	| "collect-fee-reward-distributor"
 	| "swap-to-sol-reward-distributor"
@@ -14,6 +15,9 @@ export class RabbitMQService {
 	constructor(
 		@Inject("BLOCKCHAIN_RABBITMQ_SERVICE")
 		private readonly blockchainClient: ClientProxy,
+
+		@Inject("RAYDIUM_RABBITMQ_SERVICE")
+		private readonly raydiumClient: ClientProxy,
 
 		@Inject("SOCKET_RABBITMQ_SERVICE")
 		private readonly socketClient: ClientProxy,
@@ -37,6 +41,8 @@ export class RabbitMQService {
 		switch (type) {
 			case "blockchain":
 				return this.blockchainClient
+			case "raydium":
+				return this.raydiumClient
 			case "socket":
 				return this.socketClient
 			case "collect-fee-reward-distributor":

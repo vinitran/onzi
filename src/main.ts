@@ -8,7 +8,9 @@ async function bootstrap() {
 	const app = await NestFactory.create(AppModule)
 
 	try {
-		app.connectMicroservice(RabbitMQConfig("blockchain", false))
+		app.connectMicroservice(RabbitMQConfig("blockchain", false, 20))
+		app.connectMicroservice(RabbitMQConfig("raydium", false, 20))
+
 		app.connectMicroservice(RabbitMQConfig("socket"))
 		app.connectMicroservice(
 			RabbitMQConfig("collect-fee-reward-distributor", false, 20)
