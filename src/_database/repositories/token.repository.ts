@@ -1007,7 +1007,9 @@ export class TokenRepository {
 					marketCapacity: true,
 					imageUri: true,
 					createdAt: true,
-					volumn: true
+					volumn: true,
+					price: true,
+					totalSupply: true
 				},
 				orderBy: {
 					createdAt: "desc"

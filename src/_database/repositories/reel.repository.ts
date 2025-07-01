@@ -27,7 +27,9 @@ export class ReelRepository {
 						imageUri: true,
 						marketCapacity: true,
 						description: true,
-						ticker: true
+						ticker: true,
+						totalSupply: true,
+						price: true
 					}
 				}
 			}

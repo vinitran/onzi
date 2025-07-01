@@ -213,6 +213,8 @@ export class ReelsService {
 			isUserDislikeReel = !!userActionMap.Dislike
 		}
 
+		console.log("reel: ", reel)
+
 		return this.redis.getOrSet(
 			`reel-detail-${reelId}`,
 			async () => {

@@ -316,6 +316,7 @@ export class TokensController {
 	})
 	async getListSimilar(@Param("address") address: string) {
 		const data = await this.tokensService.getListSimilar(address)
+
 		return data.map(item =>
 			plainToInstance(SimilarTokenResponse, item, {
 				excludeExtraneousValues: true
