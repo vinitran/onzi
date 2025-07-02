@@ -133,7 +133,7 @@ export class CollectFeeController {
 							const feeAmount = getTransferFeeAmount(account)
 							return { address, feeAmount }
 						} catch (error) {
-							Logger.error(
+							Logger.warn(
 								`TokenAccountNotFoundError for address: ${address.toBase58()}`,
 								error
 							)

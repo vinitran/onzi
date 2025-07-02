@@ -15,11 +15,30 @@ export const RabbitMQConfig = (
 			maxLength: 5000,
 			arguments: {
 				"x-dead-letter-exchange": "",
-				"x-dead-letter-routing-key": `${process.env.RABBITMQ_QUEUE}_retry`
+				"x-dead-letter-routing-key": `${process.env.RABBITMQ_QUEUE as string}-${queue}_retry`
 			}
 		},
 		prefetchCount,
 		persistent: true,
 		...(noAck !== undefined && { noAck })
+	}
+})
+
+export const RabbitMQRetryConfig = (
+	queue: RabbitMQServiceType,
+	retryTtl = 15000 // 10s, tuỳ chỉnh
+): RmqOptions => ({
+	transport: Transport.RMQ,
+	options: {
+		urls: [process.env.RABBITMQ_URL as string],
+		queue: `${process.env.RABBITMQ_QUEUE as string}-${queue}_retry`,
+		queueOptions: {
+			durable: true,
+			arguments: {
+				"x-dead-letter-exchange": "",
+				"x-dead-letter-routing-key": `${process.env.RABBITMQ_QUEUE as string}-${queue}`,
+				"x-message-ttl": retryTtl
+			}
+		}
 	}
 })
