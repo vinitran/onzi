@@ -2,11 +2,9 @@ import {
 	Body,
 	ClassSerializerInterceptor,
 	Controller,
-	Delete,
 	Get,
 	Param,
 	ParseUUIDPipe,
-	Post,
 	Put,
 	Query,
 	SerializeOptions,
@@ -16,20 +14,22 @@ import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
 import { Auth } from "@root/_shared/utils/decorators"
 import { Claims } from "@root/auth/auth.service"
 import { Comment as CommentResponse } from "@root/dtos/comment.dto"
-import { ApiPaginatedResponse, PaginatedParams } from "@root/dtos/common.dto"
-import { Paginate as PaginatedResponse } from "@root/dtos/common.dto"
+import {
+	ApiPaginatedResponse,
+	PaginatedParams,
+	Paginate as PaginatedResponse
+} from "@root/dtos/common.dto"
 import { UserConnection as UserConnectionResponse } from "@root/dtos/user-connection.dto"
 import { User as UserResponse } from "@root/dtos/user.dto"
 import { PaginateTokenResponse } from "@root/tokens/dtos/response.dto"
 import {
-	FollowingPayload,
 	GetCoinCreatedParams,
-	SetInformationPayload,
-	UnfollowingPayload
+	SetInformationPayload
 } from "@root/users/dtos/payload.dto"
 import {
 	CoinHeldsResponse,
-	SetInformationUser
+	SetInformationUser,
+	UserBalanceResponse
 } from "@root/users/dtos/response.dto"
 import { User } from "@root/users/user.decorator"
 import { plainToInstance } from "class-transformer"
@@ -56,6 +56,27 @@ export class UsersController {
 		return plainToInstance(UserResponse, user, {
 			excludeExtraneousValues: true
 		})
+	}
+
+	@Get("balance/token/:tokenId")
+	@Auth()
+	@UseInterceptors(ClassSerializerInterceptor)
+	@ApiOperation({ summary: "Get user's token balance" })
+	@ApiResponse({
+		status: 200,
+		type: UserBalanceResponse,
+		description: "Successfully retrieved user's token balance"
+	})
+	@SerializeOptions({
+		type: UserBalanceResponse,
+		enableImplicitConversion: true,
+		excludeExtraneousValues: true
+	})
+	async getTokenBalance(
+		@User() user: Claims,
+		@Param("tokenId") tokenId: string
+	) {
+		return this.userService.getTokenBalance(user.address, tokenId)
 	}
 
 	@Get(":id/coin-helds")
@@ -190,24 +211,21 @@ export class UsersController {
 		)
 	}
 
-	@Post("following")
-	@Auth()
-	@ApiOperation({ summary: "Follow a user" })
+	@Get(":id/balance/sol")
+	@UseInterceptors(ClassSerializerInterceptor)
+	@ApiOperation({ summary: "Get user's Solana balance" })
 	@ApiResponse({
-		status: 201,
-		description: "Successfully followed user",
-		type: UserConnectionResponse
+		status: 200,
+		type: UserBalanceResponse,
+		description: "Successfully retrieved user's Solana balance"
 	})
-	@ApiResponse({ status: 400, description: "Already following this user" })
-	@ApiResponse({ status: 404, description: "User to follow not found" })
-	async following(
-		@User() { id }: Claims,
-		@Query() { followingId }: FollowingPayload
-	) {
-		const following = await this.userService.following(id, followingId)
-		return plainToInstance(UserConnectionResponse, following, {
-			excludeExtraneousValues: true
-		})
+	@SerializeOptions({
+		type: UserBalanceResponse,
+		enableImplicitConversion: true,
+		excludeExtraneousValues: true
+	})
+	async getSolBalance(@Param("id") id: string) {
+		return this.userService.getSolBalance(id)
 	}
 
 	@Put()
@@ -228,29 +246,6 @@ export class UsersController {
 	) {
 		const user = await this.userService.setInformation(id, payload)
 		return plainToInstance(SetInformationUser, user, {
-			excludeExtraneousValues: true
-		})
-	}
-
-	@Delete("unfollowing")
-	@Auth()
-	@ApiOperation({ summary: "Unfollow a user" })
-	@ApiResponse({
-		status: 200,
-		description: "Successfully unfollowed user",
-		type: UserConnectionResponse
-	})
-	@ApiResponse({
-		status: 403,
-		description: "Not authorized to unfollow this user"
-	})
-	@ApiResponse({ status: 404, description: "Follow connection not found" })
-	async unfollowing(
-		@User() { id }: Claims,
-		@Query() { followId }: UnfollowingPayload
-	) {
-		const unfollowing = await this.userService.unfollowing(id, followId)
-		return plainToInstance(UserConnectionResponse, unfollowing, {
 			excludeExtraneousValues: true
 		})
 	}

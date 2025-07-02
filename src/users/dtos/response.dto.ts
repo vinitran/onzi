@@ -29,3 +29,9 @@ export class SetInformationUser {
 	@Expose()
 	backgroundAttachment?: S3Upload
 }
+
+export class UserBalanceResponse {
+	@ApiProperty({ description: "User's balance" })
+	@Expose()
+	balance: string
+}

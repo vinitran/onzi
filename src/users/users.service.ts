@@ -3,8 +3,10 @@ import {
 	ForbiddenException,
 	Injectable,
 	InternalServerErrorException,
+	Logger,
 	NotFoundException
 } from "@nestjs/common"
+import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js"
 
 import { Prisma } from "@prisma/client"
 import { CommentRepository } from "@root/_database/repositories/comment.repository"
@@ -19,10 +21,12 @@ import {
 	SetInformationPayload
 } from "@root/users/dtos/payload.dto"
 import { CoinHeldsResponse } from "@root/users/dtos/response.dto"
+import { AccountLayout } from "@solana/spl-token"
 import { plainToInstance } from "class-transformer"
 
 @Injectable()
 export class UsersService {
+	private readonly logger = new Logger(UsersService.name)
 	constructor(
 		private userRepository: UserRepository,
 		private userConnectionRepository: UserConnectionRepository,
@@ -252,5 +256,60 @@ export class UsersService {
 		if (!user) throw new NotFoundException("not found user")
 
 		return user
+	}
+
+	async getSolBalance(userId: string) {
+		const user = await this.userRepository.findById(userId)
+		if (!user) throw new NotFoundException("Not found user")
+
+		const HELIUS_RPC = `https://mainnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
+		const isDev = this.env.IS_TEST
+
+		try {
+			const publicKey = new PublicKey(user.address)
+			const connection = new Connection(
+				isDev ? clusterApiUrl("devnet") : HELIUS_RPC,
+				"confirmed"
+			)
+			const wallet = new PublicKey(publicKey)
+			const balance = await connection.getBalance(wallet)
+			return { balance }
+		} catch (error) {
+			throw new InternalServerErrorException(error)
+		}
+	}
+
+	async getTokenBalance(userAddress: string, tokenId: string) {
+		const token = await this.token.findById(tokenId)
+		if (!token) throw new NotFoundException("Not found token")
+		if (!token.bump) throw new BadRequestException("Token is not bumped")
+
+		const HELIUS_RPC = `https://mainnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
+		const isDev = this.env.IS_TEST
+
+		try {
+			const mintAddress = new PublicKey(token.address)
+			const owner = new PublicKey(userAddress)
+			const connection = new Connection(
+				isDev ? clusterApiUrl("devnet") : HELIUS_RPC,
+				"confirmed"
+			)
+
+			const tokenAccounts = await connection.getTokenAccountsByOwner(owner, {
+				mint: mintAddress
+			})
+
+			let totalAmount = 0
+
+			for (const { account } of tokenAccounts.value) {
+				const data = AccountLayout.decode(account.data)
+				const amount = Number(data.amount)
+				totalAmount += amount
+			}
+
+			return { balance: totalAmount }
+		} catch (_error) {
+			throw new InternalServerErrorException("Failed to fetch token balance")
+		}
 	}
 }
