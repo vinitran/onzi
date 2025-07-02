@@ -12,12 +12,14 @@ export class ReelRepository {
 	constructor(private prisma: PrismaService) {}
 
 	findById(id: string) {
-		return this.prisma.reel.findUnique({ where: { id } })
+		return this.prisma.reel.findUnique({
+			where: { id, token: { isDeleted: false } }
+		})
 	}
 
 	getDetail(id: string) {
 		return this.prisma.reel.findUnique({
-			where: { id },
+			where: { id, token: { isDeleted: false } },
 			include: {
 				token: {
 					select: {
@@ -44,6 +46,7 @@ export class ReelRepository {
 			const prevNormal = await this.prisma.reel.findFirst({
 				where: {
 					tokenId: currentReel.tokenId,
+					token: { isDeleted: false },
 					id: { not: currentReel.id },
 					pinnedAt: null,
 					createdAt: { gt: currentReel.createdAt }
@@ -57,6 +60,7 @@ export class ReelRepository {
 			const latestPinned = await this.prisma.reel.findFirst({
 				where: {
 					tokenId: currentReel.tokenId,
+					token: { isDeleted: false },
 					pinnedAt: { not: null }
 				},
 				orderBy: [{ pinnedAt: "asc" }]
@@ -69,6 +73,7 @@ export class ReelRepository {
 		return this.prisma.reel.findFirst({
 			where: {
 				tokenId: currentReel.tokenId,
+				token: { isDeleted: false },
 				id: { not: currentReel.id },
 				pinnedAt: {
 					gte: currentReel.pinnedAt!
@@ -95,6 +100,7 @@ export class ReelRepository {
 			const nextPinned = await this.prisma.reel.findFirst({
 				where: {
 					tokenId: currentReel.tokenId,
+					token: { isDeleted: false },
 					id: { not: currentReel.id },
 					pinnedAt: {
 						lte: currentReel.pinnedAt!
@@ -118,6 +124,7 @@ export class ReelRepository {
 			const nextNormal = await this.prisma.reel.findFirst({
 				where: {
 					tokenId: currentReel.tokenId,
+					token: { isDeleted: false },
 					pinnedAt: null
 				},
 				orderBy: [{ createdAt: "desc" }]
@@ -130,6 +137,7 @@ export class ReelRepository {
 		return this.prisma.reel.findFirst({
 			where: {
 				tokenId: currentReel.tokenId,
+				token: { isDeleted: false },
 				id: { not: currentReel.id },
 				pinnedAt: null,
 				createdAt: { lt: currentReel.createdAt }
@@ -147,7 +155,10 @@ export class ReelRepository {
 					createdAt: "desc"
 				},
 				skip,
-				take
+				take,
+				where: {
+					token: { isDeleted: false }
+				}
 			}),
 			this.prisma.reel.count()
 		])
@@ -163,6 +174,9 @@ export class ReelRepository {
 		return this.prisma.reel.findFirst({
 			orderBy: {
 				createdAt: "desc"
+			},
+			where: {
+				token: { isDeleted: false }
 			}
 		})
 	}
@@ -172,7 +186,8 @@ export class ReelRepository {
 		return this.prisma.reel.findFirst({
 			where: {
 				id: { not: currentReel.id },
-				createdAt: { gt: currentReel.createdAt }
+				createdAt: { gt: currentReel.createdAt },
+				token: { isDeleted: false }
 			},
 			orderBy: [{ createdAt: "asc" }]
 		})
@@ -183,7 +198,8 @@ export class ReelRepository {
 		return this.prisma.reel.findFirst({
 			where: {
 				id: { not: currentReel.id },
-				createdAt: { lt: currentReel.createdAt }
+				createdAt: { lt: currentReel.createdAt },
+				token: { isDeleted: false }
 			},
 			orderBy: [{ createdAt: "desc" }]
 		})
@@ -200,7 +216,8 @@ export class ReelRepository {
 
 		return this.prisma.reel.findMany({
 			where: {
-				tokenId
+				tokenId,
+				token: { isDeleted: false }
 			},
 			orderBy: [
 				{
@@ -266,6 +283,7 @@ export class ReelRepository {
 		return this.prisma.reel.findMany({
 			where: {
 				tokenId,
+				token: { isDeleted: false },
 				pinnedAt: { not: null }
 			}
 		})
@@ -275,6 +293,7 @@ export class ReelRepository {
 		return this.prisma.reel.findFirst({
 			where: {
 				tokenId,
+				token: { isDeleted: false },
 				pinnedAt: { not: null }
 			},
 			orderBy: {
