@@ -185,7 +185,8 @@ export class GetSummaryTokensResponse extends PickType(Token, [
 	"isCompletedKingOfHill",
 	"raydiumStatus",
 	"price",
-	"totalSupply"
+	"totalSupply",
+	"bump"
 ]) {
 	@Expose()
 	@ApiProperty({ description: "Total replies" })
