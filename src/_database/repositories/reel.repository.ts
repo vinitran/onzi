@@ -25,6 +25,7 @@ export class ReelRepository {
 					select: {
 						id: true,
 						address: true,
+						bump: true,
 						name: true,
 						imageUri: true,
 						marketCapacity: true,
