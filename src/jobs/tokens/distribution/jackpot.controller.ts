@@ -4,6 +4,7 @@ import { TokenKeyWithHeldRepository } from "@root/_database/repositories/token-k
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
+import { RedisService } from "@root/_redis/redis.service"
 import {
 	ExecuteDistributionPayload,
 	Transactionspayload
@@ -22,6 +23,7 @@ export type JackpotPayload = {
 	address: string
 	amount: string
 	times: number
+	idPayload: string
 }
 
 export type UpdateJackpotAfterSwapPayload = {
@@ -42,11 +44,16 @@ export class JackpotController {
 		private readonly ponz: Ponz,
 		private readonly rabbitMQService: RabbitMQService,
 		private readonly helius: HeliusService,
-		private readonly ponzVault: PonzVault
+		private readonly ponzVault: PonzVault,
+		private redis: RedisService
 	) {
 		this.systemWalletKeypair = Keypair.fromSecretKey(
 			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
 		)
+	}
+
+	redisKey(id: string) {
+		return `jackpot: ${id}`
 	}
 
 	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.UPDATE_JACKPOT_AFTER_SWAP)
@@ -78,69 +85,85 @@ export class JackpotController {
 		channel.prefetch(20, false)
 		const originalMsg = context.getMessage()
 
-		const [keyWithHeld, poolAddress, bondingCurve, tokenPoolVault] =
-			await Promise.all([
-				this.tokenKeyWithHeld.find(data.id),
-				this.raydium.fetchPoolAddress(NATIVE_MINT, new PublicKey(data.address)),
-				this.ponz.getBondingCurve(new PublicKey(data.address)),
-				this.ponzVault.tokenPoolPDA(new PublicKey(data.address))
-			])
-
-		if (!keyWithHeld) {
-			throw new NotFoundException("not found key with held")
+		const id = await this.redis.get(this.redisKey(data.idPayload))
+		if (id) {
+			channel.ack(originalMsg, false)
 		}
 
-		const listHolders = (await this.helius.getTokenHolders(data.address))
-			.filter(
-				holder =>
-					holder.address !== poolAddress?.toBase58() &&
-					holder.address !== keyWithHeld.publicKey &&
-					holder.address !== bondingCurve?.toBase58() &&
-					holder.address !== tokenPoolVault?.toBase58()
-			)
-			.map(holder => holder.address)
+		await this.redis.set(this.redisKey(data.idPayload), "true", 600)
 
-		const createTokenTxDistribute: Transactionspayload[] = []
-		const tx = new Transaction()
+		try {
+			const [keyWithHeld, poolAddress, bondingCurve, tokenPoolVault] =
+				await Promise.all([
+					this.tokenKeyWithHeld.find(data.id),
+					this.raydium.fetchPoolAddress(
+						NATIVE_MINT,
+						new PublicKey(data.address)
+					),
+					this.ponz.getBondingCurve(new PublicKey(data.address)),
+					this.ponzVault.tokenPoolPDA(new PublicKey(data.address))
+				])
 
-		for (let i = 0; i < data.times; i++) {
-			// Get random user from holders
-			const randomIndex = Math.floor(Math.random() * listHolders.length)
-			const randomUser = listHolders[randomIndex]
+			if (!keyWithHeld) {
+				throw new NotFoundException("not found key with held")
+			}
 
-			tx.add(
-				SystemProgram.transfer({
-					fromPubkey: new PublicKey(keyWithHeld.publicKey),
-					toPubkey: new PublicKey(randomUser),
-					lamports: BigInt(data.amount)
+			const listHolders = (await this.helius.getTokenHolders(data.address))
+				.filter(
+					holder =>
+						holder.address !== poolAddress?.toBase58() &&
+						holder.address !== keyWithHeld.publicKey &&
+						holder.address !== bondingCurve?.toBase58() &&
+						holder.address !== tokenPoolVault?.toBase58()
+				)
+				.map(holder => holder.address)
+
+			const createTokenTxDistribute: Transactionspayload[] = []
+			const tx = new Transaction()
+
+			for (let i = 0; i < data.times; i++) {
+				// Get random user from holders
+				const randomIndex = Math.floor(Math.random() * listHolders.length)
+				const randomUser = listHolders[randomIndex]
+
+				tx.add(
+					SystemProgram.transfer({
+						fromPubkey: new PublicKey(keyWithHeld.publicKey),
+						toPubkey: new PublicKey(randomUser),
+						lamports: BigInt(data.amount)
+					})
+				)
+
+				createTokenTxDistribute.push({
+					from: keyWithHeld.publicKey,
+					tokenId: data.id,
+					to: randomUser,
+					lamport: data.amount,
+					type: "Jackpot"
 				})
+			}
+
+			tx.feePayer = this.systemWalletKeypair.publicKey
+
+			// Set fake/dummy recentBlockhash
+			tx.recentBlockhash = PublicKey.default.toBase58()
+
+			await this.rabbitMQService.emit(
+				"distribute-reward-distributor",
+				REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION,
+				{
+					rawTx: tx
+						.serialize({ requireAllSignatures: false, verifySignatures: false })
+						.toString("base64"),
+					transactions: createTokenTxDistribute
+				} as ExecuteDistributionPayload
 			)
 
-			createTokenTxDistribute.push({
-				from: keyWithHeld.publicKey,
-				tokenId: data.id,
-				to: randomUser,
-				lamport: data.amount,
-				type: "Jackpot"
-			})
+			channel.ack(originalMsg, false)
+			await this.redis.del(this.redisKey(data.idPayload))
+		} catch (_error) {
+			await this.redis.del(this.redisKey(data.idPayload))
+			throw _error
 		}
-
-		tx.feePayer = this.systemWalletKeypair.publicKey
-
-		// Set fake/dummy recentBlockhash
-		tx.recentBlockhash = PublicKey.default.toBase58()
-
-		await this.rabbitMQService.emit(
-			"distribute-reward-distributor",
-			REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION,
-			{
-				rawTx: tx
-					.serialize({ requireAllSignatures: false, verifySignatures: false })
-					.toString("base64"),
-				transactions: createTokenTxDistribute
-			} as ExecuteDistributionPayload
-		)
-
-		channel.ack(originalMsg, false)
 	}
 }

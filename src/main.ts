@@ -9,7 +9,7 @@ async function bootstrap() {
 
 	try {
 		app.connectMicroservice(RabbitMQConfig("blockchain", false, 1))
-		app.connectMicroservice(RabbitMQConfig("raydium", false, 20))
+		app.connectMicroservice(RabbitMQConfig("raydium", false, 1))
 
 		app.connectMicroservice(RabbitMQConfig("socket"))
 		app.connectMicroservice(
@@ -63,6 +63,16 @@ async function bootstrap() {
 		Logger.error("Failed to start schedule service:", error)
 		process.exit(1)
 	}
+
+	process.on("SIGINT", async () => {
+		console.log("SIGINT received: Closing app gracefully...")
+		await app.close()
+	})
+
+	process.on("SIGTERM", async () => {
+		console.log("SIGTERM received: Closing app gracefully...")
+		await app.close()
+	})
 }
 
 bootstrap()

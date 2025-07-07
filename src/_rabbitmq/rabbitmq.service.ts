@@ -1,4 +1,9 @@
-import { Inject, Injectable } from "@nestjs/common"
+import {
+	Inject,
+	Injectable,
+	Logger,
+	OnApplicationShutdown
+} from "@nestjs/common"
 import { ClientProxy } from "@nestjs/microservices"
 import { firstValueFrom } from "rxjs"
 
@@ -11,7 +16,7 @@ export type RabbitMQServiceType =
 	| "distribute-reward-distributor"
 
 @Injectable()
-export class RabbitMQService {
+export class RabbitMQService implements OnApplicationShutdown {
 	constructor(
 		@Inject("BLOCKCHAIN_RABBITMQ_SERVICE")
 		private readonly blockchainClient: ClientProxy,
@@ -85,5 +90,21 @@ export class RabbitMQService {
 	): Promise<TResponse> {
 		const client = this.getClientByType(type)
 		return await firstValueFrom(client.send<TResponse>(pattern, data))
+	}
+
+	async onApplicationShutdown(signal: string) {
+		Logger.log(signal)
+		const clients = [
+			this.blockchainClient,
+			this.raydiumClient,
+			this.socketClient,
+			this.collectFeeRewardDistributorClient,
+			this.swapToSolRewardDistributorClient,
+			this.distributeRewardDistributorClient
+		]
+
+		for (const client of clients) {
+			await client.close() // Gracefully close each client
+		}
 	}
 }

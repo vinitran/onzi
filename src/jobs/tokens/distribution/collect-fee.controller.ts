@@ -11,6 +11,8 @@ import { BurnFeePayload } from "@root/jobs/tokens/distribution/burn-token.contro
 import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
 import { HeliusService } from "@root/onchain/helius.service"
 import { InjectConnection } from "@root/programs/programs.module"
+import { v4 as uuidv4 } from "uuid"
+
 import {
 	ASSOCIATED_TOKEN_PROGRAM_ID,
 	TOKEN_2022_PROGRAM_ID,
@@ -30,6 +32,7 @@ export type SwapMessageType = {
 	amount?: string // Amount to swap (optional)
 	type?: "raydium" | "ponz" // Protocol type for swapping
 	amountHolder?: number
+	idPayload?: string
 }
 
 @Controller()
@@ -90,14 +93,16 @@ export class CollectFeeController {
 			new PublicKey(data.address),
 			new PublicKey(keyWithHeld.publicKey),
 			true,
-			"confirmed",
-			{},
+			"finalized",
+			{
+				maxRetries: 5,
+				commitment: "finalized"
+			},
 			TOKEN_2022_PROGRAM_ID,
 			ASSOCIATED_TOKEN_PROGRAM_ID
 		)
 
 		let feeAmountTotal = BigInt(0)
-		let lastSignature = ""
 
 		const holders = await this.helius.getTokenHolders(data.address)
 		if (!holders || holders.length === 0) return
@@ -116,49 +121,26 @@ export class CollectFeeController {
 		// Process holders in batches
 		for (let i = 0; i < sourceAddress.length; i += batchSize) {
 			const batchSourceAddresses = sourceAddress.slice(i, i + batchSize)
+			let feeAmountTotalInBatch = BigInt(0)
 
-			// Check for transfer fees in each account
-			const sourceAddressesWithFees = (
-				await Promise.all(
-					batchSourceAddresses.map(async address => {
-						try {
-							// Logger.log(`Checking token account: ${address.toBase58()}`)
-							const account = await getAccount(
-								this.connection,
-								address,
-								"confirmed",
-								TOKEN_2022_PROGRAM_ID
-							)
+			// Check for transfer fees in each account, filter out null results
+			const sourceAddressesWithFees =
+				await this.getSourceAddressesWithFees(batchSourceAddresses)
 
-							const feeAmount = getTransferFeeAmount(account)
-							return { address, feeAmount }
-						} catch (error) {
-							Logger.warn(
-								`TokenAccountNotFoundError for address: ${address.toBase58()}`,
-								error
-							)
-							return null
-						}
-					})
-				)
-			).filter(
-				(
-					item
-				): item is {
-					address: PublicKey
-					feeAmount: TransferFeeAmount | null
-				} => item !== null
-			)
+			// Filter addresses with fees and calculate total (optimized single pass)
+			const validSourceAddresses: PublicKey[] = []
+			for (const { address, feeAmount } of sourceAddressesWithFees) {
+				if (feeAmount.withheldAmount > 0) {
+					feeAmountTotal += feeAmount.withheldAmount
+					feeAmountTotalInBatch += feeAmount.withheldAmount
+					validSourceAddresses.push(address)
+				}
+			}
 
-			// Filter addresses with fees and calculate total
-			const validSourceAddresses = sourceAddressesWithFees
-				.filter(({ feeAmount }) => feeAmount && feeAmount.withheldAmount > 0)
-				.map(({ address, feeAmount }) => {
-					feeAmountTotal = feeAmountTotal + feeAmount!.withheldAmount
-					return address
-				})
-
-			if (validSourceAddresses.length === 0) {
+			if (
+				validSourceAddresses.length === 0 ||
+				feeAmountTotalInBatch === BigInt(0)
+			) {
 				continue
 			}
 
@@ -172,27 +154,24 @@ export class CollectFeeController {
 				[],
 				validSourceAddresses,
 				{
-					commitment: "confirmed"
+					commitment: "finalized"
 				},
 				TOKEN_2022_PROGRAM_ID
 			)
 
-			lastSignature = txSig
+			await this.tokentxDistribute.insert({
+				tokenId: data.id,
+				amountToken: feeAmountTotalInBatch,
+				signature: txSig,
+				type: "CollectFee"
+			})
+
 			Logger.log("txSign collect fee", txSig)
 		}
 
 		// Process collected fees if any were collected
 		if (feeAmountTotal > 0) {
-			await this.connection.confirmTransaction(lastSignature, "finalized")
-			const [tokenTax] = await Promise.all([
-				this.tokenRepository.getTaxByID(data.id),
-				this.tokentxDistribute.insert({
-					tokenId: data.id,
-					amountToken: feeAmountTotal,
-					signature: lastSignature,
-					type: "CollectFee"
-				})
-			])
+			const tokenTax = await this.tokenRepository.getTaxByID(data.id)
 
 			// Calculate total tax percentage
 			const totalTotalTax =
@@ -211,7 +190,8 @@ export class CollectFeeController {
 				const burnFeeData: BurnFeePayload = {
 					id: data.id,
 					address: data.address,
-					amount: burnAmount.toString()
+					amount: burnAmount.toString(),
+					idPayload: uuidv4().toString()
 				}
 
 				// Emit burn event
@@ -233,7 +213,8 @@ export class CollectFeeController {
 				address: data.address,
 				amount: swapAmount.toString(),
 				type: data.type,
-				amountHolder: holders.length
+				amountHolder: holders.length,
+				idPayload: uuidv4().toString()
 			}
 
 			// Emit swap event
@@ -243,5 +224,32 @@ export class CollectFeeController {
 				swapToSolMessage
 			)
 		}
+	}
+
+	private async getSourceAddressesWithFees(
+		batchSourceAddresses: PublicKey[]
+	): Promise<{ address: PublicKey; feeAmount: TransferFeeAmount }[]> {
+		const results = await Promise.all(
+			batchSourceAddresses.map(async address => {
+				try {
+					const account = await getAccount(
+						this.connection,
+						address,
+						"finalized",
+						TOKEN_2022_PROGRAM_ID
+					)
+
+					const feeAmount = getTransferFeeAmount(account)
+					return { address, feeAmount }
+				} catch (_error) {
+					return null
+				}
+			})
+		)
+
+		return results.filter(
+			(item): item is { address: PublicKey; feeAmount: TransferFeeAmount } =>
+				item !== null && item.feeAmount !== null
+		)
 	}
 }

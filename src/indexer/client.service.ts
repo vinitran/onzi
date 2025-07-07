@@ -73,7 +73,9 @@ export class IndexerClientService {
 			maxRetries: 10
 		})
 
-		Logger.log(`Transaction RemoveLiquidity: ${txSig}`)
+		await this.connection.confirmTransaction(txSig, "finalized")
+
+		Logger.log(txSig, "Transaction RemoveLiquidity")
 
 		try {
 			await this.prisma.$transaction(

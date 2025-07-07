@@ -11,6 +11,7 @@ import { TokenTransactionDistributeRepository } from "@root/_database/repositori
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
+import { RedisService } from "@root/_redis/redis.service"
 import { keypairFromPrivateKey } from "@root/_shared/helpers/encode-decode-tx"
 import { SwapMessageType } from "@root/jobs/tokens/distribution/collect-fee.controller"
 import { PrepareRewardDistributionPayload } from "@root/jobs/tokens/distribution/distribute-sol.controller"
@@ -20,6 +21,7 @@ import { InjectConnection } from "@root/programs/programs.module"
 import { Raydium } from "@root/programs/raydium/program"
 import { Keypair, PublicKey } from "@solana/web3.js"
 import bs58 from "bs58"
+import { v4 as uuidv4 } from "uuid"
 
 @Controller()
 export class SwapController {
@@ -40,12 +42,17 @@ export class SwapController {
 		private readonly tokenKeyWithHeld: TokenKeyWithHeldRepository,
 		private readonly tokentxDistribute: TokenTransactionDistributeRepository,
 		private readonly tokenRepository: TokenRepository,
-		private readonly rabbitMQService: RabbitMQService
+		private readonly rabbitMQService: RabbitMQService,
+		private redis: RedisService
 	) {
 		// Initialize system wallet from private key stored in environment
 		this.systemWalletKeypair = Keypair.fromSecretKey(
 			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
 		)
+	}
+
+	redisKey(id: string) {
+		return `swap_token: ${id}`
 	}
 
 	// Handle swapping collected fees to SOL
@@ -58,13 +65,23 @@ export class SwapController {
 		channel.prefetch(1, false) // Process one message at a time for swaps
 		const originalMsg = context.getMessage()
 
+		const id = await this.redis.get(this.redisKey(data.idPayload!))
+		if (id) {
+			channel.ack(originalMsg, false)
+			return
+		}
+
+		await this.redis.set(this.redisKey(data.idPayload!), "true", 600)
+
 		try {
 			Logger.log("start swap for token address: ", data.address)
 			await this.swapToSol(data)
 			Logger.log("end swap for token address: ", data.address)
 			channel.ack(originalMsg, false)
+			await this.redis.del(this.redisKey(data.idPayload!))
 		} catch (error) {
 			Logger.error(error, "swap")
+			await this.redis.del(this.redisKey(data.idPayload!))
 			throw error
 		}
 	}
@@ -130,7 +147,8 @@ export class SwapController {
 				{
 					id: data.id,
 					address: data.address,
-					lamport: distributionPending.distributionPending.toString()
+					lamport: distributionPending.distributionPending.toString(),
+					idPayload: uuidv4().toString()
 				} as PrepareRewardDistributionPayload
 			)
 			await this.tokenRepository.resetDistributionPending(data.address)

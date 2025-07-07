@@ -162,6 +162,7 @@ model Token {
 
   distributionPending BigInt @default(0) @map("distribution_pending")
   jackpotPending      BigInt @default(0) @map("jackpot_pending")
+  jackpotPercent      Float  @default(0) @map("jackpot_percent")
   jackpotQueue        Int    @default(0) @map("jackpot_queue")
   taxPending          Float  @default(0) @map("tax_pending")
 

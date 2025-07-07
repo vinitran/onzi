@@ -4,6 +4,7 @@ import { Ctx, EventPattern, Payload, RmqContext } from "@nestjs/microservices"
 import { TokenKeyWithHeldRepository } from "@root/_database/repositories/token-key-with-held.repository"
 import { TokenTransactionDistributeRepository } from "@root/_database/repositories/token-tx-distribute"
 import { Env, InjectEnv } from "@root/_env/env.module"
+import { RedisService } from "@root/_redis/redis.service"
 import { keypairFromPrivateKey } from "@root/_shared/helpers/encode-decode-tx"
 import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
 import { InjectConnection } from "@root/programs/programs.module"
@@ -19,6 +20,7 @@ export type BurnFeePayload = {
 	id: string
 	address: string
 	amount: string
+	idPayload: string
 }
 
 @Controller()
@@ -29,11 +31,16 @@ export class BurnTokenController {
 		@InjectEnv() private env: Env,
 		@InjectConnection() private connection: web3.Connection,
 		private readonly tokentxDistribute: TokenTransactionDistributeRepository,
-		private readonly tokenKeyWithHeld: TokenKeyWithHeldRepository
+		private readonly tokenKeyWithHeld: TokenKeyWithHeldRepository,
+		private redis: RedisService
 	) {
 		this.systemWalletKeypair = Keypair.fromSecretKey(
 			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
 		)
+	}
+
+	redisKey(id: string) {
+		return `burn_token: ${id}`
 	}
 
 	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.BURN_FEE)
@@ -45,8 +52,15 @@ export class BurnTokenController {
 		channel.prefetch(20, false)
 		const originalMsg = context.getMessage()
 
+		const id = await this.redis.get(this.redisKey(data.idPayload))
+		if (id) {
+			channel.ack(originalMsg, false)
+		}
+
+		await this.redis.set(this.redisKey(data.idPayload), "true", 600)
+
 		try {
-			Logger.log("start burning token address: ", data.address)
+			Logger.log(data.address, "start burning token address")
 			const txSign = await this.burnToken(data)
 			await this.tokentxDistribute.insert({
 				from: this.systemWalletKeypair.publicKey.toBase58(),
@@ -55,11 +69,13 @@ export class BurnTokenController {
 				signature: txSign,
 				type: "Burn"
 			})
-			Logger.log("end burning token address: ", data.address)
+			Logger.log(data.address, "end burning token address")
 
 			channel.ack(originalMsg, false)
+			await this.redis.del(this.redisKey(data.idPayload))
 		} catch (error) {
 			Logger.error(error, "burn token")
+			await this.redis.del(this.redisKey(data.idPayload))
 			throw error
 		}
 	}

@@ -5,6 +5,7 @@ import { TokenKeyWithHeldRepository } from "@root/_database/repositories/token-k
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
+import { RedisService } from "@root/_redis/redis.service"
 import { IndexerService } from "@root/indexer/indexer.service"
 import { ExecuteDistributionPayload } from "@root/jobs/tokens/distribution/execute-distribution.controller"
 import { UpdateJackpotAfterSwapPayload } from "@root/jobs/tokens/distribution/jackpot.controller"
@@ -22,6 +23,7 @@ export type PrepareRewardDistributionPayload = {
 	id: string
 	address: string
 	lamport: string
+	idPayload: string
 }
 
 export type DistributionTransaction = {
@@ -47,12 +49,17 @@ export class DistributeSolController {
 		private readonly raydium: Raydium,
 		private readonly ponz: Ponz,
 		private readonly helius: HeliusService,
-		private readonly ponzVault: PonzVault
+		private readonly ponzVault: PonzVault,
+		private redis: RedisService
 	) {
 		// Initialize system wallet from private key stored in environment
 		this.systemWalletKeypair = Keypair.fromSecretKey(
 			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
 		)
+	}
+
+	redisKey(id: string) {
+		return `distribute_holder: ${id}`
 	}
 
 	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.PREPARE_REWARD_DISTRIBUTION)
@@ -64,13 +71,22 @@ export class DistributeSolController {
 		channel.prefetch(20, false)
 		const originalMsg = context.getMessage()
 
+		const id = await this.redis.get(this.redisKey(data.idPayload))
+		if (id) {
+			channel.ack(originalMsg, false)
+		}
+
+		await this.redis.set(this.redisKey(data.idPayload), "true", 600)
+
 		try {
 			Logger.log("start distribute token for token address: ", data.address)
 			await this.distributeSolToHolder(data)
 			Logger.log("end distribute token for token address: ", data.address)
 			channel.ack(originalMsg, false)
+			await this.redis.del(this.redisKey(data.idPayload))
 		} catch (error) {
 			Logger.error(error, "distribute token")
+			await this.redis.del(this.redisKey(data.idPayload))
 			throw error
 		}
 	}

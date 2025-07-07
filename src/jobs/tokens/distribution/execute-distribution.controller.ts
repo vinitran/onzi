@@ -6,6 +6,7 @@ import { TokenKeyWithHeldRepository } from "@root/_database/repositories/token-k
 import { TokenTransactionDistributeRepository } from "@root/_database/repositories/token-tx-distribute"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { Env, InjectEnv } from "@root/_env/env.module"
+import { RedisService } from "@root/_redis/redis.service"
 import { keypairFromPrivateKey } from "@root/_shared/helpers/encode-decode-tx"
 import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
 import { InjectConnection } from "@root/programs/programs.module"
@@ -50,11 +51,20 @@ export class ExecuteDistributionController {
 		private readonly tokentxDistribute: TokenTransactionDistributeRepository,
 		private readonly tokenKeyWithHeld: TokenKeyWithHeldRepository,
 		private readonly tokenRepository: TokenRepository,
-		@InjectConnection() private connection: web3.Connection
+		@InjectConnection() private connection: web3.Connection,
+		private redis: RedisService
 	) {
 		this.systemWalletKeypair = Keypair.fromSecretKey(
 			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
 		)
+	}
+
+	sendFeeRedisKey(id: string) {
+		return `send_fee: ${id}`
+	}
+
+	executeDistributionRedisKey(id: string) {
+		return `send_fee: ${id}`
 	}
 
 	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.SEND_FEE_SOL)
@@ -66,29 +76,46 @@ export class ExecuteDistributionController {
 		channel.prefetch(20, false)
 		const originalMsg = context.getMessage()
 
-		Logger.log("start execute transfer fee for token address: ", data.to)
+		const id = await this.redis.get(this.sendFeeRedisKey(data.to))
+		if (id) {
+			channel.ack(originalMsg, false)
+		}
 
-		const initTx = new Transaction().add(
-			SystemProgram.transfer({
-				fromPubkey: new PublicKey(this.systemWalletKeypair.publicKey),
-				toPubkey: new PublicKey(data.to),
-				lamports: 890880
-			})
-		)
-		initTx.feePayer = this.systemWalletKeypair.publicKey
+		await this.redis.set(this.sendFeeRedisKey(data.to), "true", 600)
 
-		initTx.recentBlockhash = (
-			await this.connection.getLatestBlockhash()
-		).blockhash
+		try {
+			Logger.log("start execute transfer fee for token address: ", data.to)
 
-		await this.connection.sendTransaction(initTx, [this.systemWalletKeypair], {
-			preflightCommitment: "confirmed",
-			maxRetries: 5
-		})
+			const initTx = new Transaction().add(
+				SystemProgram.transfer({
+					fromPubkey: new PublicKey(this.systemWalletKeypair.publicKey),
+					toPubkey: new PublicKey(data.to),
+					lamports: 890880
+				})
+			)
+			initTx.feePayer = this.systemWalletKeypair.publicKey
 
-		Logger.log("end execute transfer fee for token address: ", data.to)
+			initTx.recentBlockhash = (
+				await this.connection.getLatestBlockhash()
+			).blockhash
 
-		channel.ack(originalMsg, false)
+			await this.connection.sendTransaction(
+				initTx,
+				[this.systemWalletKeypair],
+				{
+					preflightCommitment: "confirmed",
+					maxRetries: 5
+				}
+			)
+
+			Logger.log("end execute transfer fee for token address: ", data.to)
+
+			channel.ack(originalMsg, false)
+			await this.redis.del(this.sendFeeRedisKey(data.to))
+		} catch (_error) {
+			await this.redis.del(this.sendFeeRedisKey(data.to))
+			throw _error
+		}
 	}
 
 	@EventPattern(REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION)
@@ -100,20 +127,32 @@ export class ExecuteDistributionController {
 		channel.prefetch(20, false)
 		const originalMsg = context.getMessage()
 
-		if (data.transactions.length === 0) {
-			channel.ack(originalMsg, false)
-			return
-		}
-		Logger.log("end execute distribution fee for token address: ", data.rawTx)
-
-		const keyWithHeld = await this.tokenKeyWithHeld.find(
-			data.transactions[0].tokenId
+		const id = await this.redis.get(
+			this.executeDistributionRedisKey(data.rawTx)
 		)
-		if (!keyWithHeld) {
-			throw new NotFoundException("not found key with held")
+		if (id) {
+			channel.ack(originalMsg, false)
 		}
+
+		await this.redis.set(
+			this.executeDistributionRedisKey(data.rawTx),
+			"true",
+			600
+		)
 
 		try {
+			if (data.transactions.length === 0) {
+				channel.ack(originalMsg, false)
+				return
+			}
+
+			const keyWithHeld = await this.tokenKeyWithHeld.find(
+				data.transactions[0].tokenId
+			)
+			if (!keyWithHeld) {
+				throw new NotFoundException("not found key with held")
+			}
+
 			const txBuffer = Buffer.from(data.rawTx, "base64")
 			const tx = Transaction.from(txBuffer)
 
@@ -155,11 +194,13 @@ export class ExecuteDistributionController {
 				)
 			}
 
-			Logger.log("end execute distribution fee for tx: ", data.rawTx)
+			Logger.log(data.rawTx, "end execute distribution fee for tx")
 
 			channel.ack(originalMsg, false)
+			await this.redis.del(this.executeDistributionRedisKey(data.rawTx))
 		} catch (error) {
 			Logger.error(error)
+			await this.redis.del(this.executeDistributionRedisKey(data.rawTx))
 			throw error
 		}
 	}
