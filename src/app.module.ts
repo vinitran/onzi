@@ -38,10 +38,10 @@ import { TokensModule } from "./tokens/tokens.module"
 		TokenReportsModule,
 		JobsModule,
 		TelegramFeedbackModule,
+		FeedbackModule,
 		JwtModule.register({
 			global: true
-		}),
-		FeedbackModule
+		})
 	],
 	controllers: [AppController],
 	providers: [AppService]

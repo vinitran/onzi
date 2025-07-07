@@ -135,6 +135,8 @@ export class DistributeSolController {
 			(_holder, index) => accountsInfo[index] !== null
 		)
 
+		Logger.log(existingHolders)
+
 		// Process holders in batches of 5
 		for (let i = 0; i < existingHolders.length; i += batchSize) {
 			const batch = existingHolders.slice(i, i + batchSize)
