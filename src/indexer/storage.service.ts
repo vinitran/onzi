@@ -30,6 +30,7 @@ import {
 import { Ponz } from "@root/programs/ponz/program"
 import { InjectConnection } from "@root/programs/programs.module"
 import { SickoModeResponse } from "@root/tokens/dtos/response.dto"
+import { LAMPORTS_PER_SOL } from "@solana/web3.js"
 import { plainToInstance } from "class-transformer"
 import { DateTime } from "luxon"
 
@@ -334,7 +335,7 @@ export class StorageIndexerService {
 
 		const updateTokenParams: Prisma.TokenUpdateInput = {
 			marketCapacity,
-			hallOfFame: marketCapacity > BigInt(1000000000) // 1000000000 is in test
+			hallOfFame: marketCapacity > BigInt(LAMPORTS_PER_SOL * 75) // 75 sol
 		}
 
 		if (event) {
