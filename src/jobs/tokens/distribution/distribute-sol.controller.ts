@@ -135,8 +135,6 @@ export class DistributeSolController {
 			(_holder, index) => accountsInfo[index] !== null
 		)
 
-		Logger.log(existingHolders)
-
 		// Process holders in batches of 5
 		for (let i = 0; i < existingHolders.length; i += batchSize) {
 			const batch = existingHolders.slice(i, i + batchSize)
@@ -167,26 +165,26 @@ export class DistributeSolController {
 						type: "Distribute"
 					})
 				}
-
-				tx.feePayer = this.systemWalletKeypair.publicKey
-
-				// Set fake/dummy recentBlockhash
-				tx.recentBlockhash = PublicKey.default.toBase58()
-
-				await this.rabbitMQService.emit(
-					"distribute-reward-distributor",
-					REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION,
-					{
-						rawTx: tx
-							.serialize({
-								requireAllSignatures: false,
-								verifySignatures: false
-							})
-							.toString("base64"),
-						transactions: createTokenTxDistribute
-					} as ExecuteDistributionPayload
-				)
 			}
+
+			tx.feePayer = this.systemWalletKeypair.publicKey
+
+			// Set fake/dummy recentBlockhash
+			tx.recentBlockhash = PublicKey.default.toBase58()
+
+			await this.rabbitMQService.emit(
+				"distribute-reward-distributor",
+				REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION,
+				{
+					rawTx: tx
+						.serialize({
+							requireAllSignatures: false,
+							verifySignatures: false
+						})
+						.toString("base64"),
+					transactions: createTokenTxDistribute
+				} as ExecuteDistributionPayload
+			)
 		}
 
 		const sendVaultTx = new Transaction().add(
