@@ -94,11 +94,6 @@ export class DistributeSolController {
 	async distributeSolToHolder(data: PrepareRewardDistributionPayload) {
 		const batchSize = 10 // Process 5 users at a time
 
-		const keyWithHeld = await this.tokenKeyWithHeld.find(data.id)
-		if (!keyWithHeld) {
-			throw new NotFoundException("not found key with held")
-		}
-
 		const token = await this.tokenRepository.getTaxByID(data.id)
 		if (!token) {
 			throw new NotFoundException("not found token")
@@ -106,48 +101,30 @@ export class DistributeSolController {
 
 		const totalTax = token.rewardTax + token.jackpotTax + token.burnTax
 
-		const [holders, poolAddress, bondingCurve, tokenPoolVault] =
-			await Promise.all([
-				this.helius.getTokenHolders(data.address),
-				this.raydium.fetchPoolAddress(NATIVE_MINT, new PublicKey(data.address)),
-				this.ponz.getBondingCurve(new PublicKey(data.address)),
-				this.ponzVault.tokenPoolPDA(new PublicKey(data.address))
-			])
-		if (!holders || holders.length === 0) return
+		const lamportToDistribute =
+			(BigInt(data.lamport) * BigInt(token.rewardTax)) / BigInt(totalTax)
 
-		// Filter out pool address and keyWithHeld.publicKey from holders
-		const filteredHolders = holders.filter(
-			holder =>
-				holder.address !== poolAddress?.toBase58() &&
-				holder.address !== keyWithHeld.publicKey &&
-				holder.address !== bondingCurve?.toBase58() &&
-				holder.address !== tokenPoolVault?.toBase58()
-		)
+		const holderData = await this.getAmountHolder(data)
+		if (!holderData) return
 
-		const holderPubkeys = filteredHolders.map(
-			holder => new PublicKey(holder.address)
-		)
-		const accountsInfo =
-			await this.connection.getMultipleAccountsInfo(holderPubkeys)
+		const totalHolderAmount =
+			holderData.amountTotal + token.totalSupply / BigInt(100)
 
-		// Filter out non-existent accounts
-		const existingHolders = filteredHolders.filter(
-			(_holder, index) => accountsInfo[index] !== null
-		)
+		const keyWithHeld = await this.tokenKeyWithHeld.find(data.id)
+		if (!keyWithHeld) {
+			throw new NotFoundException("not found key with held")
+		}
 
 		// Process holders in batches of 5
-		for (let i = 0; i < existingHolders.length; i += batchSize) {
-			const batch = existingHolders.slice(i, i + batchSize)
+		for (let i = 0; i < holderData.holder.length; i += batchSize) {
+			const batch = holderData.holder.slice(i, i + batchSize)
 
 			const tx = new Transaction()
 
 			const createTokenTxDistribute: DistributionTransaction[] = []
 			for (const holder of batch) {
 				const lamportToSend =
-					(BigInt(data.lamport) *
-						BigInt(holder.amount) *
-						BigInt(token.rewardTax)) /
-					(BigInt(totalTax) * BigInt(token.totalSupply))
+					(lamportToDistribute * BigInt(holder.amount)) / totalHolderAmount
 
 				if (lamportToSend > 0) {
 					tx.add(
@@ -187,11 +164,15 @@ export class DistributeSolController {
 			)
 		}
 
+		const lamportToVault =
+			(lamportToDistribute * (token.totalSupply / BigInt(100))) /
+			totalHolderAmount
+
 		const sendVaultTx = new Transaction().add(
 			SystemProgram.transfer({
 				fromPubkey: new PublicKey(keyWithHeld.publicKey),
 				toPubkey: new PublicKey(this.env.REWARD_VAULT_ADDRESS),
-				lamports: BigInt(data.lamport) / BigInt(100)
+				lamports: lamportToVault
 			})
 		)
 
@@ -209,7 +190,7 @@ export class DistributeSolController {
 						from: keyWithHeld.publicKey,
 						tokenId: data.id,
 						to: this.env.MULTI_SIG_PUBKEY,
-						lamport: (BigInt(data.lamport) / BigInt(100)).toString(),
+						lamport: lamportToVault.toString(),
 						type: "SendToVault"
 					}
 				],
@@ -236,5 +217,48 @@ export class DistributeSolController {
 				} as UpdateJackpotAfterSwapPayload
 			)
 		}
+	}
+
+	async getAmountHolder(data: PrepareRewardDistributionPayload) {
+		const keyWithHeld = await this.tokenKeyWithHeld.find(data.id)
+		if (!keyWithHeld) {
+			throw new NotFoundException("not found key with held")
+		}
+
+		const [holders, poolAddress, bondingCurve, tokenPoolVault] =
+			await Promise.all([
+				this.helius.getTokenHolders(data.address),
+				this.raydium.fetchPoolAddress(NATIVE_MINT, new PublicKey(data.address)),
+				this.ponz.getBondingCurve(new PublicKey(data.address)),
+				this.ponzVault.tokenPoolPDA(new PublicKey(data.address))
+			])
+		if (!holders || holders.length === 0) return
+
+		// Filter out pool address and keyWithHeld.publicKey from holders
+		const filteredHolders = holders.filter(
+			holder =>
+				holder.address !== poolAddress?.toBase58() &&
+				holder.address !== keyWithHeld.publicKey &&
+				holder.address !== bondingCurve?.toBase58() &&
+				holder.address !== tokenPoolVault?.toBase58()
+		)
+
+		const holderPubkeys = filteredHolders.map(
+			holder => new PublicKey(holder.address)
+		)
+		const accountsInfo =
+			await this.connection.getMultipleAccountsInfo(holderPubkeys)
+
+		const existingHolders = filteredHolders.filter(
+			(_holder, index) => accountsInfo[index] !== null
+		)
+
+		const totalHeld = existingHolders.reduce(
+			(acc, holder) => acc + BigInt(holder.amount),
+			0n
+		)
+
+		// Filter out non-existent accounts
+		return { holder: existingHolders, amountTotal: totalHeld }
 	}
 }
