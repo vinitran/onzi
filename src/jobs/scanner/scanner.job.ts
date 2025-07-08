@@ -29,12 +29,13 @@ export class ScannerJobs implements OnModuleInit {
 		const tokens = await this.tokenRepository.getAllTokenAddress()
 		for (const token of tokens) {
 			const holders = await this.helius.getTokenHolders(token.address, true)
-
 			const userValues = holders
+				.filter(h => BigInt(h.amount) !== 0n)
 				.map(
 					h => `('${randomUUID()}', '${h.address}', '${h.address.slice(0, 8)}')`
 				)
 				.join(",\n")
+
 			const tokenOwnerValues = holders
 				.map(
 					h =>
@@ -49,10 +50,14 @@ export class ScannerJobs implements OnModuleInit {
 					ON CONFLICT (address) DO NOTHING;
 				`),
 				this.prisma.$executeRawUnsafe(`
-					INSERT INTO token_owner (id, user_address, token_address, amount)
-					VALUES ${tokenOwnerValues}
-					ON CONFLICT (user_address, token_address)
-					DO UPDATE SET amount = EXCLUDED.amount;
+						INSERT INTO token_owner (id, user_address, token_address, amount)
+						VALUES ${tokenOwnerValues}
+						ON CONFLICT (user_address, token_address)
+						DO UPDATE SET amount = EXCLUDED.amount
+				`),
+				this.prisma.$executeRawUnsafe(`
+					DELETE FROM token_owner
+					WHERE amount = 0
 				`)
 			])
 		}
