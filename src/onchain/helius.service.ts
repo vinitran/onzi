@@ -80,7 +80,10 @@ export class HeliusService {
 		})
 	}
 
-	async getTokenHolders(mintAddress: string): Promise<TokenHolder[]> {
+	async getTokenHolders(
+		mintAddress: string,
+		showZeroBalance?: boolean
+	): Promise<TokenHolder[]> {
 		let holders: TokenHolder[] = []
 		let page = 1
 		const pageSize = 1000
@@ -89,7 +92,8 @@ export class HeliusService {
 			const pageHolders = await this.fetchTokenHoldersByPage(
 				mintAddress,
 				page,
-				pageSize
+				pageSize,
+				showZeroBalance
 			)
 			if (!pageHolders || pageHolders.length === 0) break
 			holders = holders.concat(pageHolders)
@@ -167,7 +171,8 @@ export class HeliusService {
 	private async fetchTokenHoldersByPage(
 		mint: string,
 		page = 1,
-		limit = 1000
+		limit = 1000,
+		showZeroBalance?: boolean
 	): Promise<TokenHolder[] | undefined> {
 		const payload = {
 			jsonrpc: "2.0",
@@ -176,7 +181,10 @@ export class HeliusService {
 			params: {
 				page,
 				limit,
-				mint
+				mint,
+				options: {
+					showZeroBalance
+				}
 			}
 		}
 		try {

@@ -543,24 +543,30 @@ export class TokenRepository {
 	}
 
 	async getAllTokenAddress() {
-		return this.prisma.token.findMany({
-			select: { id: true, address: true, raydiumStatus: true },
-			where: {
-				isDeleted: false,
-				bump: true,
-				OR: [
-					{
-						raydiumStatus: RaydiumStatusType.Listed
+		return this.redis.getOrSet(
+			"get-all-token",
+			() => {
+				return this.prisma.token.findMany({
+					select: { id: true, address: true, raydiumStatus: true },
+					where: {
+						isDeleted: false,
+						bump: true,
+						OR: [
+							{
+								raydiumStatus: RaydiumStatusType.Listed
+							},
+							{
+								raydiumStatus: RaydiumStatusType.NotListed
+							}
+						]
 					},
-					{
-						raydiumStatus: RaydiumStatusType.NotListed
+					orderBy: {
+						createdAt: Prisma.SortOrder.desc
 					}
-				]
+				})
 			},
-			orderBy: {
-				createdAt: Prisma.SortOrder.desc
-			}
-		})
+			30
+		)
 	}
 
 	async getTaxByID(id: string) {
