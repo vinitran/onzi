@@ -7,6 +7,7 @@ import { IndexerController } from "@root/indexer/indexer.controller"
 import { IndexerModule } from "@root/indexer/indexer.module"
 import { IndexerService } from "@root/indexer/indexer.service"
 import { ScannerJobs } from "@root/jobs/scanner/scanner.job"
+import { UpdateBalanceController } from "@root/jobs/scanner/update-balance.controller"
 import { BurnTokenController } from "@root/jobs/tokens/distribution/burn-token.controller"
 import { CollectFeeController } from "@root/jobs/tokens/distribution/collect-fee.controller"
 import { DistributeSolController } from "@root/jobs/tokens/distribution/distribute-sol.controller"
@@ -37,7 +38,8 @@ import { TokenJobs } from "./tokens/token.job"
 		BurnTokenController,
 		DistributeSolController,
 		ExecuteDistributionController,
-		JackpotController
+		JackpotController,
+		UpdateBalanceController
 	],
 
 	providers: [IndexerService, TokenJobs, ScannerJobs]

@@ -21,6 +21,9 @@ async function bootstrap() {
 		app.connectMicroservice(
 			RabbitMQConfig("distribute-reward-distributor", false, 20)
 		)
+		app.connectMicroservice(
+			RabbitMQConfig("scan-balance-distributor", true, 10)
+		)
 	} catch (error) {
 		console.error("Failed to connect to RabbitMQ:", error)
 		process.exit(1)

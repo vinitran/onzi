@@ -3,11 +3,9 @@ import { JwtModule } from "@nestjs/jwt"
 import { DatabaseModule } from "@root/_database/database.module"
 import { EnvModule } from "@root/_env/env.module"
 import { RabbitMQModule } from "@root/_rabbitmq/rabbitmq.module"
-import { TelegramFeedbackModule } from "@root/_telegram/feedback/telegram-feedback.module"
 import { AppController } from "@root/app.controller"
 import { AppService } from "@root/app.service"
 import { AuthModule } from "@root/auth/auth.module"
-import { FeedbackModule } from "@root/feedback/feedback.module"
 import { FileModule } from "@root/file/file.module"
 import { JobsModule } from "@root/jobs/job.module"
 import { UsersModule } from "@root/users/users.module"
@@ -37,8 +35,8 @@ import { TokensModule } from "./tokens/tokens.module"
 		AdminModule,
 		TokenReportsModule,
 		JobsModule,
-		TelegramFeedbackModule,
-		FeedbackModule,
+		// TelegramFeedbackModule,
+		// FeedbackModule,
 		JwtModule.register({
 			global: true
 		})
