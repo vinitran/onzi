@@ -31,7 +31,6 @@ export class UpdateBalanceController {
 
 		const holders = await this.helius.getTokenHolders(data.address, true)
 		const userValues = holders
-			.filter(h => BigInt(h.amount) !== 0n)
 			.map(
 				h => `('${randomUUID()}', '${h.address}', '${h.address.slice(0, 8)}')`
 			)
@@ -44,22 +43,20 @@ export class UpdateBalanceController {
 			)
 			.join(",\n")
 
-		await this.prisma.$transaction([
-			this.prisma.$executeRawUnsafe(`
-					INSERT INTO "user" (id, address, username)
-					VALUES ${userValues}
-					ON CONFLICT (address) DO NOTHING;
-				`),
-			this.prisma.$executeRawUnsafe(`
-						INSERT INTO token_owner (id, user_address, token_address, amount)
-						VALUES ${tokenOwnerValues}
-						ON CONFLICT (user_address, token_address)
-						DO UPDATE SET amount = EXCLUDED.amount
-				`),
-			this.prisma.$executeRawUnsafe(`
-					DELETE FROM token_owner
-					WHERE amount = 0
-				`)
-		])
+		await this.prisma.$executeRawUnsafe(`
+			INSERT INTO "user" (id, address, username)
+			VALUES ${userValues}
+			ON CONFLICT (address) DO NOTHING;
+		`)
+		await this.prisma.$executeRawUnsafe(`
+			INSERT INTO token_owner (id, user_address, token_address, amount)
+			VALUES ${tokenOwnerValues}
+				ON CONFLICT (user_address, token_address)
+    DO UPDATE SET amount = EXCLUDED.amount;
+		`)
+		await this.prisma.$executeRawUnsafe(`
+			DELETE FROM token_owner
+			WHERE amount = 0;
+		`)
 	}
 }
