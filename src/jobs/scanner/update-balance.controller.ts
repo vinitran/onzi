@@ -22,7 +22,7 @@ export class UpdateBalanceController {
 	) {}
 
 	@EventPattern(UPDATE_BALANCE_EVENTS.UPDATE)
-	async handleBurnToken(
+	async handlerUpdateBalance(
 		@Payload() data: UpdateBalancePayload,
 		@Ctx() context: RmqContext
 	) {
@@ -30,6 +30,7 @@ export class UpdateBalanceController {
 		channel.prefetch(10, false)
 
 		const holders = await this.helius.getTokenHolders(data.address, true)
+
 		const userValues = holders
 			.map(
 				h => `('${randomUUID()}', '${h.address}', '${h.address.slice(0, 8)}')`

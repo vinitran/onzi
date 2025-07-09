@@ -25,6 +25,7 @@ import {
 } from "@solana/spl-token"
 import { Keypair, PublicKey } from "@solana/web3.js"
 import bs58 from "bs58"
+import { Ponz } from '@root/programs/ponz/program';
 
 export type SwapMessageType = {
 	id: string // Token identifier
@@ -47,7 +48,9 @@ export class CollectFeeController {
 		private readonly tokentxDistribute: TokenTransactionDistributeRepository,
 		private readonly tokenRepository: TokenRepository,
 		private readonly rabbitMQService: RabbitMQService,
-		private readonly helius: HeliusService
+		private readonly helius: HeliusService,
+		private ponz: Ponz,
+
 	) {
 		// Initialize system wallet from private key stored in environment
 		this.systemWalletKeypair = Keypair.fromSecretKey(
@@ -117,6 +120,13 @@ export class CollectFeeController {
 				ASSOCIATED_TOKEN_PROGRAM_ID
 			)
 		)
+
+		const [tokenPool, tokenPoolLock] = await Promise.all([
+			this.ponz.getTokenPool(new PublicKey(data.address)),
+			this.ponz.getTokenPoolLockPDA(new PublicKey(data.address)),
+		])
+
+		sourceAddress.push(tokenPool, tokenPoolLock)
 
 		// Process holders in batches
 		for (let i = 0; i < sourceAddress.length; i += batchSize) {

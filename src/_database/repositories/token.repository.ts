@@ -579,7 +579,9 @@ export class TokenRepository {
 						rewardTax: true,
 						jackpotTax: true,
 						burnTax: true,
-						totalSupply: true
+						totalSupply: true,
+						creatorAddress: true,
+						lockAmount: true,
 					}
 				})
 			},

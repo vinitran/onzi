@@ -411,14 +411,14 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		)[0]
 	}
 
-	private getTokenPoolLockPDA(mint: PublicKey): PublicKey {
+	public getTokenPoolLockPDA(mint: PublicKey): PublicKey {
 		return web3.PublicKey.findProgramAddressSync(
 			[mint.toBytes(), Buffer.from("token_pool_lock")],
 			this.programId
 		)[0]
 	}
 
-	private getTokenPool(mint: PublicKey) {
+	public getTokenPool(mint: PublicKey) {
 		return web3.PublicKey.findProgramAddressSync(
 			[mint.toBytes(), Buffer.from("token_pool")],
 			this.programId

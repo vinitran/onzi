@@ -17,6 +17,8 @@ import { ReelsModule } from "./reels/reels.module"
 import { StickersModule } from "./stickers/stickers.module"
 import { TokenReportsModule } from "./token-reports/token-reports.module"
 import { TokensModule } from "./tokens/tokens.module"
+import { TelegramFeedbackModule } from './_telegram/feedback/telegram-feedback.module';
+import { FeedbackModule } from '@root/feedback/feedback.module';
 
 @Module({
 	imports: [
@@ -35,8 +37,8 @@ import { TokensModule } from "./tokens/tokens.module"
 		AdminModule,
 		TokenReportsModule,
 		JobsModule,
-		// TelegramFeedbackModule,
-		// FeedbackModule,
+		TelegramFeedbackModule,
+		FeedbackModule,
 		JwtModule.register({
 			global: true
 		})

@@ -107,13 +107,32 @@ export class DistributeSolController {
 		const holderData = await this.getAmountHolder(data)
 		if (!holderData) return
 
-		const totalHolderAmount =
+		if (token.lockAmount) {
+			const creatorIndex = holderData.holder.findIndex(
+				h => h.address === token.creatorAddress
+			)
+
+			if (creatorIndex === -1) {
+				holderData.holder.push({
+					address: token.creatorAddress,
+					amount: token.lockAmount
+				})
+			} else {
+				holderData.holder[creatorIndex].amount = holderData.holder[creatorIndex].amount + token.lockAmount
+			}
+
+			holderData.amountTotal += token.lockAmount
+		}
+
+		let totalHolderAmount =
 			holderData.amountTotal + token.totalSupply / BigInt(100)
 
 		const keyWithHeld = await this.tokenKeyWithHeld.find(data.id)
 		if (!keyWithHeld) {
 			throw new NotFoundException("not found key with held")
 		}
+
+
 
 		// Process holders in batches of 5
 		for (let i = 0; i < holderData.holder.length; i += batchSize) {
@@ -123,8 +142,10 @@ export class DistributeSolController {
 
 			const createTokenTxDistribute: DistributionTransaction[] = []
 			for (const holder of batch) {
+				let amountHolder =  BigInt(holder.amount)
+
 				const lamportToSend =
-					(lamportToDistribute * BigInt(holder.amount)) / totalHolderAmount
+					(lamportToDistribute * amountHolder) / totalHolderAmount
 
 				if (lamportToSend > 0) {
 					tx.add(

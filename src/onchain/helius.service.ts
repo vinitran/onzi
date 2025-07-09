@@ -101,10 +101,16 @@ export class HeliusService {
 			page++
 		}
 
-		// Lọc trùng theo address, giữ lại holder cuối cùng (nếu có nhiều bản ghi trùng)
+		// If the address already exists, accumulate the amount
 		const uniqueMap = new Map<string, TokenHolder>()
 		for (const holder of holders) {
-			uniqueMap.set(holder.address, holder)
+			const existing = uniqueMap.get(holder.address)
+			if (existing) {
+				existing.amount += holder.amount
+			} else {
+				// Otherwise, add the new holder entry
+				uniqueMap.set(holder.address, { ...holder })
+			}
 		}
 
 		return Array.from(uniqueMap.values())
