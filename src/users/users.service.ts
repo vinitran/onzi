@@ -48,6 +48,9 @@ export class UsersService {
 		const tokenOwnerWhere = {
 			amount: {
 				gt: 0
+			},
+			token: {
+				isDeleted: false
 			}
 		}
 
