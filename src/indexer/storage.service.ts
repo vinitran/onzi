@@ -127,7 +127,7 @@ export class StorageIndexerService {
 		tx?: Prisma.TransactionClient
 	) {
 		await this.updateToken(mint, event, tx)
-		await this.updateBalanceUser(event, tx)
+		// await this.updateBalanceUser(event, tx)
 		await this.updateTokenChart(mint, event, tx)
 	}
 

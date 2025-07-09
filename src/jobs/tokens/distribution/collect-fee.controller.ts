@@ -120,66 +120,32 @@ export class CollectFeeController {
 			)
 		)
 
-		const [tokenPool, tokenPoolLock] = await Promise.all([
-			this.ponz.getTokenPool(new PublicKey(data.address)),
-			this.ponz.getTokenPoolLockPDA(new PublicKey(data.address))
-		])
-
-		sourceAddress.push(tokenPool, tokenPoolLock)
-
 		// Process holders in batches
 		for (let i = 0; i < sourceAddress.length; i += batchSize) {
 			const batchSourceAddresses = sourceAddress.slice(i, i + batchSize)
-			let feeAmountTotalInBatch = BigInt(0)
-
-			// Check for transfer fees in each account, filter out null results
-			const sourceAddressesWithFees =
-				await this.getSourceAddressesWithFees(batchSourceAddresses)
-
-			// Filter addresses with fees and calculate total (optimized single pass)
-			const validSourceAddresses: PublicKey[] = []
-			for (const { address, feeAmount } of sourceAddressesWithFees) {
-				if (feeAmount.withheldAmount > 0) {
-					feeAmountTotal += feeAmount.withheldAmount
-					feeAmountTotalInBatch += feeAmount.withheldAmount
-					validSourceAddresses.push(address)
-				}
-			}
-
-			if (
-				validSourceAddresses.length === 0 ||
-				feeAmountTotalInBatch === BigInt(0)
-			) {
-				continue
-			}
-
-			// Withdraw withheld tokens from valid addresses
-			const txSig = await withdrawWithheldTokensFromAccounts(
-				this.connection,
-				this.systemWalletKeypair,
-				new PublicKey(data.address),
-				destinationTokenAccount.address,
-				keypairFromPrivateKey(keyWithHeld.privateKey),
-				[],
-				validSourceAddresses,
-				{
-					commitment: "finalized"
-				},
-				TOKEN_2022_PROGRAM_ID
+			const feeAmountTotalInBatch = await this.processBatchCollectFee(
+				batchSourceAddresses,
+				data,
+				destinationTokenAccount,
+				keyWithHeld
 			)
-
-			await this.tokentxDistribute.insert({
-				tokenId: data.id,
-				amountToken: feeAmountTotalInBatch,
-				signature: txSig,
-				type: "CollectFee"
-			})
-
-			Logger.log("txSign collect fee", txSig)
+			feeAmountTotal += feeAmountTotalInBatch
 		}
 
 		// Process collected fees if any were collected
 		if (feeAmountTotal > 0) {
+			const [tokenPool, tokenPoolLock] = await Promise.all([
+				this.ponz.getTokenPool(new PublicKey(data.address)),
+				this.ponz.getTokenPoolLockPDA(new PublicKey(data.address))
+			])
+			const feeAmountTotalInBatch = await this.processBatchCollectFee(
+				[tokenPool, tokenPoolLock],
+				data,
+				destinationTokenAccount,
+				keyWithHeld
+			)
+			feeAmountTotal += feeAmountTotalInBatch
+
 			const tokenTax = await this.tokenRepository.getTaxByID(data.id)
 
 			// Calculate total tax percentage
@@ -233,6 +199,60 @@ export class CollectFeeController {
 				swapToSolMessage
 			)
 		}
+	}
+
+	private async processBatchCollectFee(
+		batchSourceAddresses: PublicKey[],
+		data: SwapMessageType,
+		destinationTokenAccount: any,
+		keyWithHeld: any
+	): Promise<bigint> {
+		let feeAmountTotalInBatch = BigInt(0)
+
+		// Check for transfer fees in each account, filter out null results
+		const sourceAddressesWithFees =
+			await this.getSourceAddressesWithFees(batchSourceAddresses)
+
+		// Filter addresses with fees and calculate total (optimized single pass)
+		const validSourceAddresses: PublicKey[] = []
+		for (const { address, feeAmount } of sourceAddressesWithFees) {
+			if (feeAmount.withheldAmount > 0) {
+				feeAmountTotalInBatch += feeAmount.withheldAmount
+				validSourceAddresses.push(address)
+			}
+		}
+
+		if (
+			validSourceAddresses.length === 0 ||
+			feeAmountTotalInBatch === BigInt(0)
+		) {
+			return BigInt(0)
+		}
+
+		// Withdraw withheld tokens from valid addresses
+		const txSig = await withdrawWithheldTokensFromAccounts(
+			this.connection,
+			this.systemWalletKeypair,
+			new PublicKey(data.address),
+			destinationTokenAccount.address,
+			keypairFromPrivateKey(keyWithHeld.privateKey),
+			[],
+			validSourceAddresses,
+			{
+				commitment: "finalized"
+			},
+			TOKEN_2022_PROGRAM_ID
+		)
+
+		await this.tokentxDistribute.insert({
+			tokenId: data.id,
+			amountToken: feeAmountTotalInBatch,
+			signature: txSig,
+			type: "CollectFee"
+		})
+
+		Logger.log("txSign collect fee", txSig)
+		return feeAmountTotalInBatch
 	}
 
 	private async getSourceAddressesWithFees(
