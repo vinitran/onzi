@@ -42,6 +42,7 @@ model User {
   blockReelComments  BlockReelComment[]
   blockUsers         BlockUser[]
   tokenReports       TokenReport[]
+  reelViews          ReelView[]
 
   @@map("user")
 }
@@ -392,9 +393,23 @@ model Reel {
   reelComments      ReelComment[]
   reelReports       ReelReport[]
   blockReelComments BlockReelComment[]
+  reelViews         ReelView[]
 
   @@index([tokenId])
   @@map("reel")
+}
+
+model ReelView {
+  id        String   @id @default(uuid()) @db.Uuid
+  reelId    String   @map("reel_id") @db.Uuid
+  viewerId  String   @map("viewer_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  viewer User @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+  reel   Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  @@index([reelId, viewerId])
+  @@map("reel_view")
 }
 
 model ReelReport {

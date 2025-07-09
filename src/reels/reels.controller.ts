@@ -2,11 +2,13 @@ import {
 	Body,
 	ClassSerializerInterceptor,
 	Controller,
+	DefaultValuePipe,
 	Delete,
 	Get,
 	HttpCode,
 	HttpStatus,
 	Param,
+	ParseBoolPipe,
 	ParseUUIDPipe,
 	Post,
 	Put,
@@ -14,7 +16,12 @@ import {
 	SerializeOptions,
 	UseInterceptors
 } from "@nestjs/common"
-import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger"
+import {
+	ApiBearerAuth,
+	ApiOperation,
+	ApiResponse,
+	ApiTags
+} from "@nestjs/swagger"
 import { Auth, Public, Roles } from "@root/_shared/utils/decorators"
 import { Claims } from "@root/auth/auth.service"
 import { ReelReport as ReelReportResponse } from "@root/dtos/reel-report.dto"
@@ -210,6 +217,7 @@ export class ReelsController {
 
 	@Post(":id")
 	@Public()
+	@ApiBearerAuth()
 	@ApiOperation({ summary: "Increase view for a reel" })
 	@ApiResponse({
 		status: 200,
@@ -221,8 +229,8 @@ export class ReelsController {
 		enableImplicitConversion: true,
 		excludeExtraneousValues: true
 	})
-	increaseView(@Param("id", ParseUUIDPipe) id: string) {
-		return this.reelsService.updateView(id)
+	increaseView(@Param("id", ParseUUIDPipe) id: string, @User() user?: Claims) {
+		return this.reelsService.updateView(id, user?.id)
 	}
 
 	@Put(":id/pin")
@@ -291,12 +299,15 @@ export class ReelsController {
 	})
 	getDetail(
 		@Param("id", ParseUUIDPipe) id: string,
-		@User() user: Claims | undefined
+		@User() user: Claims | undefined,
+		@Query("isWatching", new DefaultValuePipe(false), ParseBoolPipe)
+		isWatching?: boolean
 	) {
 		return this.reelsService.getDetail({
 			reelId: id,
 			userAddress: user?.address,
-			userId: user?.id
+			userId: user?.id,
+			isWatching: isWatching
 		})
 	}
 }

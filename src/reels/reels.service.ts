@@ -8,6 +8,7 @@ import { Reel, UserActionStatus } from "@prisma/client"
 import { BlockUserRepository } from "@root/_database/repositories/block-user.repository"
 import { ReelCommentRepository } from "@root/_database/repositories/reel-comment.repository"
 import { ReelUserActionRepository } from "@root/_database/repositories/reel-user-action.repository"
+import { ReelViewRepository } from "@root/_database/repositories/reel-view.repository"
 import { ReelRepository } from "@root/_database/repositories/reel.repository"
 import { TokenFavoriteRepository } from "@root/_database/repositories/token-favorite.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
@@ -24,6 +25,7 @@ import { S3Service } from "@root/file/file.service"
 import { DateTime } from "luxon"
 import { v4 as uuidv4 } from "uuid"
 import {
+	GetReelDetailDto,
 	PaginateListReelParams,
 	PaginateReportedReelDto
 } from "./dtos/payload.dto"
@@ -36,6 +38,7 @@ export class ReelsService {
 		private tokenFavorite: TokenFavoriteRepository,
 		private reel: ReelRepository,
 		private reelUserAction: ReelUserActionRepository,
+		private reelView: ReelViewRepository,
 		private reelComment: ReelCommentRepository,
 		private user: UserRepository,
 		private blockUser: BlockUserRepository
@@ -156,15 +159,15 @@ export class ReelsService {
 	}
 
 	// Get detail reel
-	async getDetail(payload: GetDetailReelPayload) {
-		const { reelId, userAddress, userId } = payload
+	async getDetail(payload: GetReelDetailDto & GetDetailReelPayload) {
+		const { reelId, userAddress, userId, isWatching } = payload
 
 		const reel = await this.reel.getDetail(reelId)
 		if (!reel) throw new NotFoundException("Not found reel")
 
 		const [prevReel, nextReel, totalComment, userActions] = await Promise.all([
-			this.reel.getPrevByTime(reel),
-			this.reel.getNextByTime(reel),
+			this.reel.getPrev({ currentReel: reel, isWatching, userId }),
+			this.reel.getNext({ currentReel: reel, isWatching, userId }),
 			this.reelComment.getTotalByReelId(reelId),
 			this.reelUserAction.getActionsByReelId(reelId)
 		])
@@ -222,7 +225,7 @@ export class ReelsService {
 
 	//   Get latest detail reel
 	async getLatest({ userAddress, userId }: GetLatestReelPayload) {
-		const reel = await this.reel.getLatestByTime()
+		const reel = await this.reel.getLatest(userId)
 
 		if (!reel) throw new NotFoundException("Not found reel")
 
@@ -230,9 +233,18 @@ export class ReelsService {
 	}
 
 	//   Increase view for a reel
-	async updateView(reelId: string) {
+	async updateView(reelId: string, userId?: string) {
 		const reel = await this.reel.findById(reelId)
 		if (!reel) throw new NotFoundException("Not found reel")
+		if (userId) {
+			const isViewed = !!(await this.reelView.checkViewed(reelId, userId))
+
+			if (!isViewed) {
+				const user = await this.user.findById(userId)
+				if (!user) throw new NotFoundException("Not found user")
+				await this.reelView.create(reelId, userId)
+			}
+		}
 		return this.reel.increaseView(reelId)
 	}
 

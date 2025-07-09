@@ -15,6 +15,7 @@ import { ReelCommentReportRepository } from "./repositories/reel-comment-report.
 import { ReelCommentRepository } from "./repositories/reel-comment.repository"
 import { ReelReportRepository } from "./repositories/reel-report.repository"
 import { ReelUserActionRepository } from "./repositories/reel-user-action.repository"
+import { ReelViewRepository } from "./repositories/reel-view.repository"
 import { ReelRepository } from "./repositories/reel.repository"
 import { StickerOwnerRepository } from "./repositories/sticker-owner.repository"
 import { StickerRepository } from "./repositories/sticker.repository"
@@ -50,7 +51,8 @@ const repositories = [
 	ReelCommentReportRepository,
 	ReelReportRepository,
 	BlockReelCommentRepository,
-	BlockUserRepository
+	BlockUserRepository,
+	ReelViewRepository
 ]
 
 @Global()

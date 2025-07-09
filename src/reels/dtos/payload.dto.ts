@@ -3,7 +3,7 @@ import { UserActionStatus } from "@prisma/client"
 import { REPORTED_REEL_SORT_OPTIONS } from "@root/_shared/constants/reel"
 import { OptionalProp, Prop } from "@root/_shared/utils/decorators"
 import { PaginatedParams } from "@root/dtos/common.dto"
-import { IsEnum, IsString, Length } from "class-validator"
+import { IsBoolean, IsEnum, IsString, Length } from "class-validator"
 
 export class CreateReelDto {
 	@ApiProperty({
@@ -59,3 +59,10 @@ export class PaginateReportedReelDto extends PaginatedParams {
 }
 
 export class PaginateReelReportsDto extends PaginatedParams {}
+
+export class GetReelDetailDto {
+	@ApiProperty({ description: "Status of users do are they watching in reel" })
+	@IsBoolean()
+	@OptionalProp({ default: false })
+	isWatching?: boolean
+}
