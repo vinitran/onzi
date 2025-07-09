@@ -194,8 +194,6 @@ export class ExecuteDistributionController {
 				)
 			}
 
-			Logger.log(data.rawTx, "end execute distribution fee for tx")
-
 			channel.ack(originalMsg, false)
 			await this.redis.del(this.executeDistributionRedisKey(data.rawTx))
 		} catch (error) {

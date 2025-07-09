@@ -581,7 +581,7 @@ export class TokenRepository {
 						burnTax: true,
 						totalSupply: true,
 						creatorAddress: true,
-						lockAmount: true,
+						lockAmount: true
 					}
 				})
 			},

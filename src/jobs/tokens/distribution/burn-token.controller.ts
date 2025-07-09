@@ -86,7 +86,7 @@ export class BurnTokenController {
 			throw new NotFoundException("not found key with held")
 		}
 
-			const tokenAta = getAssociatedTokenAddressSync(
+		const tokenAta = getAssociatedTokenAddressSync(
 			new PublicKey(data.address),
 			new PublicKey(keyWithHeld.publicKey),
 			undefined,

@@ -13,6 +13,7 @@ import { HeliusService } from "@root/onchain/helius.service"
 import { InjectConnection } from "@root/programs/programs.module"
 import { v4 as uuidv4 } from "uuid"
 
+import { Ponz } from "@root/programs/ponz/program"
 import {
 	ASSOCIATED_TOKEN_PROGRAM_ID,
 	TOKEN_2022_PROGRAM_ID,
@@ -25,7 +26,6 @@ import {
 } from "@solana/spl-token"
 import { Keypair, PublicKey } from "@solana/web3.js"
 import bs58 from "bs58"
-import { Ponz } from '@root/programs/ponz/program';
 
 export type SwapMessageType = {
 	id: string // Token identifier
@@ -49,8 +49,7 @@ export class CollectFeeController {
 		private readonly tokenRepository: TokenRepository,
 		private readonly rabbitMQService: RabbitMQService,
 		private readonly helius: HeliusService,
-		private ponz: Ponz,
-
+		private ponz: Ponz
 	) {
 		// Initialize system wallet from private key stored in environment
 		this.systemWalletKeypair = Keypair.fromSecretKey(
@@ -123,7 +122,7 @@ export class CollectFeeController {
 
 		const [tokenPool, tokenPoolLock] = await Promise.all([
 			this.ponz.getTokenPool(new PublicKey(data.address)),
-			this.ponz.getTokenPoolLockPDA(new PublicKey(data.address)),
+			this.ponz.getTokenPoolLockPDA(new PublicKey(data.address))
 		])
 
 		sourceAddress.push(tokenPool, tokenPoolLock)
