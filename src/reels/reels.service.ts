@@ -25,6 +25,7 @@ import { S3Service } from "@root/file/file.service"
 import { DateTime } from "luxon"
 import { v4 as uuidv4 } from "uuid"
 import {
+	GetLatestReelDto,
 	GetReelDetailDto,
 	PaginateListReelParams,
 	PaginateReportedReelDto
@@ -161,7 +162,6 @@ export class ReelsService {
 	// Get detail reel
 	async getDetail(payload: GetReelDetailDto & GetDetailReelPayload) {
 		const { reelId, userAddress, userId, isWatching } = payload
-
 		const reel = await this.reel.getDetail(reelId)
 		if (!reel) throw new NotFoundException("Not found reel")
 
@@ -208,6 +208,13 @@ export class ReelsService {
 			isUserDislikeReel = !!userActionMap.Dislike
 		}
 
+		let latestNextReelId = nextReel?.id
+
+		if (!latestNextReelId && isWatching) {
+			const nextReelByTime = await this.reel.getLatestByTime()
+			latestNextReelId = nextReelByTime?.id
+		}
+
 		return {
 			...reel,
 			totalComment,
@@ -219,17 +226,34 @@ export class ReelsService {
 				isFavoriteToken: isUserFavouriteToken
 			},
 			prevReelId: prevReel?.id || null,
-			nextReelId: nextReel?.id || null
+			nextReelId: latestNextReelId
 		}
 	}
 
 	//   Get latest detail reel
-	async getLatest({ userAddress, userId }: GetLatestReelPayload) {
-		const reel = await this.reel.getLatest(userId)
+	async getLatest({
+		userAddress,
+		userId,
+		excludedReelIds
+	}: GetLatestReelDto & GetLatestReelPayload) {
+		const reel = await this.reel.getLatest({ userId, excludedReelIds })
 
-		if (!reel) throw new NotFoundException("Not found reel")
+		if (!reel) {
+			const latestReel = await this.reel.getLatest({})
+			if (!latestReel) throw new NotFoundException("Not found reel")
+			return this.getDetail({
+				reelId: latestReel.id,
+				userAddress,
+				userId
+			})
+		}
 
-		return this.getDetail({ reelId: reel.id, userAddress, userId })
+		return this.getDetail({
+			reelId: reel.id,
+			userAddress,
+			userId,
+			isWatching: true
+		})
 	}
 
 	//   Increase view for a reel

@@ -3,7 +3,15 @@ import { UserActionStatus } from "@prisma/client"
 import { REPORTED_REEL_SORT_OPTIONS } from "@root/_shared/constants/reel"
 import { OptionalProp, Prop } from "@root/_shared/utils/decorators"
 import { PaginatedParams } from "@root/dtos/common.dto"
-import { IsBoolean, IsEnum, IsString, Length } from "class-validator"
+import { Transform } from "class-transformer"
+import {
+	IsArray,
+	IsBoolean,
+	IsEnum,
+	IsOptional,
+	IsString,
+	Length
+} from "class-validator"
 
 export class CreateReelDto {
 	@ApiProperty({
@@ -61,8 +69,29 @@ export class PaginateReportedReelDto extends PaginatedParams {
 export class PaginateReelReportsDto extends PaginatedParams {}
 
 export class GetReelDetailDto {
-	@ApiProperty({ description: "Status of users do are they watching in reel" })
+	@ApiProperty({
+		description: "Status of users watching reels",
+		required: false
+	})
 	@IsBoolean()
 	@OptionalProp({ default: false })
+	@IsOptional()
 	isWatching?: boolean
+}
+
+export class GetLatestReelDto {
+	@ApiProperty({
+		description: "List of reel IDs that were watched",
+		type: [String],
+		required: false
+	})
+	@IsOptional()
+	@Transform(({ value }) => {
+		if (Array.isArray(value)) return value
+		if (typeof value === "string") return [value].filter(item => item.trim())
+		return []
+	})
+	@IsArray()
+	@IsString({ each: true })
+	excludedReelIds?: string[]
 }

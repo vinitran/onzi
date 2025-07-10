@@ -171,13 +171,14 @@ export class ReelRepository {
 		}
 	}
 
-	getLatestByTime() {
+	getLatestByTime(excludedReelIds: string[] = []) {
 		return this.prisma.reel.findFirst({
 			orderBy: {
 				createdAt: "desc"
 			},
 			where: {
-				token: { isDeleted: false }
+				token: { isDeleted: false },
+				id: { notIn: excludedReelIds }
 			}
 		})
 	}
@@ -191,10 +192,16 @@ export class ReelRepository {
 		})
 	}
 
-	async getLatest(userId?: string) {
-		if (!userId) return this.getLatestByTime()
+	async getLatest({
+		excludedReelIds = [],
+		userId
+	}: {
+		userId?: string
+		excludedReelIds?: string[]
+	}) {
+		if (!userId) return this.getLatestByTime(excludedReelIds)
 
-		const notViewedReel = await this.prisma.reel.findFirst({
+		const unViewedReel = await this.prisma.reel.findFirst({
 			where: {
 				token: { isDeleted: false },
 				reelViews: {
@@ -208,9 +215,7 @@ export class ReelRepository {
 			}
 		})
 
-		if (notViewedReel) return notViewedReel
-
-		return this.getLatestByTime()
+		return unViewedReel || this.getLatestByTime()
 	}
 
 	//   Get previous reel by time
@@ -231,7 +236,7 @@ export class ReelRepository {
 		isWatching?: boolean
 	}) {
 		const { currentReel, userId, isWatching } = payload
-		if (!userId) return this.getPrevByTime(currentReel)
+		if (!userId || isWatching) return this.getPrevByTime(currentReel)
 
 		const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
 
@@ -319,7 +324,7 @@ export class ReelRepository {
 		return (
 			nextUnseen ||
 			(await this.getNextByTime(currentReel)) ||
-			(await this.getLatest())
+			(await this.getLatest({}))
 		)
 	}
 

@@ -30,6 +30,7 @@ import { User } from "@root/users/user.decorator"
 import {
 	CreateReelDto,
 	CreateReelReportDto,
+	GetLatestReelDto,
 	PaginateListReelParams,
 	PaginateReelReportsDto,
 	PaginateReportedReelDto,
@@ -76,10 +77,14 @@ export class ReelsController {
 		enableImplicitConversion: true,
 		excludeExtraneousValues: true
 	})
-	getLatest(@User() user: Claims | undefined) {
+	getLatest(
+		@Query() query: GetLatestReelDto,
+		@User() user: Claims | undefined
+	) {
 		return this.reelsService.getLatest({
 			userAddress: user?.address,
-			userId: user?.id
+			userId: user?.id,
+			excludedReelIds: query?.excludedReelIds
 		})
 	}
 
@@ -307,7 +312,7 @@ export class ReelsController {
 			reelId: id,
 			userAddress: user?.address,
 			userId: user?.id,
-			isWatching: isWatching
+			isWatching
 		})
 	}
 }
