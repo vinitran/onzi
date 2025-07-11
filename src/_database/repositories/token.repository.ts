@@ -492,7 +492,7 @@ export class TokenRepository {
 			...(query.holders ? [{ tokenOwners: { _count: query.holders } }] : []),
 			...(query.lastTrade ? [{ updatedAt: query.lastTrade }] : []),
 			...(query.approachingJackpot
-				? [{ jackpotPending: query.approachingJackpot }]
+				? [{ jackpotPercent: query.approachingJackpot }]
 				: []),
 			...(query.priceChange1h ? [{ token1hChange: query.priceChange1h }] : []),
 			...(query.priceChange24h
@@ -567,6 +567,17 @@ export class TokenRepository {
 			},
 			30
 		)
+	}
+
+	async updateJackpotPercent() {
+		return this.prisma.$executeRawUnsafe(`
+  UPDATE token
+  SET jackpot_percent = 
+    CASE 
+      WHEN jackpot_amount = 0 THEN 0
+      ELSE jackpot_pending::double precision / jackpot_amount::double precision
+    END
+`)
 	}
 
 	async getAllTokenAddressForUnlock() {

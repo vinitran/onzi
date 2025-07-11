@@ -217,8 +217,7 @@ export class TokensController {
 	@ApiResponse({
 		status: 200,
 		description: "Get token keyHeld successfully",
-		type: TokenKeyWithHeld,
-		isArray: true
+		type: TokenKeyWithHeld
 	})
 	async getTokenWithHeld(
 		@Param("id", new ParseUUIDPipe({ version: "4" })) tokenId: string
