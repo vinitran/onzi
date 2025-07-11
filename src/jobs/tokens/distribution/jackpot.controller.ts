@@ -10,7 +10,7 @@ import {
 	Transactionspayload
 } from "@root/jobs/tokens/distribution/execute-distribution.controller"
 import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
-import { HeliusService } from "@root/onchain/helius.service"
+import { HeliusService, TokenHolder } from "@root/onchain/helius.service"
 import { Ponz } from "@root/programs/ponz/program"
 import { Raydium } from "@root/programs/raydium/program"
 import { PonzVault } from "@root/programs/vault/program"
@@ -108,23 +108,22 @@ export class JackpotController {
 				throw new NotFoundException("not found key with held")
 			}
 
-			const listHolders = (await this.helius.getTokenHolders(data.address))
-				.filter(
-					holder =>
-						holder.address !== poolAddress?.toBase58() &&
-						holder.address !== keyWithHeld.publicKey &&
-						holder.address !== bondingCurve?.toBase58() &&
-						holder.address !== tokenPoolVault?.toBase58()
-				)
-				.map(holder => holder.address)
+			const listHolders = (
+				await this.helius.getTokenHolders(data.address)
+			).filter(
+				holder =>
+					holder.address !== poolAddress?.toBase58() &&
+					holder.address !== keyWithHeld.publicKey &&
+					holder.address !== bondingCurve?.toBase58() &&
+					holder.address !== tokenPoolVault?.toBase58()
+			)
 
 			const createTokenTxDistribute: Transactionspayload[] = []
 			const tx = new Transaction()
 
 			for (let i = 0; i < data.times; i++) {
 				// Get random user from holders
-				const randomIndex = Math.floor(Math.random() * listHolders.length)
-				const randomUser = listHolders[randomIndex]
+				const randomUser = this.randomUser(listHolders)
 
 				tx.add(
 					SystemProgram.transfer({
@@ -165,5 +164,25 @@ export class JackpotController {
 			await this.redis.del(this.redisKey(data.idPayload))
 			throw _error
 		}
+	}
+
+	private randomUser(listHolders: TokenHolder[]): string {
+		if (listHolders.length === 0) {
+			throw new Error("Holder list is empty")
+		}
+
+		const total = listHolders.reduce((sum, h) => sum + BigInt(h.amount), 0n)
+		const rand = BigInt(Math.floor(Math.random() * Number(total)))
+
+		let cumulative = 0n
+		for (const holder of listHolders) {
+			cumulative += BigInt(holder.amount)
+			if (rand <= cumulative) {
+				return holder.address
+			}
+		}
+
+		// fallback: return last address
+		return listHolders[listHolders.length - 1].address
 	}
 }
