@@ -72,9 +72,7 @@ export class UsersService {
 			where: tokenOwnerWhere,
 			orderBy: {
 				amount: Prisma.SortOrder.desc
-			},
-			skip: (query.page - 1) * query.take,
-			take: query.take
+			}
 		}
 
 		const include: Prisma.UserInclude = {
