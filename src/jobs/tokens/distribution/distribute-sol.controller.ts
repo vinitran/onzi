@@ -188,40 +188,42 @@ export class DistributeSolController {
 			(lamportToDistribute * (token.totalSupply / BigInt(100))) /
 			totalHolderAmount
 
-		const sendVaultTx = new Transaction().add(
-			SystemProgram.transfer({
-				fromPubkey: new PublicKey(keyWithHeld.publicKey),
-				toPubkey: new PublicKey(this.env.REWARD_VAULT_ADDRESS),
-				lamports: lamportToVault
-			})
-		)
+		if (lamportToVault > 0) {
+			const sendVaultTx = new Transaction().add(
+				SystemProgram.transfer({
+					fromPubkey: new PublicKey(keyWithHeld.publicKey),
+					toPubkey: new PublicKey(this.env.REWARD_VAULT_ADDRESS),
+					lamports: lamportToVault
+				})
+			)
 
-		sendVaultTx.feePayer = this.systemWalletKeypair.publicKey
+			sendVaultTx.feePayer = this.systemWalletKeypair.publicKey
 
-		// Set fake/dummy recentBlockhash
-		sendVaultTx.recentBlockhash = PublicKey.default.toBase58()
+			// Set fake/dummy recentBlockhash
+			sendVaultTx.recentBlockhash = PublicKey.default.toBase58()
 
-		await this.rabbitMQService.emit(
-			"distribute-reward-distributor",
-			REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION,
-			{
-				transactions: [
-					{
-						from: keyWithHeld.publicKey,
-						tokenId: data.id,
-						to: this.env.MULTI_SIG_PUBKEY,
-						lamport: lamportToVault.toString(),
-						type: "SendToVault"
-					}
-				],
-				rawTx: sendVaultTx
-					.serialize({
-						requireAllSignatures: false,
-						verifySignatures: false
-					})
-					.toString("base64")
-			} as ExecuteDistributionPayload
-		)
+			await this.rabbitMQService.emit(
+				"distribute-reward-distributor",
+				REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION,
+				{
+					transactions: [
+						{
+							from: keyWithHeld.publicKey,
+							tokenId: data.id,
+							to: this.env.MULTI_SIG_PUBKEY,
+							lamport: lamportToVault.toString(),
+							type: "SendToVault"
+						}
+					],
+					rawTx: sendVaultTx
+						.serialize({
+							requireAllSignatures: false,
+							verifySignatures: false
+						})
+						.toString("base64")
+				} as ExecuteDistributionPayload
+			)
+		}
 
 		if (token.jackpotTax > 0) {
 			const amountJackpot =
