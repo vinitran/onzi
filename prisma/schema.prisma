@@ -241,6 +241,7 @@ model TokenKeyWithHeld {
   tokenId    String   @unique @db.Uuid
 
   @@index([publicKey])
+  @@index([tokenId])
   @@map("token_key_with_held")
 }
 

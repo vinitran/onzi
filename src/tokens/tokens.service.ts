@@ -503,6 +503,13 @@ export class TokensService {
 		await this.s3Service.deleteFile(this.s3Service.getKeyS3(token.bannerUri))
 	}
 
+	async getTokenWithHeld(id: string) {
+		const keyWithHeld = await this.tokenKeyWithHeld.findAddress(id)
+		if (!keyWithHeld) throw new NotFoundException("Not found token")
+
+		return keyWithHeld
+	}
+
 	// Get latest max 100 tokens with
 	/*
 	- Popular: tokens are ordred highlight by admin

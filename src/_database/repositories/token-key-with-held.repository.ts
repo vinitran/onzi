@@ -33,6 +33,21 @@ export class TokenKeyWithHeldRepository {
 		})
 	}
 
+	async findAddress(tokenId: string) {
+		return this.redis.getOrSet(
+			`token-key-with-held:${tokenId}`,
+			() => {
+				return this.prisma.tokenKeyWithHeld.findFirst({
+					where: { tokenId },
+					select: {
+						publicKey: true
+					}
+				})
+			},
+			30
+		)
+	}
+
 	async find(tokenId: string) {
 		return this.redis.getOrSet(
 			`token-key-with-held:${tokenId}`,

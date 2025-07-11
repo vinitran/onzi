@@ -25,6 +25,7 @@ import {
 	ApiPaginatedResponse,
 	Paginate as PaginatedResponse
 } from "@root/dtos/common.dto"
+import { TokenKeyWithHeld } from "@root/dtos/token-key-with-held.dto"
 import {
 	ChartParams,
 	CreateTokenOnchainPayload,
@@ -207,6 +208,23 @@ export class TokensController {
 	async getTrendingTopics() {
 		const data = await this.tokensService.getTrendingTopics()
 		return plainToInstance(TrendingTopicResponse, data, {
+			excludeExtraneousValues: true
+		})
+	}
+
+	@Get("/:id/token-with-held")
+	@ApiOperation({ summary: "Get token keyHeld" })
+	@ApiResponse({
+		status: 200,
+		description: "Get token keyHeld successfully",
+		type: TokenKeyWithHeld,
+		isArray: true
+	})
+	async getTokenWithHeld(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) tokenId: string
+	) {
+		const result = await this.tokensService.getTokenWithHeld(tokenId)
+		return plainToInstance(TokenKeyWithHeld, result, {
 			excludeExtraneousValues: true
 		})
 	}
