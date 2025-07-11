@@ -44,17 +44,22 @@ export class UpdateBalanceController {
 			)
 			.join(",\n")
 
-		await this.prisma.$executeRawUnsafe(`
-			INSERT INTO "user" (id, address, username)
-			VALUES ${userValues}
-			ON CONFLICT (address) DO NOTHING;
-		`)
-		await this.prisma.$executeRawUnsafe(`
-			INSERT INTO token_owner (id, user_address, token_address, amount)
-			VALUES ${tokenOwnerValues}
+		if (userValues.length > 0) {
+			await this.prisma.$executeRawUnsafe(`
+				INSERT INTO "user" (id, address, username)
+				VALUES ${userValues}
+				ON CONFLICT (address) DO NOTHING;
+			`)
+		}
+
+		if (tokenOwnerValues.length > 0) {
+			await this.prisma.$executeRawUnsafe(`
+				INSERT INTO token_owner (id, user_address, token_address, amount)
+				VALUES ${tokenOwnerValues}
 				ON CONFLICT (user_address, token_address)
-    DO UPDATE SET amount = EXCLUDED.amount;
-		`)
+				DO UPDATE SET amount = EXCLUDED.amount;
+			`)
+		}
 		await this.prisma.$executeRawUnsafe(`
 			DELETE FROM token_owner
 			WHERE amount = 0;

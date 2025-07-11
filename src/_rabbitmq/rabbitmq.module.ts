@@ -52,8 +52,8 @@ import { RabbitMQService } from "./rabbitmq.service"
 				useFactory: () => RabbitMQRetryConfig("distribute-reward-distributor")
 			},
 			{
-				name: "SCAN_BALANCE_RABBITMQ_SERVICE",
-				useFactory: () => RabbitMQConfig("scan-balance-distributor")
+				name: "SCANNER_RABBITMQ_SERVICE",
+				useFactory: () => RabbitMQConfig("scanner")
 			}
 		])
 	],

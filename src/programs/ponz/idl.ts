@@ -616,7 +616,7 @@ export type PonzSc = {
 				},
 				{
 					name: "ponzVault"
-					address: "ponzfzUKxc1MGndnnCNX8GZKpW7BUQrRDenK4JDcgFG"
+					address: "ponzDgxsuynKG8FcHU9xGygwHd9jj2c8ZjfdgxgdLHs"
 				},
 				{
 					name: "tokenProgram"
@@ -683,7 +683,7 @@ export type PonzSc = {
 				},
 				{
 					name: "ponzProgram"
-					address: "ponzXJ4pkXY4KwhxfTT4onNfCDURtRTt2EuShiAiBnf"
+					address: "ponzDBbYFNQ7D2qzeJg5MjdwYZFgp6uJhT7VHLMAxpv"
 				},
 				{
 					name: "ponzProgramData"
@@ -1458,13 +1458,16 @@ export type PonzSc = {
 					}
 				},
 				{
-					name: "payerAta"
+					name: "user"
+				},
+				{
+					name: "userAta"
 					writable: true
 					pda: {
 						seeds: [
 							{
 								kind: "account"
-								path: "payer"
+								path: "user"
 							},
 							{
 								kind: "account"
@@ -1707,6 +1710,11 @@ export type PonzSc = {
 			code: 6025
 			name: "invalidTokenPoolData"
 			msg: "Invalid Token Pool Owner"
+		},
+		{
+			code: 6026
+			name: "invalidCreator"
+			msg: "Invalid Creator"
 		}
 	]
 	types: [

@@ -569,6 +569,40 @@ export class TokenRepository {
 		)
 	}
 
+	async getAllTokenAddressForUnlock() {
+		return this.redis.getOrSet(
+			"get-all-token-for-unlock",
+			() => {
+				return this.prisma.token.findMany({
+					select: {
+						id: true,
+						address: true,
+						lockAmount: true,
+						unlockAt: true,
+						creatorAddress: true
+					},
+					where: {
+						isDeleted: false
+					},
+					orderBy: {
+						unlockAt: Prisma.SortOrder.desc
+					}
+				})
+			},
+			30
+		)
+	}
+
+	async updateUnlockToken(address: string) {
+		return this.prisma.token.update({
+			where: { address },
+			data: {
+				lockAmount: null,
+				unlockAt: null
+			}
+		})
+	}
+
 	async getTaxByID(id: string) {
 		return this.redis.getOrSet(
 			`token-getTaxByID: ${id}`,

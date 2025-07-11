@@ -16,7 +16,9 @@ import { TokenMetadataArgs } from "@root/programs/ponz/events"
 import idl from "@root/programs/ponz/ponz_sc.json"
 import {
 	ASSOCIATED_TOKEN_PROGRAM_ID,
-	TOKEN_2022_PROGRAM_ID
+	TOKEN_2022_PROGRAM_ID,
+	createAssociatedTokenAccountIdempotentInstruction,
+	getAssociatedTokenAddress
 } from "@solana/spl-token"
 import {
 	Keypair,
@@ -400,6 +402,55 @@ export class Ponz extends SolanaProgram<PonzSc> {
 
 		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
 		tx.feePayer = ponzMultiSigWallet
+
+		return tx
+	}
+
+	public async withdrawTokenPoolLock(
+		mint: PublicKey,
+		ponzSystemWallet: Keypair,
+		userAddress: PublicKey
+	) {
+		const tx = new Transaction()
+		const destinationTokenAccount = await getAssociatedTokenAddress(
+			mint,
+			userAddress,
+			false,
+			TOKEN_2022_PROGRAM_ID,
+			ASSOCIATED_TOKEN_PROGRAM_ID
+		)
+
+		const createDestinationAtaIx =
+			createAssociatedTokenAccountIdempotentInstruction(
+				ponzSystemWallet.publicKey,
+				destinationTokenAccount,
+				userAddress,
+				mint,
+				TOKEN_2022_PROGRAM_ID,
+				ASSOCIATED_TOKEN_PROGRAM_ID
+			)
+		tx.add(createDestinationAtaIx)
+
+		const unlockIx = await this.program.methods
+			.withdrawTokenPoolLock()
+			.accountsStrict({
+				globalConfiguration: this.globalConfigPDA,
+				mint,
+				user: userAddress,
+				bondingCurve: this.getBondingCurve(mint),
+				tokenPoolLock: this.getTokenPoolLockPDA(mint),
+				payer: ponzSystemWallet.publicKey,
+				userAta: this.getOwnerAta(userAddress, mint),
+				associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+				tokenProgram: TOKEN_2022_PROGRAM_ID,
+				systemProgram: SYSTEM_PROGRAM_ID
+			})
+			.instruction()
+
+		tx.add(unlockIx)
+
+		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
+		tx.feePayer = ponzSystemWallet.publicKey
 
 		return tx
 	}

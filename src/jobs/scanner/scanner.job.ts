@@ -4,6 +4,10 @@ import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
 import { IndexerService } from "@root/indexer/indexer.service"
 import {
+	UNLOCK_TOKEN_EVENTS,
+	UnlockTokenEventPayload
+} from "@root/jobs/scanner/unlock-token.controller"
+import {
 	UPDATE_BALANCE_EVENTS,
 	UpdateBalancePayload
 } from "@root/jobs/scanner/update-balance.controller"
@@ -34,8 +38,34 @@ export class ScannerJobs implements OnModuleInit {
 			}
 
 			await this.rabbitMQService.emit(
-				"scan-balance-distributor",
+				"scanner",
 				UPDATE_BALANCE_EVENTS.UPDATE,
+				data
+			)
+		}
+	}
+
+	@Cron(CronExpression.EVERY_MINUTE)
+	async unlockToken() {
+		const tokens = await this.tokenRepository.getAllTokenAddressForUnlock()
+
+		const unlockedTokens = tokens.filter(
+			token =>
+				token.lockAmount !== null &&
+				token.unlockAt !== null &&
+				token.unlockAt <= new Date()
+		)
+
+		for (const token of unlockedTokens) {
+			const data: UnlockTokenEventPayload = {
+				address: token.address,
+				// creatorAddress: "5PKVLVF3UdRymqMhK5beZNxccdhwmovA9G4wk4jMHYcH",
+				creatorAddress: token.creatorAddress
+			}
+
+			await this.rabbitMQService.emit(
+				"scanner",
+				UNLOCK_TOKEN_EVENTS.UNLOCK,
 				data
 			)
 		}

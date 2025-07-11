@@ -14,7 +14,7 @@ export type RabbitMQServiceType =
 	| "collect-fee-reward-distributor"
 	| "swap-to-sol-reward-distributor"
 	| "distribute-reward-distributor"
-	| "scan-balance-distributor"
+	| "scanner"
 
 @Injectable()
 export class RabbitMQService implements OnApplicationShutdown {
@@ -37,7 +37,7 @@ export class RabbitMQService implements OnApplicationShutdown {
 		@Inject("DISTRIBUTE_REWARD_DISTRIBUTOR_RABBITMQ_SERVICE")
 		private readonly distributeRewardDistributorClient: ClientProxy,
 
-		@Inject("SCAN_BALANCE_RABBITMQ_SERVICE")
+		@Inject("SCANNER_RABBITMQ_SERVICE")
 		private readonly scanBalanceClient: ClientProxy
 	) {}
 
@@ -60,7 +60,7 @@ export class RabbitMQService implements OnApplicationShutdown {
 				return this.swapToSolRewardDistributorClient
 			case "distribute-reward-distributor":
 				return this.distributeRewardDistributorClient
-			case "scan-balance-distributor":
+			case "scanner":
 				return this.scanBalanceClient
 			default:
 				throw new Error(`Unknown RabbitMQ service type: ${type}`)

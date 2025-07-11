@@ -448,7 +448,7 @@
 				},
 				{
 					"name": "ponz_vault",
-					"address": "ponzfzUKxc1MGndnnCNX8GZKpW7BUQrRDenK4JDcgFG"
+					"address": "ponzDgxsuynKG8FcHU9xGygwHd9jj2c8ZjfdgxgdLHs"
 				},
 				{
 					"name": "token_program",
@@ -503,7 +503,7 @@
 				},
 				{
 					"name": "ponz_program",
-					"address": "ponzXJ4pkXY4KwhxfTT4onNfCDURtRTt2EuShiAiBnf"
+					"address": "ponzDBbYFNQ7D2qzeJg5MjdwYZFgp6uJhT7VHLMAxpv"
 				},
 				{
 					"name": "ponz_program_data"
@@ -1051,13 +1051,16 @@
 					}
 				},
 				{
-					"name": "payer_ata",
+					"name": "user"
+				},
+				{
+					"name": "user_ata",
 					"writable": true,
 					"pda": {
 						"seeds": [
 							{
 								"kind": "account",
-								"path": "payer"
+								"path": "user"
 							},
 							{
 								"kind": "account",
@@ -1271,6 +1274,11 @@
 			"code": 6025,
 			"name": "InvalidTokenPoolData",
 			"msg": "Invalid Token Pool Owner"
+		},
+		{
+			"code": 6026,
+			"name": "InvalidCreator",
+			"msg": "Invalid Creator"
 		}
 	],
 	"types": [
