@@ -68,9 +68,9 @@ export class CollectFeeController {
 		const originalMsg = context.getMessage()
 
 		try {
-			Logger.log("start collect fee for token address: ", data.address)
+			Logger.log(data.address, "start collect fee for token address: ")
 			await this.collectFeesForToken(data)
-			Logger.log("end collect fee for token address: ", data.address)
+			Logger.log(data.address, "end collect fee for token address: ")
 			channel.ack(originalMsg, false)
 		} catch (error) {
 			Logger.error(error, "collect fee")
@@ -80,7 +80,7 @@ export class CollectFeeController {
 
 	// Collect fees from token holders
 	async collectFeesForToken(data: SwapMessageType) {
-		const batchSize = 20 // Process max 20 users at a time
+		const batchSize = 10 // Process max 20 users at a time
 
 		// Retrieve key with held information
 		const keyWithHeld = await this.tokenKeyWithHeld.find(data.id)
@@ -120,6 +120,13 @@ export class CollectFeeController {
 			)
 		)
 
+		const [tokenPool, tokenPoolLock] = await Promise.all([
+			this.ponz.getTokenPool(new PublicKey(data.address)),
+			this.ponz.getTokenPoolLockPDA(new PublicKey(data.address))
+		])
+
+		sourceAddress.push(tokenPool, tokenPoolLock)
+
 		// Process holders in batches
 		for (let i = 0; i < sourceAddress.length; i += batchSize) {
 			const batchSourceAddresses = sourceAddress.slice(i, i + batchSize)
@@ -134,18 +141,6 @@ export class CollectFeeController {
 
 		// Process collected fees if any were collected
 		if (feeAmountTotal > 0) {
-			const [tokenPool, tokenPoolLock] = await Promise.all([
-				this.ponz.getTokenPool(new PublicKey(data.address)),
-				this.ponz.getTokenPoolLockPDA(new PublicKey(data.address))
-			])
-			const feeAmountTotalInBatch = await this.processBatchCollectFee(
-				[tokenPool, tokenPoolLock],
-				data,
-				destinationTokenAccount,
-				keyWithHeld
-			)
-			feeAmountTotal += feeAmountTotalInBatch
-
 			const tokenTax = await this.tokenRepository.getTaxByID(data.id)
 
 			// Calculate total tax percentage
@@ -229,6 +224,10 @@ export class CollectFeeController {
 			return BigInt(0)
 		}
 
+		Logger.log(
+			`Withdrawing from ${validSourceAddresses.length} addresses. Total fee: ${feeAmountTotalInBatch.toString()}`
+		)
+
 		// Withdraw withheld tokens from valid addresses
 		const txSig = await withdrawWithheldTokensFromAccounts(
 			this.connection,
@@ -244,6 +243,8 @@ export class CollectFeeController {
 			TOKEN_2022_PROGRAM_ID
 		)
 
+		Logger.log(txSig, "txSign collect fee")
+
 		await this.tokentxDistribute.insert({
 			tokenId: data.id,
 			amountToken: feeAmountTotalInBatch,
@@ -251,7 +252,6 @@ export class CollectFeeController {
 			type: "CollectFee"
 		})
 
-		Logger.log("txSign collect fee", txSig)
 		return feeAmountTotalInBatch
 	}
 

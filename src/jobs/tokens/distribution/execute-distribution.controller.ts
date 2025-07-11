@@ -84,7 +84,7 @@ export class ExecuteDistributionController {
 		await this.redis.set(this.sendFeeRedisKey(data.to), "true", 600)
 
 		try {
-			Logger.log("start execute transfer fee for token address: ", data.to)
+			Logger.log(data.to, "start execute transfer fee for token address: ")
 
 			const initTx = new Transaction().add(
 				SystemProgram.transfer({
@@ -108,7 +108,7 @@ export class ExecuteDistributionController {
 				}
 			)
 
-			Logger.log("end execute transfer fee for token address: ", data.to)
+			Logger.log(data.to, "end execute transfer fee for token address: ")
 
 			channel.ack(originalMsg, false)
 			await this.redis.del(this.sendFeeRedisKey(data.to))

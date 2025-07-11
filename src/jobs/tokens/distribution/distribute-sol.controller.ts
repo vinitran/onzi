@@ -79,9 +79,9 @@ export class DistributeSolController {
 		await this.redis.set(this.redisKey(data.idPayload), "true", 600)
 
 		try {
-			Logger.log("start distribute token for token address: ", data.address)
+			Logger.log(data.address, "start distribute for token address: ")
 			await this.distributeSolToHolder(data)
-			Logger.log("end distribute token for token address: ", data.address)
+			Logger.log(data.address, "end distribute for token address: ")
 			channel.ack(originalMsg, false)
 			await this.redis.del(this.redisKey(data.idPayload))
 		} catch (error) {

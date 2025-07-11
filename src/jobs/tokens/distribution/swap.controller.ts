@@ -88,6 +88,13 @@ export class SwapController {
 
 	// Swap collected tokens to SOL using either Ponz or Raydium protocol
 	async swapToSol(data: SwapMessageType) {
+		const pending = await this.tokenRepository.updateDistributionPending(
+			data.address,
+			BigInt(data.amount!)
+		)
+
+		if (pending.distributionPending < BigInt(500000000000)) return
+
 		// Retrieve key with held information for the token
 		const keyWithHeld = await this.tokenKeyWithHeld.find(data.id)
 		if (!keyWithHeld) {
@@ -101,7 +108,7 @@ export class SwapController {
 				new PublicKey(data.address),
 				keypairFromPrivateKey(keyWithHeld.privateKey),
 				this.systemWalletKeypair,
-				new BN(data.amount)
+				new BN(pending.distributionPending.toString())
 			)
 		}
 
@@ -132,27 +139,18 @@ export class SwapController {
 			type: "SwapToSolana"
 		})
 
-		const distributionPending =
-			await this.tokenRepository.updateDistributionPending(
-				data.address,
-				BigInt(balanceChange)
-			)
-
-		const estimateFee = data.amountHolder! * 10000
-		if (distributionPending.distributionPending > 4 * estimateFee) {
-			// Emit event for reward distribution
-			await this.rabbitMQService.emit(
-				"distribute-reward-distributor",
-				REWARD_DISTRIBUTOR_EVENTS.PREPARE_REWARD_DISTRIBUTION,
-				{
-					id: data.id,
-					address: data.address,
-					lamport: distributionPending.distributionPending.toString(),
-					idPayload: uuidv4().toString()
-				} as PrepareRewardDistributionPayload
-			)
-			await this.tokenRepository.resetDistributionPending(data.address)
-		}
+		// Emit event for reward distribution
+		await this.rabbitMQService.emit(
+			"distribute-reward-distributor",
+			REWARD_DISTRIBUTOR_EVENTS.PREPARE_REWARD_DISTRIBUTION,
+			{
+				id: data.id,
+				address: data.address,
+				lamport: balanceChange.toString(),
+				idPayload: uuidv4().toString()
+			} as PrepareRewardDistributionPayload
+		)
+		await this.tokenRepository.resetDistributionPending(data.address)
 	}
 
 	// Calculate balance change for a transaction

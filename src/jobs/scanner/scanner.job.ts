@@ -45,7 +45,7 @@ export class ScannerJobs implements OnModuleInit {
 		}
 	}
 
-	@Cron(CronExpression.EVERY_MINUTE)
+	@Cron(CronExpression.EVERY_5_MINUTES)
 	async unlockToken() {
 		const tokens = await this.tokenRepository.getAllTokenAddressForUnlock()
 
@@ -59,7 +59,6 @@ export class ScannerJobs implements OnModuleInit {
 		for (const token of unlockedTokens) {
 			const data: UnlockTokenEventPayload = {
 				address: token.address,
-				// creatorAddress: "5PKVLVF3UdRymqMhK5beZNxccdhwmovA9G4wk4jMHYcH",
 				creatorAddress: token.creatorAddress
 			}
 
