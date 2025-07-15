@@ -32,7 +32,8 @@ export class ReelRepository {
 						description: true,
 						ticker: true,
 						totalSupply: true,
-						price: true
+						price: true,
+						raydiumStatus: true
 					}
 				}
 			}
