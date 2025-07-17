@@ -380,7 +380,7 @@ model TokenChart {
 model Reel {
   id         String    @id @default(uuid()) @db.Uuid
   videoUri   String    @map("video_uri")
-  caption    String    @db.Text
+  caption    String?   @db.Text
   viewAmount BigInt    @default(0) @map("view_amount")
   creatorId  String    @map("creator_id") @db.Uuid
   tokenId    String    @map("token_id") @db.Uuid

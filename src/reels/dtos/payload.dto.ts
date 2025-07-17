@@ -18,9 +18,9 @@ export class CreateReelDto {
 		description: "Content of the comment",
 		example: "This is a great reel!"
 	})
-	@Prop()
+	@OptionalProp()
 	@IsString()
-	@Length(1, 500)
+	@Length(0, 500)
 	caption: string
 }
 
