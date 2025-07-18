@@ -308,67 +308,74 @@ export class TokenRepository {
 
 		const [data, total] = await Promise.all([
 			this.prisma.$queryRawUnsafe(`
-        SELECT DISTINCT ON (t.address)
-          t.id,
-          t.name,
-          t.address,
-          t.price,
-          t.uri,
-          t."imageUri",
-          t.banner_uri AS "bannerUri",
-          t.ticker,
-          t.metadata,
-          t.description,
-          t.is_highlight AS "isHighlight",
-          t.network,
-          t.bonding_curve_target AS "bondingCurveTarget",
-          t.is_completed_bonding_curve AS "isCompletedBondingCurve",
-          t.created_at_bonding_curve AS "createdAtBondingCurve",
-          t.is_completed_king_of_hill AS "isCompletedKingOfHill",
-          t.created_at_king_of_hill AS "createdAtKingOfHill",
-          t.bump,
-          t.creator_address AS "creatorAddress",
-          t.market_capacity AS "marketCapacity",
-          t.volumn,
-          t.total_supply AS "totalSupply",
-          t.hall_of_fame AS "hallOfFame",
-          t.tax,
-          t.reward_tax AS "rewardTax",
-          t.jackpot_tax AS "jackpotTax",
-          t.jackpot_amount AS "jackpotAmount",
-          t.burn_tax AS "burnTax",
-          t.distribution_pending AS "distributionPending",
-          t.jackpot_pending AS "jackpotPending",
-          t.jackpot_percent AS "jackpotPercent",
-          t.jackpot_queue AS "jackpotQueue",
-          t.tax_pending AS "taxPending",
-          t.lock_amount AS "lockAmount",
-          t.unlock_at AS "unlockAt",
-          t.telegram_link AS "telegramLink",
-          t.twitter_link AS "twitterLink",
-          t.website_link AS "websiteLink",
-          t.instagram_link AS "instagramLink",
-          t.youtube_link AS "youtubeLink",
-          t.tiktok_link AS "tiktokLink",
-          t.only_fans_link AS "onlyFansLink",
-          t.highlight_order AS "highlightOrder",
-          t.headline,
-          t.pump_at AS "bumpAt",
-          t."1h_change" AS "token1hChange",
-          t."24h_change" AS "token24hChange",
-          t."7d_change" AS "token7dChange",
-          t.is_deleted AS "isDeleted",
-          t.created_at AS "createdAt",
-          t.updated_at AS "updatedAt",
-          t."raydiumStatus",
-          CASE WHEN f.user_address IS NOT NULL THEN true ELSE false END AS "tokenFavorite"
-        FROM token t
-        JOIN token_transaction tx ON tx.token_address = t.address
-        LEFT JOIN token_favorite f ON f.token_address = t.address${userAddress ? ` AND f.user_address = '${userAddress}'` : ""}
-        WHERE t.is_deleted = false
-        ORDER BY t.address, tx.created_at ${orderDirection}
-        LIMIT ${query.take} OFFSET ${offset};
-		`),
+				SELECT
+					t.id,
+					t.name,
+					t.address,
+					t.price,
+					t.uri,
+					t."imageUri",
+					t.banner_uri AS "bannerUri",
+					t.ticker,
+					t.metadata,
+					t.description,
+					t.is_highlight AS "isHighlight",
+					t.network,
+					t.bonding_curve_target AS "bondingCurveTarget",
+					t.is_completed_bonding_curve AS "isCompletedBondingCurve",
+					t.created_at_bonding_curve AS "createdAtBondingCurve",
+					t.is_completed_king_of_hill AS "isCompletedKingOfHill",
+					t.created_at_king_of_hill AS "createdAtKingOfHill",
+					t.bump,
+					t.creator_address AS "creatorAddress",
+					t.market_capacity AS "marketCapacity",
+					t.volumn,
+					t.total_supply AS "totalSupply",
+					t.hall_of_fame AS "hallOfFame",
+					t.tax,
+					t.reward_tax AS "rewardTax",
+					t.jackpot_tax AS "jackpotTax",
+					t.jackpot_amount AS "jackpotAmount",
+					t.burn_tax AS "burnTax",
+					t.distribution_pending AS "distributionPending",
+					t.jackpot_pending AS "jackpotPending",
+					t.jackpot_percent AS "jackpotPercent",
+					t.jackpot_queue AS "jackpotQueue",
+					t.tax_pending AS "taxPending",
+					t.lock_amount AS "lockAmount",
+					t.unlock_at AS "unlockAt",
+					t.telegram_link AS "telegramLink",
+					t.twitter_link AS "twitterLink",
+					t.website_link AS "websiteLink",
+					t.instagram_link AS "instagramLink",
+					t.youtube_link AS "youtubeLink",
+					t.tiktok_link AS "tiktokLink",
+					t.only_fans_link AS "onlyFansLink",
+					t.highlight_order AS "highlightOrder",
+					t.headline,
+					t.pump_at AS "bumpAt",
+					t."1h_change" AS "token1hChange",
+					t."24h_change" AS "token24hChange",
+					t."7d_change" AS "token7dChange",
+					t.is_deleted AS "isDeleted",
+					t.created_at AS "createdAt",
+					t.updated_at AS "updatedAt",
+					t."raydiumStatus",
+					CASE WHEN f.user_address IS NOT NULL THEN true ELSE false END AS "tokenFavorite",
+					tx_latest.date AS "latestTxDate"
+				FROM token t
+							 JOIN LATERAL (
+					SELECT tx.date
+					FROM token_transaction tx
+					WHERE tx.token_address = t.address
+					ORDER BY tx.date DESC
+						LIMIT 1
+      ) tx_latest ON true
+					LEFT JOIN token_favorite f ON f.token_address = t.address${userAddress ? ` AND f.user_address = '${userAddress}'` : ""}
+				WHERE t.is_deleted = false
+				ORDER BY tx_latest.date ${orderDirection}
+					LIMIT ${query.take} OFFSET ${offset};
+			`),
 			this.redis.getOrSet(
 				"count_total_token",
 				() => {
@@ -660,13 +667,13 @@ export class TokenRepository {
 
 	async updateJackpotPercent() {
 		return this.prisma.$executeRawUnsafe(`
-  UPDATE token
-  SET jackpot_percent = 
-    CASE 
-      WHEN jackpot_amount = 0 THEN 0
-      ELSE jackpot_pending::double precision / jackpot_amount::double precision
-    END
-`)
+			UPDATE token
+			SET jackpot_percent =
+						CASE
+							WHEN jackpot_amount = 0 THEN 0
+							ELSE jackpot_pending::double precision / jackpot_amount::double precision
+			END
+		`)
 	}
 
 	async getAllTokenAddressForUnlock() {
@@ -1314,17 +1321,17 @@ export class TokenRepository {
 
 		return client.$queryRaw`
 			UPDATE "token"
-			SET 
-				"jackpot_pending" = CASE 
-					WHEN "jackpot_amount" != 0 AND ("jackpot_pending" + ${amountBigInt}) >= "jackpot_amount"
-					THEN ("jackpot_pending" + ${amountBigInt}) % "jackpot_amount"
-					ELSE "jackpot_pending" + ${amountBigInt}
-				END,
+			SET
+				"jackpot_pending" = CASE
+															WHEN "jackpot_amount" != 0 AND ("jackpot_pending" + ${amountBigInt}) >= "jackpot_amount"
+				THEN ("jackpot_pending" + ${amountBigInt}) % "jackpot_amount"
+				ELSE "jackpot_pending" + ${amountBigInt}
+			END,
 				"jackpot_queue" = CASE 
 					WHEN "jackpot_amount" != 0 AND ("jackpot_pending" + ${amountBigInt}) >= "jackpot_amount"
-					THEN "jackpot_queue" + FLOOR(("jackpot_pending" + ${amountBigInt}) / "jackpot_amount")
-					ELSE "jackpot_queue"
-				END
+			THEN "jackpot_queue" + FLOOR(("jackpot_pending" + ${amountBigInt}) / "jackpot_amount")
+			ELSE "jackpot_queue"
+			END
 			WHERE id = ${id}::uuid
 			RETURNING "jackpot_pending", "jackpot_amount", "jackpot_queue"
 		`
