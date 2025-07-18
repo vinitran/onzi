@@ -850,17 +850,20 @@ export class TokenRepository {
 		})
 	}
 
-	findHallOfFame(take = 100) {
-		return this.prisma.token.findMany({
+	async findHallOfFame(take = 10) {
+		const data = await this.prisma.token.findMany({
 			where: {
-				hallOfFame: true,
+				bump: true,
+				isCompletedBondingCurve: false,
 				isDeleted: false
 			},
 			orderBy: {
-				createdAt: "desc"
+				marketCapacity: "desc"
 			},
 			take: take
 		})
+
+		return data
 	}
 
 	async updateKingOfCoin(id: string) {
