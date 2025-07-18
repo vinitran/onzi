@@ -523,8 +523,8 @@ export class TokenRepository {
 			...(query.reward && {
 				rewardTax: { gt: 0 }
 			}),
-			...(query.jackpot && {
-				jackpotTax: { gt: 0 }
+			...(query.approachingJackpot && {
+				AND: [{ jackpotTax: { gt: 0 } }, { jackpotTax: { not: 0 } }]
 			}),
 			...(query.burn && {
 				burnTax: { gt: 0 }
