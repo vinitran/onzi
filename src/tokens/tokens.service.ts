@@ -211,6 +211,10 @@ export class TokensService {
 	}
 
 	find(userAddress: string | undefined, params: FindTokenParams) {
+		if (params.lastTrade) {
+			return this.token.findTokenWithLatestTransaction(userAddress, params)
+		}
+
 		return this.token.find(userAddress, params)
 	}
 

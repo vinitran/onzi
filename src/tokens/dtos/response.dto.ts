@@ -45,6 +45,8 @@ export class SimilarTokenResponse extends TokenDto {
 
 export class ListTransactionResponse extends TokenTransaction {}
 
+export class TokenResponse extends TokenDto {}
+
 class FindTokenCount {
 	@ApiProperty({
 		description: "Amount Holder of token",
