@@ -542,4 +542,11 @@ export class Ponz extends SolanaProgram<PonzSc> {
 
 		return lamportsOut
 	}
+
+	public bondingCurvePDA(mint: PublicKey): PublicKey {
+		return web3.PublicKey.findProgramAddressSync(
+			[mint.toBytes(), Buffer.from(utils.bytes.utf8.encode("bonding_curve"))],
+			this.program.programId
+		)[0]
+	}
 }

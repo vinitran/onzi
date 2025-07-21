@@ -13,9 +13,11 @@ import { ICreateTokenOnchainPayload } from "@root/_shared/types/token"
 
 import { BN, web3 } from "@coral-xyz/anchor"
 import { Prisma, Token } from "@prisma/client"
+import { Decimal } from "@prisma/client/runtime/library"
 import { TokenChartRepository } from "@root/_database/repositories/token-candle.repository"
 import { TokenFavoriteRepository } from "@root/_database/repositories/token-favorite.repository"
 import { TokenKeyWithHeldRepository } from "@root/_database/repositories/token-key-with-held.repository"
+import { TokenOwnerRepository } from "@root/_database/repositories/token-owner.repository"
 import { TokenTransactionDistributeRepository } from "@root/_database/repositories/token-tx-distribute"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
 import { RedisService } from "@root/_redis/redis.service"
@@ -28,6 +30,7 @@ import { GetSummaryTokensDto } from "@root/admin/dtos/payload.dto"
 import { S3Service } from "@root/file/file.service"
 import { REWARD_DISTRIBUTOR_EVENTS } from "@root/jobs/tokens/token.job"
 import { Ponz } from "@root/programs/ponz/program"
+import { PonzVault } from "@root/programs/vault/program"
 import {
 	ChartParams,
 	CreateTokenPayload,
@@ -52,6 +55,7 @@ export class TokensService {
 	constructor(
 		private token: TokenRepository,
 		private tokenKey: TokenKeyRepository,
+		private tokenOwner: TokenOwnerRepository,
 		private tokenFavorite: TokenFavoriteRepository,
 		private redis: RedisService,
 		private comment: CommentRepository,
@@ -61,6 +65,7 @@ export class TokensService {
 		private tokenChart: TokenChartRepository,
 		private tokenTxDistribute: TokenTransactionDistributeRepository,
 		private ponz: Ponz,
+		private ponzVault: PonzVault,
 		private chartSocket: ChartGateway,
 		private readonly tokenKeyWithHeld: TokenKeyWithHeldRepository,
 		private readonly rabbitMQService: RabbitMQService
@@ -218,8 +223,97 @@ export class TokensService {
 		return this.token.find(userAddress, params)
 	}
 
-	findSickoMode(userAddress: string | undefined, params: SickoModeParams) {
-		return this.token.findSickoMode(userAddress, params)
+	async findSickoMode(
+		userAddress: string | undefined,
+		params: SickoModeParams
+	) {
+		const { data, maxPage, total } = await this.token.findSickoMode(
+			userAddress,
+			params
+		)
+
+		const finalData = await Promise.all(
+			data.map(async token => {
+				const creatorAddress = token.creatorAddress
+				const listRealOwners = await this.getRealTokenOwners({
+					tokenAddress: token.address,
+					tokenId: token.id
+				})
+
+				// Get percent hold of Top 10 holders
+				const amountTokenOfTop10Holder = listRealOwners.reduce(
+					(acc, holder) => {
+						return new Decimal(holder.amount.toString()).add(acc).toNumber()
+					},
+					0
+				)
+
+				const top10HoldersPercentage =
+					token.marketCapacity > 0
+						? new Decimal(amountTokenOfTop10Holder)
+								.div(token.totalSupply.toString())
+								.mul(100)
+								.toNumber()
+						: 0
+
+				// Get percent hold of creator
+				const creatorHolder =
+					listRealOwners.find(
+						owner => owner.userAddress === token.creatorAddress
+					) &&
+					(await this.tokenOwner.findTokenOwner(creatorAddress, token.address))
+
+				const devHolderPercentage = new Decimal(
+					creatorHolder?.amount.toString() ?? 0
+				)
+					.div(token.totalSupply.toString())
+					.mul(100)
+					.toNumber()
+
+				return {
+					...token,
+					totalOwner: listRealOwners.length,
+					top10HoldersPercentage,
+					devHolderPercentage
+				}
+			})
+		)
+
+		return {
+			data: finalData,
+			maxPage,
+			total
+		}
+	}
+
+	//   Exclude wallets: bondingCurve, vault, system
+	async getRealTokenOwners({
+		tokenId,
+		tokenAddress
+	}: {
+		tokenId: string
+		tokenAddress: string
+	}) {
+		const mintToken = new PublicKey(tokenAddress)
+		// Get bondingCurve address
+		const bondingCurveAddress = this.ponz.bondingCurvePDA(mintToken).toString()
+		//   Get vault address
+		const vaultAddress = this.ponzVault
+			.tokenPoolPDA(new PublicKey(tokenAddress))
+			.toString()
+		//   Get system wallet
+		const systemWallet = await this.getTokenWithHeld(tokenId)
+
+		const listRealOwners = await this.token.getRealTokenOwners({
+			excludeAddresses: [
+				bondingCurveAddress,
+				vaultAddress,
+				systemWallet?.publicKey
+			],
+			tokenAddress: tokenAddress,
+			take: 10
+		})
+		return listRealOwners
 	}
 
 	//   Get image url & authorize data to push image Aws3

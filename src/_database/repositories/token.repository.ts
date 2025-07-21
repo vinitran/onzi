@@ -8,7 +8,8 @@ import { DefaultArgs } from "@prisma/client/runtime/library"
 import { RedisService } from "@root/_redis/redis.service"
 import {
 	ICreateTokenInCache,
-	ICreateTokenOffchain
+	ICreateTokenOffchain,
+	IGetRealHolderPayload
 } from "@root/_shared/types/token"
 import {
 	PaginateReportedTokensDto,
@@ -201,20 +202,9 @@ export class TokenRepository {
 					createdAt: true,
 					updatedAt: true,
 					raydiumStatus: true,
-					tokenOwners: {
-						select: {
-							userAddress: true,
-							amount: true
-						},
-						take: 10,
-						orderBy: {
-							amount: Prisma.SortOrder.desc
-						}
-					},
 					_count: {
 						select: {
-							tokenTransaction: true,
-							tokenOwners: true
+							tokenTransaction: true
 						}
 					}
 				}
@@ -224,16 +214,6 @@ export class TokenRepository {
 
 		const tokenData = await Promise.all(
 			tokens.map(async token => {
-				const top10Total = token.tokenOwners.reduce(
-					(sum, owner) => sum + owner.amount,
-					BigInt(0)
-				)
-
-				const top10Percentage =
-					token.marketCapacity > 0
-						? top10Total / token.totalSupply / BigInt(100)
-						: BigInt(0)
-
 				let isFavorite = false
 
 				if (userAddress) {
@@ -247,46 +227,10 @@ export class TokenRepository {
 					}))
 				}
 
-				if (token.tokenOwners.length === 0) {
-					return {
-						...token,
-						tokenOwners: undefined,
-						top10HoldersPercentage: top10Percentage,
-						isFavorite,
-						devHoldPersent: 0
-					}
-				}
-
-				let creatorAmount = BigInt(0)
-				const creatorInTop10 = token.tokenOwners.find(
-					owner => owner.userAddress === token.creatorAddress
-				)
-
-				if (creatorInTop10) {
-					creatorAmount = creatorInTop10.amount
-				} else {
-					const creator = await this.prisma.tokenOwner.findFirst({
-						where: {
-							userAddress: token.creatorAddress,
-							tokenAddress: token.address
-						},
-						select: {
-							userAddress: true,
-							amount: true
-						}
-					})
-
-					creatorAmount = creator ? creator.amount : BigInt(0)
-				}
-
-				const devHoldPersent = creatorAmount / token.totalSupply
-
 				return {
 					...token,
-					tokenOwners: undefined,
-					top10HoldersPercentage: top10Percentage,
-					isFavorite,
-					devHoldPersent
+
+					isFavorite
 				}
 			})
 		)
@@ -296,6 +240,26 @@ export class TokenRepository {
 			total,
 			maxPage: Math.ceil(total / query.take)
 		}
+	}
+
+	//   Exclude wallets: bondingCurve, vault, system
+	async getRealTokenOwners({
+		excludeAddresses,
+		tokenAddress,
+		take = 10
+	}: IGetRealHolderPayload) {
+		return this.prisma.tokenOwner.findMany({
+			where: {
+				tokenAddress,
+				userAddress: {
+					notIn: excludeAddresses
+				}
+			},
+			take,
+			orderBy: {
+				amount: "desc"
+			}
+		})
 	}
 
 	async findTokenWithLatestTransaction(

@@ -1,4 +1,4 @@
-import { ApiProperty, PickType } from "@nestjs/swagger"
+import { ApiProperty, OmitType, PickType } from "@nestjs/swagger"
 import { Paginate } from "@root/dtos/common.dto"
 import { S3Upload } from "@root/dtos/file.dto"
 import { TokenChart } from "@root/dtos/token-chart.dto"
@@ -95,16 +95,9 @@ class SickoModeCountResponse {
 	})
 	@Expose()
 	tokenTransaction: number
-
-	@ApiProperty({
-		description: "Token Owners",
-		required: false
-	})
-	@Expose()
-	tokenOwners: number
 }
 
-export class SickoModeResponse extends TokenDto {
+export class SickoModeResponse extends OmitType(TokenDto, ["tokenOwners"]) {
 	@ApiProperty({
 		description: "Count information",
 		required: false
@@ -124,7 +117,14 @@ export class SickoModeResponse extends TokenDto {
 		required: false
 	})
 	@Expose()
-	devHoldPersent: number
+	devHolderPercentage: number
+
+	@ApiProperty({
+		description: "Total token owners",
+		required: false
+	})
+	@Expose()
+	totalOwner: number
 }
 
 export class PaginateSickoModeResponse extends Paginate<SickoModeResponse> {

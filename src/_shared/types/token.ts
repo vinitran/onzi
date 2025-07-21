@@ -43,3 +43,9 @@ export type ICreateTokenOnchainPayload = {
 	creatorAddress: string
 	data: CreateTokenOnchainPayload
 }
+
+export type IGetRealHolderPayload = {
+	tokenAddress: string
+	excludeAddresses: string[]
+	take?: number
+}

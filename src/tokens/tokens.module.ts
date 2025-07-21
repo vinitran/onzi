@@ -4,6 +4,7 @@ import { RedisModule } from "@root/_redis/redis.module"
 import { S3Service } from "@root/file/file.service"
 import { Ponz } from "@root/programs/ponz/program"
 import { ProgramsModule } from "@root/programs/programs.module"
+import { PonzVault } from "@root/programs/vault/program"
 import { AuthWebSocketService } from "@root/socket/auth-ws.service"
 import { TokenSocketController } from "@root/tokens/indexer.socket.controller"
 import {
@@ -16,7 +17,12 @@ import { TokensController } from "./tokens.controller"
 import { TokensService } from "./tokens.service"
 
 @Module({
-	imports: [ProgramsModule.register(Ponz), DatabaseModule, RedisModule],
+	imports: [
+		ProgramsModule.register(Ponz),
+		ProgramsModule.register(PonzVault),
+		DatabaseModule,
+		RedisModule
+	],
 	controllers: [TokensController, TokenSocketController],
 	providers: [
 		ChartGateway,
