@@ -1269,7 +1269,9 @@ export class TokenRepository {
 				id
 			},
 			data: {
-				jackpotQueue: 0
+				jackpotQueue: {
+					increment: -1
+				}
 			}
 		})
 	}

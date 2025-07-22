@@ -93,16 +93,11 @@ export class JackpotController {
 		await this.redis.set(this.redisKey(data.idPayload), "true", 600)
 
 		try {
-			const [keyWithHeld, poolAddress, bondingCurve, tokenPoolVault] =
-				await Promise.all([
-					this.tokenKeyWithHeld.find(data.id),
-					this.raydium.fetchPoolAddress(
-						NATIVE_MINT,
-						new PublicKey(data.address)
-					),
-					this.ponz.getBondingCurve(new PublicKey(data.address)),
-					this.ponzVault.tokenPoolPDA(new PublicKey(data.address))
-				])
+			const [keyWithHeld, poolAddress, bondingCurve] = await Promise.all([
+				this.tokenKeyWithHeld.find(data.id),
+				this.raydium.fetchPoolAddress(NATIVE_MINT, new PublicKey(data.address)),
+				this.ponz.getBondingCurve(new PublicKey(data.address))
+			])
 
 			if (!keyWithHeld) {
 				throw new NotFoundException("not found key with held")
@@ -114,16 +109,14 @@ export class JackpotController {
 				holder =>
 					holder.address !== poolAddress?.toBase58() &&
 					holder.address !== keyWithHeld.publicKey &&
-					holder.address !== bondingCurve?.toBase58() &&
-					holder.address !== tokenPoolVault?.toBase58()
+					holder.address !== bondingCurve?.toBase58()
 			)
-
-			const createTokenTxDistribute: Transactionspayload[] = []
-			const tx = new Transaction()
 
 			for (let i = 0; i < data.times; i++) {
 				// Get random user from holders
 				const randomUser = this.randomUser(listHolders)
+
+				const tx = new Transaction()
 
 				tx.add(
 					SystemProgram.transfer({
@@ -133,6 +126,8 @@ export class JackpotController {
 					})
 				)
 
+				const createTokenTxDistribute: Transactionspayload[] = []
+
 				createTokenTxDistribute.push({
 					from: keyWithHeld.publicKey,
 					tokenId: data.id,
@@ -140,23 +135,26 @@ export class JackpotController {
 					lamport: data.amount,
 					type: "Jackpot"
 				})
+
+				tx.feePayer = this.systemWalletKeypair.publicKey
+
+				// Set fake/dummy recentBlockhash
+				tx.recentBlockhash = PublicKey.default.toBase58()
+
+				await this.rabbitMQService.emit(
+					"distribute-reward-distributor",
+					REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION,
+					{
+						rawTx: tx
+							.serialize({
+								requireAllSignatures: false,
+								verifySignatures: false
+							})
+							.toString("base64"),
+						transactions: createTokenTxDistribute
+					} as ExecuteDistributionPayload
+				)
 			}
-
-			tx.feePayer = this.systemWalletKeypair.publicKey
-
-			// Set fake/dummy recentBlockhash
-			tx.recentBlockhash = PublicKey.default.toBase58()
-
-			await this.rabbitMQService.emit(
-				"distribute-reward-distributor",
-				REWARD_DISTRIBUTOR_EVENTS.EXECUTE_DISTRIBUTION,
-				{
-					rawTx: tx
-						.serialize({ requireAllSignatures: false, verifySignatures: false })
-						.toString("base64"),
-					transactions: createTokenTxDistribute
-				} as ExecuteDistributionPayload
-			)
 
 			channel.ack(originalMsg, false)
 			await this.redis.del(this.redisKey(data.idPayload))
