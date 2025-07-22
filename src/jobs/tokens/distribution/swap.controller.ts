@@ -88,10 +88,10 @@ export class SwapController {
 
 	// Swap collected tokens to SOL using either Ponz or Raydium protocol
 	async swapToSol(data: SwapMessageType) {
-		const pending = await this.tokenRepository.updateDistributionPending(
-			data.address,
-			BigInt(data.amount!)
+		const pending = await this.tokenRepository.getDistributionPending(
+			data.address
 		)
+		if (!pending) return
 
 		if (pending.distributionPending < BigInt(500000000000)) return
 

@@ -16,6 +16,7 @@ import { v4 as uuidv4 } from "uuid"
 import { Ponz } from "@root/programs/ponz/program"
 import {
 	ASSOCIATED_TOKEN_PROGRAM_ID,
+	Account,
 	TOKEN_2022_PROGRAM_ID,
 	TransferFeeAmount,
 	getAccount,
@@ -34,6 +35,13 @@ export type SwapMessageType = {
 	type?: "raydium" | "ponz" // Protocol type for swapping
 	amountHolder?: number
 	idPayload?: string
+}
+
+type KeyWithHeldType = {
+	createdAt: Date
+	tokenId: string
+	privateKey: string
+	publicKey: string
 }
 
 @Controller()
@@ -134,7 +142,7 @@ export class CollectFeeController {
 				batchSourceAddresses,
 				data,
 				destinationTokenAccount,
-				keyWithHeld
+				keyWithHeld as KeyWithHeldType
 			)
 			feeAmountTotal += feeAmountTotalInBatch
 		}
@@ -177,6 +185,11 @@ export class CollectFeeController {
 				(feeAmountTotal * BigInt(tokenTax!.rewardTax + tokenTax!.jackpotTax)) /
 				BigInt(totalTotalTax)
 
+			await this.tokenRepository.updateDistributionPending(
+				data.address,
+				swapAmount
+			)
+
 			// Prepare swap message
 			const swapToSolMessage: SwapMessageType = {
 				id: data.id,
@@ -199,8 +212,8 @@ export class CollectFeeController {
 	private async processBatchCollectFee(
 		batchSourceAddresses: PublicKey[],
 		data: SwapMessageType,
-		destinationTokenAccount: any,
-		keyWithHeld: any
+		destinationTokenAccount: Account,
+		keyWithHeld: KeyWithHeldType
 	): Promise<bigint> {
 		let feeAmountTotalInBatch = BigInt(0)
 

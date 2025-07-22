@@ -88,6 +88,7 @@ export class JackpotController {
 		const id = await this.redis.get(this.redisKey(data.idPayload))
 		if (id) {
 			channel.ack(originalMsg, false)
+			return
 		}
 
 		await this.redis.set(this.redisKey(data.idPayload), "true", 600)
@@ -154,6 +155,7 @@ export class JackpotController {
 						transactions: createTokenTxDistribute
 					} as ExecuteDistributionPayload
 				)
+				await this.tokenRepository.resetJackpotQueue(data.id)
 			}
 
 			channel.ack(originalMsg, false)

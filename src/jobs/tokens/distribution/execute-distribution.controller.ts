@@ -86,6 +86,15 @@ export class ExecuteDistributionController {
 		try {
 			Logger.log(data.to, "start execute transfer fee for token address: ")
 
+			const accountInfo = await this.connection.getAccountInfo(
+				new PublicKey(data.to)
+			)
+			if (accountInfo) {
+				Logger.warn(`Account ${data.to} exist, skipping transfer`)
+				channel.ack(originalMsg, false)
+				return
+			}
+
 			const initTx = new Transaction().add(
 				SystemProgram.transfer({
 					fromPubkey: new PublicKey(this.systemWalletKeypair.publicKey),
@@ -132,6 +141,7 @@ export class ExecuteDistributionController {
 		)
 		if (id) {
 			channel.ack(originalMsg, false)
+			return
 		}
 
 		await this.redis.set(
@@ -187,12 +197,6 @@ export class ExecuteDistributionController {
 			})) as Prisma.TokenTransactionDistributeCreateInput[]
 
 			await this.tokentxDistribute.insertManyWithSign(createTokenTxDistribute)
-
-			if (data.transactions[0].type === "Jackpot") {
-				await this.tokenRepository.resetJackpotQueue(
-					data.transactions[0].tokenId
-				)
-			}
 
 			channel.ack(originalMsg, false)
 			await this.redis.del(this.executeDistributionRedisKey(data.rawTx))

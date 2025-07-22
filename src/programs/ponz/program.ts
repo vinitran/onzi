@@ -184,11 +184,9 @@ export class Ponz extends SolanaProgram<PonzSc> {
 			amount,
 			new BN(0)
 		)
-
 		tx.sign(owner, feePayer)
 
 		const simulationResult = await this.connection.simulateTransaction(tx)
-
 		if (simulationResult.value.err) {
 			throw new InternalServerErrorException(simulationResult.value.err)
 		}

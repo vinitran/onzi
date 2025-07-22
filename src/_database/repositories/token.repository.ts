@@ -625,7 +625,7 @@ export class TokenRepository {
 					}
 				})
 			},
-			30
+			5
 		)
 	}
 
@@ -838,6 +838,15 @@ export class TokenRepository {
 			data: {
 				isCompletedKingOfHill: true,
 				createdAtKingOfHill: new Date()
+			}
+		})
+	}
+
+	async getDistributionPending(address: string) {
+		return this.prisma.token.findFirst({
+			where: { address },
+			select: {
+				distributionPending: true
 			}
 		})
 	}

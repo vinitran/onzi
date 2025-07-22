@@ -126,7 +126,7 @@ export class DistributeSolController {
 		}
 
 		const totalHolderAmount =
-			holderData.amountTotal + token.totalSupply / BigInt(100)
+			holderData.amountTotal + BigInt(token.totalSupply) / 100n
 
 		const keyWithHeld = await this.tokenKeyWithHeld.find(data.id)
 		if (!keyWithHeld) {
