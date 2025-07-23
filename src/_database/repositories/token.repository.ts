@@ -629,15 +629,16 @@ export class TokenRepository {
 		)
 	}
 
-	async updateJackpotPercent() {
-		return this.prisma.$executeRawUnsafe(`
-			UPDATE token
-			SET jackpot_percent =
-						CASE
-							WHEN jackpot_amount = 0 THEN 0
-							ELSE jackpot_pending::double precision / jackpot_amount::double precision
+	async updateJackpotPercent(id: string) {
+		return this.prisma.$executeRaw`
+		UPDATE token
+		SET jackpot_percent = 
+			CASE 
+				WHEN COALESCE(jackpot_amount, 0) = 0 THEN 0
+				ELSE COALESCE(jackpot_pending, 0)::double precision / COALESCE(jackpot_amount, 1)::double precision
 			END
-		`)
+		WHERE id = ${id}::uuid
+	`
 	}
 
 	async getAllTokenAddressForUnlock() {

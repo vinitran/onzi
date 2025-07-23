@@ -229,7 +229,7 @@ export class DistributeSolController {
 			const amountJackpot =
 				(BigInt(data.lamport) * BigInt(token.jackpotTax)) / BigInt(totalTax)
 
-			await this.tokenRepository.updateJackpotPercent()
+			await this.tokenRepository.updateJackpotPercent(data.id)
 
 			await this.rabbitMQService.emit(
 				"distribute-reward-distributor",
