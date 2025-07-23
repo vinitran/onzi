@@ -68,6 +68,7 @@ export class JackpotController {
 		try {
 			Logger.log("start add jackpot for token address: ", data.address)
 			await this.tokenRepository.updateJackpotPending(data.id, data.amount)
+			await this.tokenRepository.updateJackpotPercent(data.id)
 			Logger.log("end add jackpot for token address: ", data.address)
 			channel.ack(originalMsg, false)
 		} catch (error) {
