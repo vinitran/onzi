@@ -339,9 +339,7 @@ export class StorageIndexerService {
 		}
 
 		if (event) {
-			const isBuy = "buyer" in event
-			updateTokenParams.volumn =
-				BigInt(token.volumn) + BigInt(isBuy ? event.lamports : event.amount)
+			updateTokenParams.volumn = BigInt(token.volumn) + BigInt(event.lamports)
 			updateTokenParams.price = new Decimal(event.newPrice)
 		} else {
 			const lockData = await this.ponz.getLockData(address)
