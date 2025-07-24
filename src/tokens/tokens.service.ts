@@ -217,7 +217,15 @@ export class TokensService {
 
 	find(userAddress: string | undefined, params: FindTokenParams) {
 		if (params.lastTrade) {
-			return this.token.findTokenWithLatestTransaction(userAddress, params)
+			return this.token.findTokenWithLatestTransaction(params, userAddress)
+		}
+
+		if (params.cooking) {
+			return this.token.findTokenWithLatestTransaction(
+				params,
+				userAddress,
+				"Buy"
+			)
 		}
 
 		return this.token.find(userAddress, params)
@@ -228,8 +236,8 @@ export class TokensService {
 		params: SickoModeParams
 	) {
 		const { data, maxPage, total } = await this.token.findSickoMode(
-			userAddress,
-			params
+			params,
+			userAddress
 		)
 
 		const finalData = await Promise.all(

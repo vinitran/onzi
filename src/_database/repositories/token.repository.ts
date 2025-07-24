@@ -59,7 +59,7 @@ export class TokenRepository {
 		})
 	}
 
-	async findSickoMode(userAddress: string | undefined, query: SickoModeParams) {
+	async sickoMode(query: SickoModeParams, userAddress?: string) {
 		// Validate pagination parameters
 		const page = Math.max(1, query.page)
 		const take = Math.min(100, Math.max(1, query.take))
@@ -139,10 +139,6 @@ export class TokenRepository {
 				orderBy = [...[{ createdAt: Prisma.SortOrder.desc }]]
 				break
 
-			case SickoModeType.SUGGESTED:
-				orderBy = [...[{ marketCapacity: Prisma.SortOrder.desc }]]
-				break
-
 			case SickoModeType.GRADUATING:
 				orderBy = [...[{ marketCapacity: Prisma.SortOrder.desc }]]
 				where.isCompletedBondingCurve = false
@@ -212,8 +208,20 @@ export class TokenRepository {
 			this.prisma.token.count({ where })
 		])
 
+		return { tokens, total }
+	}
+
+	async findSickoMode(query: SickoModeParams, userAddress?: string) {
+		let data: { tokens: RawSickoModeType[]; total: number }
+		if (query.sort === SickoModeType.SUGGESTED) {
+			data = await this.cookingSickoMode(query, userAddress)
+		} else {
+			// @ts-ignore
+			data = await this.sickoMode(query, userAddress)
+		}
+
 		const tokenData = await Promise.all(
-			tokens.map(async token => {
+			data.tokens.map(async token => {
 				let isFavorite = false
 
 				if (userAddress) {
@@ -237,8 +245,8 @@ export class TokenRepository {
 
 		return {
 			data: tokenData,
-			total,
-			maxPage: Math.ceil(total / query.take)
+			total: data.total,
+			maxPage: Math.ceil(data.total / query.take)
 		}
 	}
 
@@ -263,83 +271,24 @@ export class TokenRepository {
 	}
 
 	async findTokenWithLatestTransaction(
-		userAddress: string | undefined,
-		query: FindTokenParams
+		query: FindTokenParams,
+		userAddress?: string,
+		type?: "Sell" | "Buy"
 	) {
 		const offset = (query.page - 1) * query.take
 
 		const orderDirection = query.lastTrade === "asc" ? "ASC" : "DESC"
 
 		const [data, total] = await Promise.all([
-			this.prisma.$queryRawUnsafe(`
-				SELECT
-					t.id,
-					t.name,
-					t.address,
-					t.price,
-					t.uri,
-					t."imageUri",
-					t.banner_uri AS "bannerUri",
-					t.ticker,
-					t.metadata,
-					t.description,
-					t.is_highlight AS "isHighlight",
-					t.network,
-					t.bonding_curve_target AS "bondingCurveTarget",
-					t.is_completed_bonding_curve AS "isCompletedBondingCurve",
-					t.created_at_bonding_curve AS "createdAtBondingCurve",
-					t.is_completed_king_of_hill AS "isCompletedKingOfHill",
-					t.created_at_king_of_hill AS "createdAtKingOfHill",
-					t.bump,
-					t.creator_address AS "creatorAddress",
-					t.market_capacity AS "marketCapacity",
-					t.volumn,
-					t.total_supply AS "totalSupply",
-					t.hall_of_fame AS "hallOfFame",
-					t.tax,
-					t.reward_tax AS "rewardTax",
-					t.jackpot_tax AS "jackpotTax",
-					t.jackpot_amount AS "jackpotAmount",
-					t.burn_tax AS "burnTax",
-					t.distribution_pending AS "distributionPending",
-					t.jackpot_pending AS "jackpotPending",
-					t.jackpot_percent AS "jackpotPercent",
-					t.jackpot_queue AS "jackpotQueue",
-					t.tax_pending AS "taxPending",
-					t.lock_amount AS "lockAmount",
-					t.unlock_at AS "unlockAt",
-					t.telegram_link AS "telegramLink",
-					t.twitter_link AS "twitterLink",
-					t.website_link AS "websiteLink",
-					t.instagram_link AS "instagramLink",
-					t.youtube_link AS "youtubeLink",
-					t.tiktok_link AS "tiktokLink",
-					t.only_fans_link AS "onlyFansLink",
-					t.highlight_order AS "highlightOrder",
-					t.headline,
-					t.pump_at AS "bumpAt",
-					t."1h_change" AS "token1hChange",
-					t."24h_change" AS "token24hChange",
-					t."7d_change" AS "token7dChange",
-					t.is_deleted AS "isDeleted",
-					t.created_at AS "createdAt",
-					t.updated_at AS "updatedAt",
-					t."raydiumStatus",
-					CASE WHEN f.user_address IS NOT NULL THEN true ELSE false END AS "tokenFavorite",
-					tx_latest.date AS "latestTxDate"
-				FROM token t
-							 JOIN LATERAL (
-					SELECT tx.date
-					FROM token_transaction tx
-					WHERE tx.token_address = t.address
-					ORDER BY tx.date DESC
-						LIMIT 1
-      ) tx_latest ON true
-					LEFT JOIN token_favorite f ON f.token_address = t.address${userAddress ? ` AND f.user_address = '${userAddress}'` : ""}
-				WHERE t.is_deleted = false
-				ORDER BY tx_latest.date ${orderDirection}
-					LIMIT ${query.take} OFFSET ${offset};
-			`),
+			this.prisma.$queryRawUnsafe(
+				this.queryGetLastTrade(
+					offset,
+					query.take,
+					orderDirection,
+					userAddress,
+					type
+				)
+			),
 			this.redis.getOrSet(
 				"count_total_token",
 				() => {
@@ -1323,5 +1272,239 @@ export class TokenRepository {
 				bump: false
 			}
 		})
+	}
+
+	async cookingSickoMode(query: SickoModeParams, userAddress?: string) {
+		const [tokens, total] = await Promise.all([
+			this.prisma.$queryRawUnsafe<RawSickoModeType[]>(
+				this.queryFindCookingSickoMode(query, userAddress)
+			),
+			this.prisma.$queryRawUnsafe<number>(
+				this.queryCountCookingSickoMode(query)
+			)
+		])
+		return { tokens, total }
+	}
+
+	private queryCookingSickoModeWhere(query: SickoModeParams) {
+		return `t.is_deleted = false
+		AND t.bump = true
+				${query.volumnFrom ? `AND t.volumn >= ${query.volumnFrom}` : " "}
+				${query.volumnTo ? `AND t.volumn <= ${query.volumnTo}` : " "}
+				${query.marketCapFrom ? `AND t.market_capacity >= ${query.marketCapFrom}` : " "}
+				${query.marketCapTo ? `AND t.market_capacity <= ${query.marketCapTo}` : " "}
+				${
+					query.holderFrom
+						? `AND (
+					SELECT COUNT(*)
+					FROM token_owner o
+					WHERE o.token_address = t.address
+				) >= ${query.holderFrom}`
+						: ""
+				}
+				${
+					query.holderTo
+						? `AND (
+					SELECT COUNT(*)
+					FROM token_owner o
+					WHERE o.token_address = t.address
+				) <= ${query.holderTo}`
+						: ""
+				}
+				${
+					query.excludeKeywords
+						? `AND NOT EXISTS (
+          SELECT 1 FROM unnest(array[${query.excludeKeywords.map(k => `'${k}'`).join(",")}]::text[]) keyword
+          WHERE LOWER(t.name) LIKE '%' || LOWER(keyword) || '%'
+             OR LOWER(t.ticker) LIKE '%' || LOWER(keyword) || '%'
+        )`
+						: " "
+				}
+				${
+					query.includeKeywords
+						? `AND EXISTS (
+          SELECT 1 FROM unnest(array[${query.includeKeywords.map(k => `'${k}'`).join(",")}]}::text[]) keyword
+          WHERE LOWER(t.name) LIKE '%' || LOWER(keyword) || '%'
+             OR LOWER(t.ticker) LIKE '%' || LOWER(keyword) || '%'
+        )`
+						: " "
+				}`
+	}
+
+	private queryFindCookingSickoMode(
+		query: SickoModeParams,
+		userAddress?: string
+	) {
+		return `
+			SELECT
+		t.id,
+		t.name,
+		t.address,
+		t.price,
+		t."imageUri",
+		t.ticker,
+		t.network,
+		t.bonding_curve_target AS "bondingCurveTarget",
+		t.is_completed_bonding_curve AS "isCompletedBondingCurve",
+		t.is_completed_king_of_hill AS "isCompletedKingOfHill",
+		t.created_at_king_of_hill AS "createdAtKingOfHill",
+		t.bump,
+		t.creator_address AS "creatorAddress",
+		t.market_capacity AS "marketCapacity",
+		t.volumn,
+		t.hall_of_fame AS "hallOfFame",
+		t.tax,
+		t.reward_tax AS "rewardTax",
+		t.jackpot_tax AS "jackpotTax",
+		t.jackpot_amount AS "jackpotAmount",
+		t.burn_tax AS "burnTax",
+		t.jackpot_pending AS "jackpotPending",
+		t.lock_amount AS "lockAmount",
+		t.total_supply AS "totalSupply",
+		t.unlock_at AS "unlockAt",
+		t.tax_pending AS "taxPending",
+		t.created_at AS "createdAt",
+		t.updated_at AS "updatedAt",
+		t."raydiumStatus",
+		(
+			SELECT COUNT(*) FROM token_transaction tx
+			WHERE tx.token_address = t.address
+		) AS "transactionCount"
+	FROM token t
+				 JOIN LATERAL (
+		SELECT tx.date
+		FROM token_transaction tx
+		WHERE tx.token_address = t.address AND tx.type = 'Buy'
+			ORDER BY tx.date DESC
+				LIMIT 1
+      ) tx_latest ON true
+				LEFT JOIN token_favorite f ON f.token_address = t.address${userAddress ? ` AND f.user_address = '${userAddress}'` : ""}
+	WHERE ${this.queryCookingSickoModeWhere(query)}
+
+		ORDER BY tx_latest.date DESC
+		LIMIT ${query.take} OFFSET ${(query.page - 1) * query.take};
+		`
+	}
+
+	private queryCountCookingSickoMode(query: SickoModeParams) {
+		return `
+      SELECT COUNT(*)
+      FROM token t
+      WHERE ${this.queryCookingSickoModeWhere(query)}
+    `
+	}
+
+	queryGetLastTrade(
+		offset: number,
+		take: number,
+		orderDirection: "ASC" | "DESC",
+		userAddress?: string,
+		type?: "Sell" | "Buy"
+	) {
+		return `
+				SELECT
+					t.id,
+					t.name,
+					t.address,
+					t.price,
+					t.uri,
+					t."imageUri",
+					t.banner_uri AS "bannerUri",
+					t.ticker,
+					t.metadata,
+					t.description,
+					t.is_highlight AS "isHighlight",
+					t.network,
+					t.bonding_curve_target AS "bondingCurveTarget",
+					t.is_completed_bonding_curve AS "isCompletedBondingCurve",
+					t.created_at_bonding_curve AS "createdAtBondingCurve",
+					t.is_completed_king_of_hill AS "isCompletedKingOfHill",
+					t.created_at_king_of_hill AS "createdAtKingOfHill",
+					t.bump,
+					t.creator_address AS "creatorAddress",
+					t.market_capacity AS "marketCapacity",
+					t.volumn,
+					t.total_supply AS "totalSupply",
+					t.hall_of_fame AS "hallOfFame",
+					t.tax,
+					t.reward_tax AS "rewardTax",
+					t.jackpot_tax AS "jackpotTax",
+					t.jackpot_amount AS "jackpotAmount",
+					t.burn_tax AS "burnTax",
+					t.distribution_pending AS "distributionPending",
+					t.jackpot_pending AS "jackpotPending",
+					t.jackpot_percent AS "jackpotPercent",
+					t.jackpot_queue AS "jackpotQueue",
+					t.tax_pending AS "taxPending",
+					t.lock_amount AS "lockAmount",
+					t.unlock_at AS "unlockAt",
+					t.telegram_link AS "telegramLink",
+					t.twitter_link AS "twitterLink",
+					t.website_link AS "websiteLink",
+					t.instagram_link AS "instagramLink",
+					t.youtube_link AS "youtubeLink",
+					t.tiktok_link AS "tiktokLink",
+					t.only_fans_link AS "onlyFansLink",
+					t.highlight_order AS "highlightOrder",
+					t.headline,
+					t.pump_at AS "bumpAt",
+					t."1h_change" AS "token1hChange",
+					t."24h_change" AS "token24hChange",
+					t."7d_change" AS "token7dChange",
+					t.is_deleted AS "isDeleted",
+					t.created_at AS "createdAt",
+					t.updated_at AS "updatedAt",
+					t."raydiumStatus",
+					CASE WHEN f.user_address IS NOT NULL THEN true ELSE false END AS "tokenFavorite",
+					tx_latest.date AS "latestTxDate"
+				FROM token t
+							 JOIN LATERAL (
+					SELECT tx.date
+					FROM token_transaction tx
+					WHERE tx.token_address = t.address ${type ? `AND tx.type = '${type}'` : ""}
+					ORDER BY tx.date DESC
+						LIMIT 1
+      ) tx_latest ON true
+					LEFT JOIN token_favorite f ON f.token_address = t.address${userAddress ? ` AND f.user_address = '${userAddress}'` : ""}
+				WHERE t.is_deleted = false
+				ORDER BY tx_latest.date ${orderDirection}
+					LIMIT ${take} OFFSET ${offset};
+			`
+	}
+}
+
+export interface RawSickoModeType {
+	id: string
+	name: string
+	address: string
+	price: string // Decimal -> string
+	imageUri: string
+	ticker: string
+	network: "Solana" // enum Network
+	bondingCurveTarget: string // BigInt -> string
+	isCompletedBondingCurve: boolean
+	isCompletedKingOfHill: boolean
+	createdAtKingOfHill: string | null // DateTime -> ISO string
+	bump: boolean | null
+	creatorAddress: string
+	marketCapacity: number
+	volumn: string
+	hallOfFame: boolean
+	tax: number
+	rewardTax: number
+	jackpotTax: number
+	jackpotAmount: string
+	burnTax: number
+	jackpotPending: string
+	lockAmount: string | null
+	totalSupply: string
+	unlockAt: string | null
+	taxPending: number
+	createdAt: string
+	updatedAt: string | null
+	raydiumStatus: "NotListed" | "Listed" | "Pending" // enum RaydiumStatusType
+
+	_count: {
+		tokenTransaction: number
 	}
 }

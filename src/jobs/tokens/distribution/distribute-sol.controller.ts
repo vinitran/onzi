@@ -99,7 +99,7 @@ export class DistributeSolController {
 			throw new NotFoundException("not found token")
 		}
 
-		const totalTax = token.rewardTax + token.jackpotTax + token.burnTax
+		const totalTax = token.rewardTax + token.burnTax
 
 		const lamportToDistribute =
 			(BigInt(data.lamport) * BigInt(token.rewardTax)) / BigInt(totalTax)

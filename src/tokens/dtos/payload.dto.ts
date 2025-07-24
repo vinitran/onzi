@@ -453,6 +453,15 @@ export class FindTokenParams extends PaginatedParams {
 	lastTrade?: "desc" | "asc"
 
 	@ApiProperty({
+		description: "Sort By cooking",
+		required: false,
+		enum: ["desc", "asc"]
+	})
+	@IsEnum(["desc", "asc"])
+	@IsOptional()
+	cooking?: "desc" | "asc"
+
+	@ApiProperty({
 		description: "Sort By approaching jackpot",
 		required: false,
 		enum: ["desc", "asc"]
