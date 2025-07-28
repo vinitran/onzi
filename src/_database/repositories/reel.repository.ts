@@ -288,8 +288,23 @@ export class ReelRepository {
 
 		const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
 
-		// ✅ Nếu đang xem: ưu tiên reel đã xem gần đây sau current
 		if (isWatching) {
+			// hoặc không còn reel đã xem gần đây → lấy reel chưa xem, mới nhất (khác current)
+			const nextUnseen = await this.prisma.reel.findFirst({
+				where: {
+					id: { not: currentReel.id },
+					token: { isDeleted: false },
+					reelViews: {
+						none: { viewerId: userId }
+					}
+				},
+				orderBy: {
+					createdAt: "desc"
+				}
+			})
+
+			if (nextUnseen) return nextUnseen
+
 			const nextViewed = await this.prisma.reel.findFirst({
 				where: {
 					createdAt: { lt: currentReel.createdAt },
@@ -318,7 +333,7 @@ export class ReelRepository {
 				}
 			},
 			orderBy: {
-				createdAt: "desc" // reel mới nhất
+				createdAt: "desc"
 			}
 		})
 
