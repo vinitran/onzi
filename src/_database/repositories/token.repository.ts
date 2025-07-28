@@ -275,19 +275,9 @@ export class TokenRepository {
 		userAddress?: string,
 		type?: "Sell" | "Buy"
 	) {
-		const offset = (query.page - 1) * query.take
-
-		const orderDirection = query.lastTrade === "asc" ? "ASC" : "DESC"
-
 		const [data, total] = await Promise.all([
 			this.prisma.$queryRawUnsafe(
-				this.queryGetLastTrade(
-					offset,
-					query.take,
-					orderDirection,
-					userAddress,
-					type
-				)
+				this.queryGetLastTrade(query, userAddress, type)
 			),
 			this.redis.getOrSet(
 				"count_total_token",
@@ -1398,12 +1388,14 @@ export class TokenRepository {
 	}
 
 	queryGetLastTrade(
-		offset: number,
-		take: number,
-		orderDirection: "ASC" | "DESC",
+		query: FindTokenParams,
 		userAddress?: string,
 		type?: "Sell" | "Buy"
 	) {
+		const offset = (query.page - 1) * query.take
+
+		const orderDirection = query.lastTrade === "asc" ? "ASC" : "DESC"
+
 		return `
 				SELECT
 					t.id,
@@ -1458,20 +1450,36 @@ export class TokenRepository {
 					t.created_at AS "createdAt",
 					t.updated_at AS "updatedAt",
 					t."raydiumStatus",
+					u.id AS "creatorId",
+					json_build_object(
+						'id', u.id,
+						'username', u.username,
+						'address', u.address,
+						'avatarUrl', u.avatar_url
+					) AS creator,
+					u.username AS "creatorUsername",
+					u.avatar_url AS "creatorAvatarUrl",
 					CASE WHEN f.user_address IS NOT NULL THEN true ELSE false END AS "tokenFavorite",
-					tx_latest.date AS "latestTxDate"
+					tx_latest.date AS "latestTxDate"                        
 				FROM token t
 							 JOIN LATERAL (
 					SELECT tx.date
 					FROM token_transaction tx
-					WHERE tx.token_address = t.address ${type ? `AND tx.type = '${type}'` : ""}
-					ORDER BY tx.date DESC
+					WHERE tx.token_address = t.address
+						${type ? `AND tx.type = '${type}'` : ""}
+						${query.burn ? "AND t.burn_tax > 0" : " "}
+						${query.lock ? "AND t.lock_amount > 0" : " "}
+						${query.lightning ? "AND t.isCompletedBondingCurve = TRUE" : " "}
+						${query.reward ? "AND t.reward_tax > 0" : " "}
+
+				ORDER BY tx.date DESC
 						LIMIT 1
       ) tx_latest ON true
+					LEFT JOIN "user" u ON u.address = t.creator_address
 					LEFT JOIN token_favorite f ON f.token_address = t.address${userAddress ? ` AND f.user_address = '${userAddress}'` : ""}
 				WHERE t.is_deleted = false
 				ORDER BY tx_latest.date ${orderDirection}
-					LIMIT ${take} OFFSET ${offset};
+					LIMIT ${query.take} OFFSET ${offset};
 			`
 	}
 }
