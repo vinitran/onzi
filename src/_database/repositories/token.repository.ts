@@ -232,7 +232,6 @@ export class TokenRepository {
 
 				return {
 					...token,
-
 					isFavorite
 				}
 			})
@@ -274,21 +273,16 @@ export class TokenRepository {
 			this.prisma.$queryRawUnsafe(
 				this.queryGetLastTrade(query, userAddress, type)
 			),
-			this.redis.getOrSet(
-				"count_total_token",
-				() => {
-					return this.prisma.token.count({
-						where: { isDeleted: false }
-					})
-				},
-				5
+			this.prisma.$queryRawUnsafe(
+				this.queryCountLastTrade(query, userAddress, type)
 			)
 		])
-
 		return {
 			data,
-			total,
-			maxPage: Math.ceil(total / query.take)
+			// @ts-ignore
+			total: Number(total[0].count),
+			// @ts-ignore
+			maxPage: Math.ceil(Number(total[0].count) / query.take)
 		}
 	}
 
@@ -1328,7 +1322,7 @@ export class TokenRepository {
 					SELECT COUNT(*)
 					FROM token_owner o
 					WHERE o.token_address = t.address
-				) >= ${query.holderFrom < 2 ? query.holderFrom : query.holderFrom + 2}
+				) >= ${query.holderFrom}
 				`
 						: " "
 				}
@@ -1338,7 +1332,7 @@ export class TokenRepository {
 					SELECT COUNT(*)
 					FROM token_owner o
 					WHERE o.token_address = t.address
-				) <= ${query.holderTo + 2}
+				) <= ${query.holderTo}
 				`
 						: ""
 				}
@@ -1455,6 +1449,42 @@ export class TokenRepository {
     `
 	}
 
+	queryCountLastTrade(
+		query: FindTokenParams,
+		userAddress?: string,
+		type?: "Sell" | "Buy"
+	) {
+		return `
+			SELECT COUNT(*) FROM token t 
+			JOIN LATERAL (
+					SELECT tx.date
+					FROM token_transaction tx
+					WHERE tx.token_address = t.address
+						${type ? `AND tx.type = '${type}'` : ""}
+
+				ORDER BY tx.date DESC
+						LIMIT 1
+      ) tx_latest ON true
+					LEFT JOIN "user" u ON u.address = t.creator_address
+					LEFT JOIN token_favorite f ON f.token_address = t.address${userAddress ? ` AND f.user_address = '${userAddress}'` : ""}
+				WHERE t.is_deleted = false 
+					${query.burn ? "AND t.burn_tax > 0" : " "}
+					${query.lock ? "AND t.lock_amount > 0" : " "}
+					${query.lightning ? "AND t.isCompletedBondingCurve = TRUE" : " "}
+					${query.reward ? "AND t.reward_tax > 0" : " "}
+					${
+						query.searchText
+							? `
+						AND (
+							t.name ILIKE '%${query.searchText}%'
+							OR t.ticker ILIKE '%${query.searchText}%'
+						)
+					`
+							: ""
+					}
+		`
+	}
+
 	queryGetLastTrade(
 		query: FindTokenParams,
 		userAddress?: string,
@@ -1530,22 +1560,32 @@ export class TokenRepository {
 					CASE WHEN f.user_address IS NOT NULL THEN true ELSE false END AS "tokenFavorite",
 					tx_latest.date AS "latestTxDate"                        
 				FROM token t
-							 JOIN LATERAL (
+				JOIN LATERAL (
 					SELECT tx.date
 					FROM token_transaction tx
 					WHERE tx.token_address = t.address
 						${type ? `AND tx.type = '${type}'` : ""}
-						${query.burn ? "AND t.burn_tax > 0" : " "}
-						${query.lock ? "AND t.lock_amount > 0" : " "}
-						${query.lightning ? "AND t.isCompletedBondingCurve = TRUE" : " "}
-						${query.reward ? "AND t.reward_tax > 0" : " "}
 
 				ORDER BY tx.date DESC
 						LIMIT 1
       ) tx_latest ON true
 					LEFT JOIN "user" u ON u.address = t.creator_address
 					LEFT JOIN token_favorite f ON f.token_address = t.address${userAddress ? ` AND f.user_address = '${userAddress}'` : ""}
-				WHERE t.is_deleted = false
+				WHERE t.is_deleted = false 
+					${query.burn ? "AND t.burn_tax > 0" : " "}
+					${query.lock ? "AND t.lock_amount > 0" : " "}
+					${query.lightning ? "AND t.isCompletedBondingCurve = TRUE" : " "}
+					${query.reward ? "AND t.reward_tax > 0" : " "}
+					${
+						query.searchText
+							? `
+						AND (
+							t.name ILIKE '%${query.searchText}%'
+							OR t.ticker ILIKE '%${query.searchText}%'
+						)
+					`
+							: ""
+					}
 				ORDER BY tx_latest.date ${orderDirection}
 					LIMIT ${query.take} OFFSET ${offset};
 			`

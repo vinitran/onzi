@@ -244,8 +244,7 @@ export class TokensService {
 			data.map(async token => {
 				const creatorAddress = token.creatorAddress
 				const listRealOwners = await this.getRealTokenOwners({
-					tokenAddress: token.address,
-					tokenId: token.id
+					tokenAddress: token.address
 				})
 
 				// Get percent hold of Top 10 holders
@@ -296,28 +295,22 @@ export class TokensService {
 
 	//   Exclude wallets: bondingCurve, vault, system
 	async getRealTokenOwners({
-		tokenId,
 		tokenAddress
 	}: {
-		tokenId: string
 		tokenAddress: string
 	}) {
-		const mintToken = new PublicKey(tokenAddress)
-		// Get bondingCurve address
-		const bondingCurveAddress = this.ponz.bondingCurvePDA(mintToken).toString()
-		//   Get vault address
-		const vaultAddress = this.ponzVault
-			.tokenPoolPDA(new PublicKey(tokenAddress))
-			.toString()
-		//   Get system wallet
-		const systemWallet = await this.getTokenWithHeld(tokenId)
+		// const mintToken = new PublicKey(tokenAddress)
+		// // Get bondingCurve address
+		// const bondingCurveAddress = this.ponz.bondingCurvePDA(mintToken).toString()
+		// //   Get vault address
+		// const vaultAddress = this.ponzVault
+		// 	.tokenPoolPDA(new PublicKey(tokenAddress))
+		// 	.toString()
+		// //   Get system wallet
+		// const systemWallet = await this.getTokenWithHeld(tokenId)
 
 		const listRealOwners = await this.token.getRealTokenOwners({
-			excludeAddresses: [
-				bondingCurveAddress,
-				vaultAddress,
-				systemWallet?.publicKey
-			],
+			excludeAddresses: [],
 			tokenAddress: tokenAddress,
 			take: 10
 		})
