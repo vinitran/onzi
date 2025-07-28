@@ -9,6 +9,7 @@ export type Env = {
 	S3_BUCKET_NAME: string
 	HELIUS_API_KEY: string
 	CONTRACT_ADDRESS: string
+	RAYDIUM_CONTRACT_ADDRESS: string
 	REDIS_URL: string
 	REWARD_VAULT_ADDRESS: string
 	IS_TEST: string
@@ -35,6 +36,9 @@ const provider: Provider = {
 		const S3_BUCKET_NAME = configService.get<string>("S3_BUCKET_NAME")
 		const HELIUS_API_KEY = configService.get<string>("HELIUS_API_KEY")
 		const CONTRACT_ADDRESS = configService.get<string>("CONTRACT_ADDRESS")
+		const RAYDIUM_CONTRACT_ADDRESS = configService.get<string>(
+			"RAYDIUM_CONTRACT_ADDRESS"
+		)
 		const REDIS_URL = configService.get<string>("REDIS_URL")
 		const REWARD_VAULT_ADDRESS = configService.get<string>(
 			"REWARD_VAULT_ADDRESS"
@@ -71,6 +75,8 @@ const provider: Provider = {
 		if (!S3_BUCKET_NAME) throw new Error("missing S3_BUCKET_NAME env")
 		if (!HELIUS_API_KEY) throw new Error("missing HELIUS_API_KEY env")
 		if (!CONTRACT_ADDRESS) throw new Error("missing CONTRACT_ADDRESS env")
+		if (!RAYDIUM_CONTRACT_ADDRESS)
+			throw new Error("missing RAYDIUM_CONTRACT_ADDRESS env")
 		if (!REDIS_URL) throw new Error("missing REDIS_URL env")
 		if (!REWARD_VAULT_ADDRESS)
 			throw new Error("missing REWARD_VAULT_ADDRESS env")
@@ -101,6 +107,7 @@ const provider: Provider = {
 			S3_BUCKET_NAME,
 			HELIUS_API_KEY,
 			CONTRACT_ADDRESS,
+			RAYDIUM_CONTRACT_ADDRESS,
 			REDIS_URL,
 			REWARD_VAULT_ADDRESS,
 			IS_TEST,

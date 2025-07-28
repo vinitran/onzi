@@ -72,7 +72,7 @@ export class TokenRepository {
 				{ isDeleted: false },
 				{ bump: true },
 				...(query.volumnFrom ? [{ volumn: { gte: query.volumnFrom } }] : []),
-				...(query.volumnTo ? [{ volumn: { lte: query.volumnFrom } }] : []),
+				...(query.volumnTo ? [{ volumn: { lte: query.volumnTo } }] : []),
 				...(query.marketCapFrom
 					? [{ marketCapacity: { gte: query.marketCapFrom } }]
 					: []),
@@ -1370,16 +1370,19 @@ export class TokenRepository {
 			SELECT COUNT(*) FROM token_transaction tx
 			WHERE tx.token_address = t.address
 		) AS "transactionCount"
-	FROM token t
-				 JOIN LATERAL (
-		SELECT tx.date
-		FROM token_transaction tx
-		WHERE tx.token_address = t.address AND tx.type = 'Buy'
+	
+		FROM token t
+		JOIN LATERAL (
+			SELECT tx.date 
+			FROM token_transaction tx 
+			WHERE tx.token_address = t.address AND tx.type = 'Buy' 
 			ORDER BY tx.date DESC
-				LIMIT 1
-      ) tx_latest ON true
-				LEFT JOIN token_favorite f ON f.token_address = t.address${userAddress ? ` AND f.user_address = '${userAddress}'` : ""}
-	WHERE ${this.queryCookingSickoModeWhere(query)}
+			LIMIT 1
+		) tx_latest ON true
+				
+    LEFT JOIN token_favorite f 
+		  ON f.token_address = t.address${userAddress ? ` AND f.user_address = '${userAddress}'` : ""}
+			WHERE ${this.queryCookingSickoModeWhere(query)}
 
 		ORDER BY tx_latest.date DESC
 		LIMIT ${query.take} OFFSET ${(query.page - 1) * query.take};

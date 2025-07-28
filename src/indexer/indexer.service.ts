@@ -16,6 +16,7 @@ import {
 	SellTokensEvent
 } from "@root/programs/ponz/events"
 import { Ponz } from "@root/programs/ponz/program"
+import { Raydium } from "@root/programs/raydium/program"
 import axios from "axios"
 import WebSocket from "ws"
 
@@ -34,6 +35,7 @@ export class IndexerService {
 	constructor(
 		@InjectEnv() private env: Env,
 		private ponz: Ponz,
+		private raydium: Raydium,
 		private readonly settingRepository: SettingRepository,
 		private readonly tokenTransactionRepository: TokenTransactionRepository,
 		private readonly rabbitMQService: RabbitMQService
@@ -153,7 +155,10 @@ export class IndexerService {
 					method: "logsSubscribe",
 					params: [
 						{
-							mentions: [this.env.CONTRACT_ADDRESS]
+							mentions: [
+								this.env.CONTRACT_ADDRESS,
+								this.env.RAYDIUM_CONTRACT_ADDRESS
+							]
 						},
 						{
 							commitment: "finalized"
@@ -167,11 +172,26 @@ export class IndexerService {
 			try {
 				const parsedData = JSON.parse(data)
 				if (parsedData?.params?.result?.value?.logs) {
-					const logData = Array.from(
-						this.ponz.parseLogs(parsedData.params.result.value.logs)
-					)
 					const signature = parsedData.params.result.value.signature
-					await this.handlePonzEvents(logData, signature)
+
+					const logs = parsedData?.params?.result?.value?.logs as String[]
+
+					const programLine = logs.find(
+						log =>
+							log.startsWith("Program ") &&
+							(log.includes("invoke") || log.includes("success"))
+					)
+
+					const programId = programLine?.split(" ")[1]
+
+					if (programId === this.env.CONTRACT_ADDRESS) {
+						const logData = Array.from(
+							this.ponz.parseLogs(parsedData.params.result.value.logs)
+						)
+						await this.handlePonzEvents(logData, signature)
+					} else if (programId === this.env.RAYDIUM_CONTRACT_ADDRESS) {
+						await this.raydium.handleSwapFromSignature(signature)
+					}
 				}
 			} catch (error) {
 				Logger.error("Error processing WebSocket message:", error)
@@ -237,46 +257,6 @@ export class IndexerService {
 			return response.data.result
 		} catch (error) {
 			console.error("Error fetching token accounts:", error)
-			throw error
-		}
-	}
-
-	async getTokenHoldersByPage(mint: string, page = 1, limit = 1000) {
-		try {
-			const response = await axios.post(
-				this.HELIUS_RPC,
-				{
-					jsonrpc: "2.0",
-					id: "",
-					method: "getTokenAccounts",
-					params: {
-						page,
-						limit,
-						mint
-					}
-				},
-				{
-					headers: {
-						"Content-Type": "application/json"
-					}
-				}
-			)
-
-			if (
-				!response.data.result ||
-				response.data.result.token_accounts.length === 0
-			) {
-				return
-			}
-
-			return response.data.result.token_accounts.map(
-				(account: { owner: string; amount: number }) => ({
-					owner: account.owner,
-					amount: account.amount.toString()
-				})
-			) as { owner: string; amount: string }[]
-		} catch (error) {
-			console.error("Error fetching token holders:", error)
 			throw error
 		}
 	}

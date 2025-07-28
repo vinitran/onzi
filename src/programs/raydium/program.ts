@@ -34,6 +34,7 @@ import {
 import {
 	ConfirmOptions,
 	Keypair,
+	ParsedTransactionWithMeta,
 	PublicKey,
 	SYSVAR_RENT_PUBKEY,
 	Signer,
@@ -49,6 +50,23 @@ interface IToken {
 	address: PublicKey
 	program: PublicKey
 	amount: BN
+}
+type SwapDirection = "Buy" | "Sell"
+
+interface ISwapDetail {
+	signer?: string
+	direction?: SwapDirection
+	tokenIn?: string
+	tokenOut?: string
+	amountIn: number
+	amountOut: number
+}
+
+interface TransferInfo {
+	mint: string
+	amount: number
+	source: string
+	destination: string
 }
 
 @Injectable()
@@ -68,6 +86,170 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 		this.program = new Program(idl as RaydiumCpSwap, provider)
 
 		this.createPoolFee = new PublicKey(this.env.CREATE_POOL_FEE_PUBLIC_KEY)
+	}
+
+	async handleSwapFromSignature(signature: string) {
+		const tx = await this.connection.getParsedTransaction(signature, {
+			commitment: "confirmed",
+			maxSupportedTransactionVersion: 0
+		})
+
+		if (!tx) {
+			return
+		}
+
+		const logs = tx.meta?.logMessages
+		if (!logs) {
+			return
+		}
+
+		const data = await this.parseSwapDetailFromLogsAndTx(logs, tx)
+		if (!data) {
+			return
+		}
+	}
+
+	parseSwapDetailFromLogsAndTx(
+		logs: string[],
+		tx: ParsedTransactionWithMeta
+	): ISwapDetail | undefined {
+		let direction: SwapDirection
+		if (logs.some(l => l.includes("Instruction: SwapBaseInput"))) {
+			direction = "Buy"
+		} else if (logs.some(l => l.includes("Instruction: SwapQuoteInput"))) {
+			direction = "Sell"
+		} else {
+			return
+		}
+
+		const transfers = this.extractTransfersFromTx(tx)
+		const signer = this.detectUserAddress(transfers)
+		const { tokenIn, tokenOut, amountIn, amountOut } =
+			this.getSwapDetailFromTransfers(transfers, signer)
+		return {
+			signer,
+			direction,
+			tokenIn,
+			tokenOut,
+			amountIn,
+			amountOut
+		}
+	}
+
+	getSwapDetailFromTransfers(
+		transfers: TransferInfo[],
+		user: string | undefined
+	): {
+		tokenIn?: string
+		tokenOut?: string
+		amountIn: number
+		amountOut: number
+	} {
+		let tokenIn: string | undefined
+		let tokenOut: string | undefined
+		let amountIn = 0
+		let amountOut = 0
+		if (user) {
+			// Input: transfer từ user
+			const inTransfers = transfers.filter(t => t.source === user)
+			if (inTransfers.length > 0) {
+				const maxIn = inTransfers.reduce((a, b) =>
+					a.amount > b.amount ? a : b
+				)
+				tokenIn = maxIn.mint
+				amountIn = maxIn.amount
+			}
+			// Output: transfer lớn nhất còn lại có mint khác tokenIn
+			if (tokenIn) {
+				const outTransfer = transfers
+					.filter(t => t.mint !== tokenIn)
+					.sort((a, b) => b.amount - a.amount)[0]
+				if (outTransfer) {
+					tokenOut = outTransfer.mint
+					amountOut = outTransfer.amount
+				}
+			}
+		} else {
+			// Fallback: lấy transfer lớn nhất mỗi chiều
+			if (transfers.length > 0) {
+				const maxIn = transfers.reduce((a, b) => (a.amount > b.amount ? a : b))
+				tokenIn = maxIn.mint
+				amountIn = maxIn.amount
+			}
+			if (tokenIn) {
+				const outTransfer = transfers
+					.filter(t => t.mint !== tokenIn)
+					.sort((a, b) => b.amount - a.amount)[0]
+				if (outTransfer) {
+					tokenOut = outTransfer.mint
+					amountOut = outTransfer.amount
+				}
+			}
+		}
+		return { tokenIn, tokenOut, amountIn, amountOut }
+	}
+
+	extractTransfersFromTx(tx: ParsedTransactionWithMeta): TransferInfo[] {
+		const innerInstructions = tx.meta?.innerInstructions ?? []
+		const transfers: TransferInfo[] = []
+		for (const ixGroup of innerInstructions) {
+			for (const ix of ixGroup.instructions) {
+				if (
+					"parsed" in ix &&
+					ix.program === "spl-token" &&
+					(ix.parsed?.type === "transferChecked" ||
+						ix.parsed?.type === "transfer")
+				) {
+					const info = ix.parsed.info
+					const mint = info.mint
+					if (!mint) continue
+					let amount: number | undefined
+					if (typeof info.amount === "string") {
+						amount = Number(info.amount)
+					} else if (
+						info.tokenAmount &&
+						typeof info.tokenAmount.amount === "string"
+					) {
+						amount = Number(info.tokenAmount.amount)
+					}
+					if (!amount) continue
+					transfers.push({
+						mint,
+						amount,
+						source: info.source,
+						destination: info.destination
+					})
+				}
+			}
+		}
+		return transfers
+	}
+
+	detectUserAddress(transfers: TransferInfo[]): string | undefined {
+		const accountCount: Record<
+			string,
+			{ source: number; destination: number }
+		> = {}
+		for (const t of transfers) {
+			if (!accountCount[t.source])
+				accountCount[t.source] = { source: 0, destination: 0 }
+			if (!accountCount[t.destination])
+				accountCount[t.destination] = { source: 0, destination: 0 }
+			accountCount[t.source].source++
+			accountCount[t.destination].destination++
+		}
+		const userCandidates = Object.entries(accountCount)
+			.filter(
+				([_k, v]) =>
+					(v.source === 1 && v.destination === 0) ||
+					(v.destination === 1 && v.source === 0)
+			)
+			.map(([k]) => k)
+		let user: string | undefined = userCandidates.find(u =>
+			transfers.some(t => t.source === u)
+		)
+		if (!user) user = userCandidates[0]
+		return user
 	}
 
 	async createNewPair(
