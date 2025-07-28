@@ -59,166 +59,161 @@ export class TokenRepository {
 		})
 	}
 
-	async sickoMode(query: SickoModeParams, userAddress?: string) {
-		// Validate pagination parameters
-		const page = Math.max(1, query.page)
-		const take = Math.min(100, Math.max(1, query.take))
-
-		const skip = (page - 1) * take
-		let orderBy: Prisma.TokenOrderByWithRelationInput[] = []
-		let where: Prisma.TokenWhereInput = {}
-		where = {
-			AND: [
-				{ isDeleted: false },
-				{ bump: true },
-				...(query.volumnFrom ? [{ volumn: { gte: query.volumnFrom } }] : []),
-				...(query.volumnTo ? [{ volumn: { lte: query.volumnTo } }] : []),
-				...(query.marketCapFrom
-					? [{ marketCapacity: { gte: query.marketCapFrom } }]
-					: []),
-				...(query.marketCapTo
-					? [{ marketCapacity: { lte: query.marketCapTo } }]
-					: []),
-				...(query.holderFrom
-					? [{ tokenOwners: { some: { amount: { gte: query.holderFrom } } } }]
-					: []),
-				...(query.holderTo
-					? [{ tokenOwners: { some: { amount: { lte: query.holderTo } } } }]
-					: []),
-				...(query.excludeKeywords && query.excludeKeywords.length > 0
-					? [
-							{
-								AND: query.excludeKeywords.map(keyword => ({
-									NOT: {
-										OR: [
-											{
-												name: {
-													contains: keyword,
-													mode: Prisma.QueryMode.insensitive
-												}
-											},
-											{
-												ticker: {
-													contains: keyword,
-													mode: Prisma.QueryMode.insensitive
-												}
-											}
-										]
-									}
-								}))
-							}
-						]
-					: []),
-				...(query.includeKeywords && query.includeKeywords.length > 0
-					? [
-							{
-								OR: query.includeKeywords.map(keyword => ({
-									OR: [
-										{
-											name: {
-												contains: keyword,
-												mode: Prisma.QueryMode.insensitive
-											}
-										},
-										{
-											ticker: {
-												contains: keyword,
-												mode: Prisma.QueryMode.insensitive
-											}
-										}
-									]
-								}))
-							}
-						]
-					: [])
-			]
-		}
-
-		switch (query.sort) {
-			case SickoModeType.NEWEST:
-				orderBy = [...[{ createdAt: Prisma.SortOrder.desc }]]
-				break
-
-			case SickoModeType.GRADUATING:
-				orderBy = [...[{ marketCapacity: Prisma.SortOrder.desc }]]
-				where.isCompletedBondingCurve = false
-				break
-
-			case SickoModeType.FAVORITE:
-				if (!userAddress)
-					throw new InternalServerErrorException(
-						"Need login to search by favorite"
-					)
-				where.tokenFavorite = {
-					some: {
-						userAddress: userAddress
-					}
-				}
-				orderBy = [...[{ createdAt: Prisma.SortOrder.desc }]]
-				break
-			default:
-				throw new InternalServerErrorException("Sort can not be empty")
-		}
-
-		const [tokens, total] = await Promise.all([
-			this.prisma.token.findMany({
-				skip,
-				take: query.take,
-				where: {
-					...where
-				},
-				orderBy,
-				select: {
-					id: true,
-					name: true,
-					address: true,
-					price: true,
-					imageUri: true,
-					ticker: true,
-					network: true,
-					bondingCurveTarget: true,
-					isCompletedBondingCurve: true,
-					isCompletedKingOfHill: true,
-					createdAtKingOfHill: true,
-					bump: true,
-					creatorAddress: true,
-					marketCapacity: true,
-					volumn: true,
-					hallOfFame: true,
-					tax: true,
-					rewardTax: true,
-					jackpotTax: true,
-					jackpotAmount: true,
-					burnTax: true,
-					jackpotPending: true,
-					lockAmount: true,
-					totalSupply: true,
-					unlockAt: true,
-					taxPending: true,
-					createdAt: true,
-					updatedAt: true,
-					raydiumStatus: true,
-					_count: {
-						select: {
-							tokenTransaction: true
-						}
-					}
-				}
-			}),
-			this.prisma.token.count({ where })
-		])
-
-		return { tokens, total }
-	}
+	// async sickoMode(query: SickoModeParams, userAddress?: string) {
+	// 	// Validate pagination parameters
+	// 	const page = Math.max(1, query.page)
+	// 	const take = Math.min(100, Math.max(1, query.take))
+	//
+	// 	const skip = (page - 1) * take
+	// 	let orderBy: Prisma.TokenOrderByWithRelationInput[] = []
+	// 	let where: Prisma.TokenWhereInput = {}
+	// 	where = {
+	// 		AND: [
+	// 			{ isDeleted: false },
+	// 			{ bump: true },
+	// 			...(query.volumnFrom ? [{ volumn: { gte: query.volumnFrom } }] : []),
+	// 			...(query.volumnTo ? [{ volumn: { lte: query.volumnTo } }] : []),
+	// 			...(query.marketCapFrom
+	// 				? [{ marketCapacity: { gte: query.marketCapFrom } }]
+	// 				: []),
+	// 			...(query.marketCapTo
+	// 				? [{ marketCapacity: { lte: query.marketCapTo } }]
+	// 				: []),
+	// 			...(query.holderFrom
+	// 				? [{ tokenOwners: { some: { amount: { gte: query.holderFrom } } } }]
+	// 				: []),
+	// 			...(query.holderTo
+	// 				? [{ tokenOwners: { some: { amount: { lte: query.holderTo } } } }]
+	// 				: []),
+	// 			...(query.excludeKeywords && query.excludeKeywords.length > 0
+	// 				? [
+	// 						{
+	// 							AND: query.excludeKeywords.map(keyword => ({
+	// 								NOT: {
+	// 									OR: [
+	// 										{
+	// 											name: {
+	// 												contains: keyword,
+	// 												mode: Prisma.QueryMode.insensitive
+	// 											}
+	// 										},
+	// 										{
+	// 											ticker: {
+	// 												contains: keyword,
+	// 												mode: Prisma.QueryMode.insensitive
+	// 											}
+	// 										}
+	// 									]
+	// 								}
+	// 							}))
+	// 						}
+	// 					]
+	// 				: []),
+	// 			...(query.includeKeywords && query.includeKeywords.length > 0
+	// 				? [
+	// 						{
+	// 							OR: query.includeKeywords.map(keyword => ({
+	// 								OR: [
+	// 									{
+	// 										name: {
+	// 											contains: keyword,
+	// 											mode: Prisma.QueryMode.insensitive
+	// 										}
+	// 									},
+	// 									{
+	// 										ticker: {
+	// 											contains: keyword,
+	// 											mode: Prisma.QueryMode.insensitive
+	// 										}
+	// 									}
+	// 								]
+	// 							}))
+	// 						}
+	// 					]
+	// 				: [])
+	// 		]
+	// 	}
+	//
+	// 	switch (query.sort) {
+	// 		case SickoModeType.NEWEST:
+	// 			orderBy = [...[{ createdAt: Prisma.SortOrder.desc }]]
+	// 			break
+	//
+	// 		case SickoModeType.GRADUATING:
+	// 			orderBy = [...[{ marketCapacity: Prisma.SortOrder.desc }]]
+	// 			where.isCompletedBondingCurve = false
+	// 			break
+	//
+	// 		case SickoModeType.FAVORITE:
+	// 			if (!userAddress)
+	// 				throw new InternalServerErrorException(
+	// 					"Need login to search by favorite"
+	// 				)
+	// 			where.tokenFavorite = {
+	// 				some: {
+	// 					userAddress: userAddress
+	// 				}
+	// 			}
+	// 			orderBy = [...[{ createdAt: Prisma.SortOrder.desc }]]
+	// 			break
+	// 		default:
+	// 			throw new InternalServerErrorException("Sort can not be empty")
+	// 	}
+	//
+	// 	const [tokens, total] = await Promise.all([
+	// 		this.prisma.token.findMany({
+	// 			skip,
+	// 			take: query.take,
+	// 			where: {
+	// 				...where
+	// 			},
+	// 			orderBy,
+	// 			select: {
+	// 				id: true,
+	// 				name: true,
+	// 				address: true,
+	// 				price: true,
+	// 				imageUri: true,
+	// 				ticker: true,
+	// 				network: true,
+	// 				bondingCurveTarget: true,
+	// 				isCompletedBondingCurve: true,
+	// 				isCompletedKingOfHill: true,
+	// 				createdAtKingOfHill: true,
+	// 				bump: true,
+	// 				creatorAddress: true,
+	// 				marketCapacity: true,
+	// 				volumn: true,
+	// 				hallOfFame: true,
+	// 				tax: true,
+	// 				rewardTax: true,
+	// 				jackpotTax: true,
+	// 				jackpotAmount: true,
+	// 				burnTax: true,
+	// 				jackpotPending: true,
+	// 				lockAmount: true,
+	// 				totalSupply: true,
+	// 				unlockAt: true,
+	// 				taxPending: true,
+	// 				createdAt: true,
+	// 				updatedAt: true,
+	// 				raydiumStatus: true,
+	// 				_count: {
+	// 					select: {
+	// 						tokenTransaction: true
+	// 					}
+	// 				}
+	// 			}
+	// 		}),
+	// 		this.prisma.token.count({ where })
+	// 	])
+	//
+	// 	return { tokens, total }
+	// }
 
 	async findSickoMode(query: SickoModeParams, userAddress?: string) {
-		let data: { tokens: RawSickoModeType[]; total: number }
-		if (query.sort === SickoModeType.SUGGESTED) {
-			data = await this.cookingSickoMode(query, userAddress)
-		} else {
-			// @ts-ignore
-			data = await this.sickoMode(query, userAddress)
-		}
+		const data: { tokens: RawSickoModeType[]; total: number } =
+			await this.sickoMode(query, userAddress)
 
 		const tokenData = await Promise.all(
 			data.tokens.map(async token => {
@@ -1264,10 +1259,10 @@ export class TokenRepository {
 		})
 	}
 
-	async cookingSickoMode(query: SickoModeParams, userAddress?: string) {
+	async sickoMode(query: SickoModeParams, userAddress?: string) {
 		const [tokens, total] = await Promise.all([
 			this.prisma.$queryRawUnsafe<RawSickoModeType[]>(
-				this.queryFindCookingSickoMode(query, userAddress)
+				this.queryFindSickoMode(query, userAddress)
 			),
 			this.prisma.$queryRawUnsafe<number>(
 				this.queryCountCookingSickoMode(query)
@@ -1276,21 +1271,66 @@ export class TokenRepository {
 		return { tokens, total }
 	}
 
-	private queryCookingSickoModeWhere(query: SickoModeParams) {
+	private querySickoModeWhere(query: SickoModeParams, userAddress?: string) {
 		return `t.is_deleted = false
 		AND t.bump = true
-				${query.volumnFrom ? `AND t.volumn >= ${query.volumnFrom}` : " "}
-				${query.volumnTo ? `AND t.volumn <= ${query.volumnTo}` : " "}
-				${query.marketCapFrom ? `AND t.market_capacity >= ${query.marketCapFrom}` : " "}
-				${query.marketCapTo ? `AND t.market_capacity <= ${query.marketCapTo}` : " "}
+				${
+					query.volumnFrom
+						? `
+				AND t.volumn >= ${query.volumnFrom}
+				`
+						: " "
+				}
+				${
+					query.volumnTo
+						? `
+				AND t.volumn <= ${query.volumnTo}
+				`
+						: " "
+				}
+				${
+					query.marketCapFrom
+						? `
+				AND t.market_capacity >= ${query.marketCapFrom}
+				`
+						: " "
+				}
+				${
+					query.marketCapTo
+						? `
+				AND t.market_capacity <= ${query.marketCapTo}
+				`
+						: " "
+				}
+				${
+					query.volumnFrom
+						? `
+				AND t.volumn >= ${query.volumnFrom}
+				`
+						: " "
+				}
+				${
+					query.sort === SickoModeType.FAVORITE && userAddress
+						? `
+					AND EXISTS (
+							SELECT 1
+							FROM token_favorite tf
+							WHERE tf.token_address = t.address
+								AND tf.user_address = '${userAddress}'
+					)
+			`
+						: " "
+				}
+				${query.sort === SickoModeType.GRADUATING ? " AND t.is_completed_bonding_curve = FALSE " : " "}	
 				${
 					query.holderFrom
 						? `AND (
 					SELECT COUNT(*)
 					FROM token_owner o
 					WHERE o.token_address = t.address
-				) >= ${query.holderFrom}`
-						: ""
+				) >= ${query.holderFrom - 2}
+				`
+						: " "
 				}
 				${
 					query.holderTo
@@ -1298,7 +1338,8 @@ export class TokenRepository {
 					SELECT COUNT(*)
 					FROM token_owner o
 					WHERE o.token_address = t.address
-				) <= ${query.holderTo}`
+				) <= ${query.holderTo - 2}
+				`
 						: ""
 				}
 				${
@@ -1307,24 +1348,23 @@ export class TokenRepository {
           SELECT 1 FROM unnest(array[${query.excludeKeywords.map(k => `'${k}'`).join(",")}]::text[]) keyword
           WHERE LOWER(t.name) LIKE '%' || LOWER(keyword) || '%'
              OR LOWER(t.ticker) LIKE '%' || LOWER(keyword) || '%'
-        )`
+        )
+        `
 						: " "
 				}
 				${
 					query.includeKeywords
 						? `AND EXISTS (
-          SELECT 1 FROM unnest(array[${query.includeKeywords.map(k => `'${k}'`).join(",")}]}::text[]) keyword
+          SELECT 1 FROM unnest(array[${query.includeKeywords.map(k => `'${k}'`).join(",")}]::text[]) keyword
           WHERE LOWER(t.name) LIKE '%' || LOWER(keyword) || '%'
              OR LOWER(t.ticker) LIKE '%' || LOWER(keyword) || '%'
-        )`
+        )
+        `
 						: " "
 				}`
 	}
 
-	private queryFindCookingSickoMode(
-		query: SickoModeParams,
-		userAddress?: string
-	) {
+	private queryFindSickoMode(query: SickoModeParams, userAddress?: string) {
 		return `
 			SELECT
 		t.id,
@@ -1362,19 +1402,47 @@ export class TokenRepository {
 		) AS "transactionCount"
 	
 		FROM token t
-		JOIN LATERAL (
-			SELECT tx.date 
-			FROM token_transaction tx 
-			WHERE tx.token_address = t.address AND tx.type = 'Buy' 
-			ORDER BY tx.date DESC
-			LIMIT 1
-		) tx_latest ON true
+
+		${
+			query.sort === SickoModeType.FAVORITE
+				? `JOIN LATERAL (
+				SELECT tx.date
+				FROM token_transaction tx
+				WHERE tx.token_address = t.address AND tx.type = 'Buy'
+				ORDER BY tx.date DESC
+				LIMIT 1
+				) tx_latest ON true
+				`
+				: " "
+		}    
 				
     LEFT JOIN token_favorite f 
 		  ON f.token_address = t.address${userAddress ? ` AND f.user_address = '${userAddress}'` : ""}
-			WHERE ${this.queryCookingSickoModeWhere(query)}
-
-		ORDER BY tx_latest.date DESC
+		
+		WHERE ${this.querySickoModeWhere(query, userAddress)}
+		
+		${
+			query.sort === SickoModeType.FAVORITE
+				? `
+			ORDER BY tx_latest.date DESC
+		`
+				: ""
+		}
+		${
+			query.sort === SickoModeType.GRADUATING
+				? `
+			ORDER BY t.market_capacity DESC
+		`
+				: ""
+		}
+		${
+			query.sort === SickoModeType.NEWEST
+				? `
+			ORDER BY t.created_at DESC
+		`
+				: ""
+		}
+		
 		LIMIT ${query.take} OFFSET ${(query.page - 1) * query.take};
 		`
 	}
@@ -1383,7 +1451,7 @@ export class TokenRepository {
 		return `
       SELECT COUNT(*)
       FROM token t
-      WHERE ${this.queryCookingSickoModeWhere(query)}
+      WHERE ${this.querySickoModeWhere(query)}
     `
 	}
 
