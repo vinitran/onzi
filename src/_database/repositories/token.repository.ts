@@ -1328,7 +1328,7 @@ export class TokenRepository {
 					SELECT COUNT(*)
 					FROM token_owner o
 					WHERE o.token_address = t.address
-				) >= ${query.holderFrom - 2}
+				) >= ${query.holderFrom < 2 ? query.holderFrom : query.holderTo + 2}
 				`
 						: " "
 				}
@@ -1338,7 +1338,7 @@ export class TokenRepository {
 					SELECT COUNT(*)
 					FROM token_owner o
 					WHERE o.token_address = t.address
-				) <= ${query.holderTo - 2}
+				) <= ${query.holderTo + 2}
 				`
 						: ""
 				}
