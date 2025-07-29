@@ -22,6 +22,7 @@ import {
 } from "@root/_shared/types/reel"
 import { Paginate } from "@root/dtos/common.dto"
 import { S3Service } from "@root/file/file.service"
+import { ContentType } from "@root/tokens/dtos/payload.dto"
 import { DateTime } from "luxon"
 import { v4 as uuidv4 } from "uuid"
 import {
@@ -69,7 +70,7 @@ export class ReelsService {
 
 	//   Create reel
 	async create(payload: CreateReelPayload) {
-		const { caption, tokenId, userId } = payload
+		const { caption, contentType, tokenId, userId } = payload
 
 		// Validate user is block create reel in global
 		await this.validateUserCreateReel(userId)
@@ -83,7 +84,10 @@ export class ReelsService {
 			)
 
 		const reelId = uuidv4()
-		const { fields, url, videoUri } = await this.getVideoPresignedUrl(reelId)
+		const { fields, url, videoUri } = await this.getVideoPresignedUrl(
+			reelId,
+			contentType
+		)
 		const reel = await this.reel.create({
 			caption,
 			videoUri,
@@ -389,11 +393,11 @@ export class ReelsService {
 		return "Pin reel successfully"
 	}
 
-	async getVideoPresignedUrl(reelId: string) {
+	async getVideoPresignedUrl(reelId: string, contentType: ContentType) {
 		const key = `token-reel-${reelId}`
 		const { fields, url } = await this.s3Service.postPresignedSignedUrl(
 			key,
-			"video/mp4"
+			contentType
 		)
 		if (!url || !fields)
 			throw new InternalServerErrorException("Can not post presigned url")

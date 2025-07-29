@@ -108,6 +108,7 @@ export class ReelsController {
 	) {
 		return this.reelsService.create({
 			caption: body.caption,
+			contentType: body.contentType,
 			tokenId,
 			userId: user.id
 		})

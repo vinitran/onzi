@@ -3,6 +3,7 @@ import { UserActionStatus } from "@prisma/client"
 import { REPORTED_REEL_SORT_OPTIONS } from "@root/_shared/constants/reel"
 import { OptionalProp, Prop } from "@root/_shared/utils/decorators"
 import { PaginatedParams } from "@root/dtos/common.dto"
+import { ContentType } from "@root/tokens/dtos/payload.dto"
 import { Transform } from "class-transformer"
 import {
 	IsArray,
@@ -22,6 +23,16 @@ export class CreateReelDto {
 	@IsString()
 	@Length(0, 500)
 	caption: string
+
+	@ApiProperty({
+		description: "Content type of the token",
+		example: ContentType.MP4,
+		enum: [ContentType.MP4, ContentType.MOV, ContentType.AVI],
+		required: true
+	})
+	@Prop()
+	@IsEnum(ContentType)
+	contentType: ContentType
 }
 
 export class PaginateListReelParams extends PaginatedParams {}
