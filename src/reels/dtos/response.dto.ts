@@ -19,6 +19,12 @@ export class CreateReelResponse {
 	})
 	@Expose()
 	attachment: S3Upload
+
+	@ApiProperty({
+		description: "Presigned URL data for attachment upload"
+	})
+	@Expose()
+	thumbnail: S3Upload
 }
 
 export class PaginateReelResponse extends Paginate<Reel> {

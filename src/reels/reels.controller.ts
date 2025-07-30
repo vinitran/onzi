@@ -107,8 +107,7 @@ export class ReelsController {
 		@Body() body: CreateReelDto
 	) {
 		return this.reelsService.create({
-			caption: body.caption,
-			contentType: body.contentType,
+			...body,
 			tokenId,
 			userId: user.id
 		})

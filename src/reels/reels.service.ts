@@ -70,7 +70,8 @@ export class ReelsService {
 
 	//   Create reel
 	async create(payload: CreateReelPayload) {
-		const { caption, contentType, tokenId, userId } = payload
+		const { caption, contentType, tokenId, userId, thumbnailContentType } =
+			payload
 
 		// Validate user is block create reel in global
 		await this.validateUserCreateReel(userId)
@@ -84,18 +85,24 @@ export class ReelsService {
 			)
 
 		const reelId = uuidv4()
-		const { fields, url, videoUri } = await this.getVideoPresignedUrl(
-			reelId,
-			contentType
-		)
+		const [{ fields, url, videoUri }, thumbnail] = await Promise.all([
+			this.getVideoPresignedUrl(reelId, contentType),
+			this.getThumbnailPresignedUrl(reelId, thumbnailContentType)
+		])
+
 		const reel = await this.reel.create({
 			caption,
 			videoUri,
 			creator: { connect: { id: userId } },
-			token: { connect: { id: tokenId } }
+			token: { connect: { id: tokenId } },
+			thumbnailUri: thumbnail.thumbnailUri
 		})
 
-		return { reel, attachment: { fields, url } }
+		return {
+			reel,
+			attachment: { fields, url },
+			thumbnail: { fields: thumbnail.fields, url: thumbnail.url }
+		}
 	}
 
 	//   Get detail reel in list reel of token
@@ -404,6 +411,22 @@ export class ReelsService {
 		const videoUri = `${url}${fields.key}`
 		return {
 			videoUri,
+			url,
+			fields
+		}
+	}
+
+	async getThumbnailPresignedUrl(reelId: string, contentType: ContentType) {
+		const key = `token-reel-thumbnail-${reelId}`
+		const { fields, url } = await this.s3Service.postPresignedSignedUrl(
+			key,
+			contentType
+		)
+		if (!url || !fields)
+			throw new InternalServerErrorException("Can not post presigned url")
+		const thumbnailUri = `${url}${fields.key}`
+		return {
+			thumbnailUri,
 			url,
 			fields
 		}

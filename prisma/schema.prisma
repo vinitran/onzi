@@ -378,15 +378,16 @@ model TokenChart {
 }
 
 model Reel {
-  id         String    @id @default(uuid()) @db.Uuid
-  videoUri   String    @map("video_uri")
-  caption    String?   @db.Text
-  viewAmount BigInt    @default(0) @map("view_amount")
-  creatorId  String    @map("creator_id") @db.Uuid
-  tokenId    String    @map("token_id") @db.Uuid
-  pinnedAt   DateTime? @map("pinned_at") @db.Timestamptz(3)
-  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt  DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id           String    @id @default(uuid()) @db.Uuid
+  videoUri     String    @map("video_uri")
+  caption      String?   @db.Text
+  thumbnailUri String    @map("thumbnail_uri")
+  viewAmount   BigInt    @default(0) @map("view_amount")
+  creatorId    String    @map("creator_id") @db.Uuid
+  tokenId      String    @map("token_id") @db.Uuid
+  pinnedAt     DateTime? @map("pinned_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   token             Token              @relation(fields: [tokenId], references: [id], onDelete: Cascade)
   creator           User               @relation(fields: [creatorId], references: [id], onDelete: Cascade)

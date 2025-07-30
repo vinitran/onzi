@@ -15,6 +15,10 @@ export class Reel {
 	videoUri: string
 
 	@Expose()
+	@ApiProperty({ description: "URI of the thumbnail associated with the reel" })
+	thumbnailUri: string
+
+	@Expose()
 	@Transform(({ value }) => Number(value))
 	@ApiProperty({ description: "Number of views the reel has received" })
 	viewAmount: number

@@ -25,7 +25,7 @@ export class CreateReelDto {
 	caption: string
 
 	@ApiProperty({
-		description: "Content type of the token",
+		description: "Content type of video",
 		example: ContentType.MP4,
 		enum: [ContentType.MP4, ContentType.MOV, ContentType.AVI],
 		required: true
@@ -33,6 +33,21 @@ export class CreateReelDto {
 	@Prop()
 	@IsEnum(ContentType)
 	contentType: ContentType
+
+	@ApiProperty({
+		description: "Content type of thumbnail",
+		example: ContentType.JPEG,
+		enum: [
+			ContentType.JPEG,
+			ContentType.PNG,
+			ContentType.WEBP,
+			ContentType.AVI
+		],
+		required: true
+	})
+	@Prop()
+	@IsEnum(ContentType)
+	thumbnailContentType: ContentType
 }
 
 export class PaginateListReelParams extends PaginatedParams {}
