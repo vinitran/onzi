@@ -145,66 +145,60 @@ export class IndexerService {
 	}
 
 	connectToWebSocketSolana() {
-		const wsSolana = new WebSocket(this.HELIUS_WS)
+		const subcribe = (
+			address: string,
+			func: (signature: string, logs: string[]) => Promise<void>
+		) => {
+			const wsSolana = new WebSocket(this.HELIUS_WS)
 
-		wsSolana.on("open", () => {
-			wsSolana.send(
-				JSON.stringify({
-					jsonrpc: "2.0",
-					id: 1,
-					method: "logsSubscribe",
-					params: [
-						{
-							mentions: [
-								this.env.CONTRACT_ADDRESS
-								// this.env.RAYDIUM_CONTRACT_ADDRESS
-							]
-						},
-						{
-							commitment: "finalized"
-						}
-					]
-				})
-			)
-		})
+			wsSolana.on("open", () => {
+				wsSolana.send(
+					JSON.stringify({
+						jsonrpc: "2.0",
+						id: 1,
+						method: "logsSubscribe",
+						params: [
+							{
+								mentions: [address]
+							},
+							{
+								commitment: "finalized"
+							}
+						]
+					})
+				)
+			})
 
-		wsSolana.on("message", async (data: string) => {
-			try {
-				const parsedData = JSON.parse(data)
-				if (parsedData?.params?.result?.value?.logs) {
-					const signature = parsedData.params.result.value.signature
-
-					const logs = parsedData?.params?.result?.value?.logs as String[]
-
-					const programLine = logs.find(
-						log =>
-							log.startsWith("Program ") &&
-							(log.includes("invoke") || log.includes("success"))
-					)
-
-					const programId = programLine?.split(" ")[1]
-
-					if (programId === this.env.CONTRACT_ADDRESS) {
-						const logData = Array.from(
-							this.ponz.parseLogs(parsedData.params.result.value.logs)
-						)
-						await this.handlePonzEvents(logData, signature)
-					} else if (programId === this.env.RAYDIUM_CONTRACT_ADDRESS) {
-						await this.raydium.handleSwapFromSignature(signature)
+			wsSolana.on("message", async (data: string) => {
+				try {
+					const parsedData = JSON.parse(data)
+					if (parsedData?.params?.result?.value?.logs) {
+						const signature = parsedData.params.result.value.signature
+						const logs = parsedData?.params?.result?.value?.logs as string[]
+						await func(signature, logs)
 					}
+				} catch (error) {
+					Logger.error("Error processing WebSocket message:", error)
 				}
-			} catch (error) {
-				Logger.error("Error processing WebSocket message:", error)
-			}
+			})
+
+			wsSolana.on("close", () => {
+				Logger.log("WebSocket connection closed. Reconnecting...")
+				subcribe(address, func)
+			})
+
+			wsSolana.on("error", error => {
+				Logger.error("WebSocket error:", error)
+			})
+		}
+
+		subcribe(this.env.CONTRACT_ADDRESS, async (signature, logs) => {
+			const logData = Array.from(this.ponz.parseLogs(logs))
+			await this.handlePonzEvents(logData, signature)
 		})
 
-		wsSolana.on("close", () => {
-			Logger.log("WebSocket connection closed. Reconnecting...")
-			this.connectToWebSocketSolana()
-		})
-
-		wsSolana.on("error", error => {
-			Logger.error("WebSocket error:", error)
+		subcribe(this.env.RAYDIUM_CONTRACT_ADDRESS, async signature => {
+			await this.raydium.handleSwapFromSignature(signature)
 		})
 	}
 
