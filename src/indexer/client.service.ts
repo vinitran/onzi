@@ -131,13 +131,16 @@ export class IndexerClientService {
 			return
 		}
 
+		const token = await this.tokenRepository.findByAddress(data.mint)
+		if (!token) return
+
 		if (
 			await this.tokenTxRepository.findBySignature(data.signature, data.type)
 		) {
 			return
 		}
 
-		Logger.log("start handler remove liquidity for token address: ", data.mint)
+		Logger.log(data.mint, "Start handler remove liquidity for token address")
 
 		const systemWalletKeypair = Keypair.fromSecretKey(
 			bs58.decode(this.env.SYSTEM_WALLET_PRIVATE_KEY)
@@ -145,15 +148,18 @@ export class IndexerClientService {
 
 		const lamportsAmount = new BN(LAMPORTS_PER_SOL * 83) // sol amount - 65 SOL
 		const tokensAmount = new BN("195000000000000") // token amount ~ 195000000 Tokens
+		const tokenAddLiquid = tokensAmount
+			.mul(new BN(10000 - token.tax))
+			.div(new BN(10000))
 
 		const txSignCreateNewPair = await this.raydium.createNewPair(
 			systemWalletKeypair,
 			new PublicKey(data.mint),
 			lamportsAmount,
-			tokensAmount
+			tokenAddLiquid
 		)
 
-		Logger.log("Transaction migration to raydium", txSignCreateNewPair)
+		Logger.log(txSignCreateNewPair, "Transaction migration to raydium")
 
 		const txSignBurnLPT = await this.raydium.burnLpToken(
 			new PublicKey(data.mint),

@@ -262,7 +262,8 @@ export class DistributeSolController {
 				holder.address !== poolAddress?.toBase58() &&
 				holder.address !== keyWithHeld.publicKey &&
 				holder.address !== bondingCurve?.toBase58() &&
-				holder.address !== tokenPoolVault?.toBase58()
+				holder.address !== tokenPoolVault?.toBase58() &&
+				holder.address !== this.env.RAYDIUM_TOKEN_POOL_ADDRESS
 		)
 
 		const holderPubkeys = filteredHolders.map(

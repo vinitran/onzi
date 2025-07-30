@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/ponz.json`.
  */
 export type PonzSc = {
-	address: "ponzDBbYFNQ7D2qzeJg5MjdwYZFgp6uJhT7VHLMAxpv"
+	address: "ponzYmmBCnMqAsAACpb9LBhvTja7jPN9NtAY9RWjBuE"
 	metadata: {
 		name: "ponz"
 		version: "0.1.0"
@@ -683,7 +683,7 @@ export type PonzSc = {
 				},
 				{
 					name: "ponzProgram"
-					address: "ponzDBbYFNQ7D2qzeJg5MjdwYZFgp6uJhT7VHLMAxpv"
+					address: "ponzYmmBCnMqAsAACpb9LBhvTja7jPN9NtAY9RWjBuE"
 				},
 				{
 					name: "ponzProgramData"
@@ -1715,6 +1715,11 @@ export type PonzSc = {
 			code: 6026
 			name: "invalidCreator"
 			msg: "Invalid Creator"
+		},
+		{
+			code: 6027
+			name: "divisionByZero"
+			msg: "Division by zero"
 		}
 	]
 	types: [

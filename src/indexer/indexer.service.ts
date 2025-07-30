@@ -156,8 +156,8 @@ export class IndexerService {
 					params: [
 						{
 							mentions: [
-								this.env.CONTRACT_ADDRESS,
-								this.env.RAYDIUM_CONTRACT_ADDRESS
+								this.env.CONTRACT_ADDRESS
+								// this.env.RAYDIUM_CONTRACT_ADDRESS
 							]
 						},
 						{

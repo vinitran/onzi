@@ -1,5 +1,5 @@
 {
-	"address": "ponzDBbYFNQ7D2qzeJg5MjdwYZFgp6uJhT7VHLMAxpv",
+	"address": "ponzYmmBCnMqAsAACpb9LBhvTja7jPN9NtAY9RWjBuE",
 	"metadata": {
 		"name": "ponz",
 		"version": "0.1.0",
@@ -503,7 +503,7 @@
 				},
 				{
 					"name": "ponz_program",
-					"address": "ponzDBbYFNQ7D2qzeJg5MjdwYZFgp6uJhT7VHLMAxpv"
+					"address": "ponzYmmBCnMqAsAACpb9LBhvTja7jPN9NtAY9RWjBuE"
 				},
 				{
 					"name": "ponz_program_data"
@@ -1279,6 +1279,11 @@
 			"code": 6026,
 			"name": "InvalidCreator",
 			"msg": "Invalid Creator"
+		},
+		{
+			"code": 6027,
+			"name": "DivisionByZero",
+			"msg": "Division by zero"
 		}
 	],
 	"types": [

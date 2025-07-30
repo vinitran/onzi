@@ -182,7 +182,7 @@ export class Ponz extends SolanaProgram<PonzSc> {
 			owner.publicKey,
 			feePayer,
 			amount,
-			new BN(0)
+			new BN(1)
 		)
 		tx.sign(owner, feePayer)
 

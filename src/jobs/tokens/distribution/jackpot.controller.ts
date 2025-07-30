@@ -111,7 +111,8 @@ export class JackpotController {
 				holder =>
 					holder.address !== poolAddress?.toBase58() &&
 					holder.address !== keyWithHeld.publicKey &&
-					holder.address !== bondingCurve?.toBase58()
+					holder.address !== bondingCurve?.toBase58() &&
+					holder.address !== this.env.RAYDIUM_TOKEN_POOL_ADDRESS
 			)
 
 			for (let i = 0; i < data.times; i++) {

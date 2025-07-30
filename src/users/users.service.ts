@@ -263,13 +263,13 @@ export class UsersService {
 		const user = await this.userRepository.findById(userId)
 		if (!user) throw new NotFoundException("Not found user")
 
-		const HELIUS_RPC = `https://mainnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
+		// const HELIUS_RPC = `https://mainnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
 		const isDev = this.env.IS_TEST
 
 		try {
 			const publicKey = new PublicKey(user.address)
 			const connection = new Connection(
-				isDev ? clusterApiUrl("devnet") : HELIUS_RPC,
+				isDev ? clusterApiUrl("devnet") : clusterApiUrl("mainnet-beta"),
 				"confirmed"
 			)
 			const wallet = new PublicKey(publicKey)
@@ -285,14 +285,14 @@ export class UsersService {
 		if (!token) throw new NotFoundException("Not found token")
 		if (!token.bump) throw new BadRequestException("Token is not bumped")
 
-		const HELIUS_RPC = `https://mainnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
+		// const HELIUS_RPC = `https://mainnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
 		const isDev = this.env.IS_TEST
 
 		try {
 			const mintAddress = new PublicKey(token.address)
 			const owner = new PublicKey(userAddress)
 			const connection = new Connection(
-				isDev ? clusterApiUrl("devnet") : HELIUS_RPC,
+				isDev ? clusterApiUrl("devnet") : clusterApiUrl("mainnet-beta"),
 				"confirmed"
 			)
 

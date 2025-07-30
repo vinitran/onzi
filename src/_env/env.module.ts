@@ -10,6 +10,7 @@ export type Env = {
 	HELIUS_API_KEY: string
 	CONTRACT_ADDRESS: string
 	RAYDIUM_CONTRACT_ADDRESS: string
+	RAYDIUM_TOKEN_POOL_ADDRESS: string
 	REDIS_URL: string
 	REWARD_VAULT_ADDRESS: string
 	IS_TEST: string
@@ -66,6 +67,9 @@ const provider: Provider = {
 		const TELEGRAM_FEEDBACK_GROUP_ID = configService.get<string>(
 			"TELEGRAM_FEEDBACK_GROUP_ID"
 		)
+		const RAYDIUM_TOKEN_POOL_ADDRESS = configService.get<string>(
+			"RAYDIUM_TOKEN_POOL_ADDRESS"
+		)
 
 		const BE_DOMAIN = configService.get<string>("BE_DOMAIN")
 
@@ -77,6 +81,8 @@ const provider: Provider = {
 		if (!CONTRACT_ADDRESS) throw new Error("missing CONTRACT_ADDRESS env")
 		if (!RAYDIUM_CONTRACT_ADDRESS)
 			throw new Error("missing RAYDIUM_CONTRACT_ADDRESS env")
+		if (!RAYDIUM_TOKEN_POOL_ADDRESS)
+			throw new Error("missing RAYDIUM_TOKEN_POOL_ADDRESS env")
 		if (!REDIS_URL) throw new Error("missing REDIS_URL env")
 		if (!REWARD_VAULT_ADDRESS)
 			throw new Error("missing REWARD_VAULT_ADDRESS env")
@@ -120,7 +126,8 @@ const provider: Provider = {
 			MULTI_SIG_PUBKEY,
 			TELEGRAM_FEEDBACK_BOT_ID,
 			TELEGRAM_FEEDBACK_GROUP_ID,
-			BE_DOMAIN
+			BE_DOMAIN,
+			RAYDIUM_TOKEN_POOL_ADDRESS
 		} satisfies Env
 	},
 	inject: [ConfigService]
