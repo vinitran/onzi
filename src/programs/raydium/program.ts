@@ -11,6 +11,7 @@ import { Injectable, InternalServerErrorException } from "@nestjs/common"
 import { Env, InjectEnv } from "@root/_env/env.module"
 import {
 	POOL_SEED,
+	POOL_VAULT_SEED,
 	getAmmConfigAddress,
 	getAuthAddress,
 	getOrcleAccountAddress,
@@ -544,33 +545,40 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 		return true
 	}
 
-	getPoolAddress(
-		ammConfig: PublicKey,
+	async getPoolAddress(
 		tokenMint0: PublicKey,
-		tokenMint1: PublicKey,
-		programId: PublicKey
-	): [PublicKey, number] {
+		tokenMint1: PublicKey
+	): Promise<[PublicKey, number]> {
+		const [configAddress] = await getAmmConfigAddress(0, this.program.programId)
+
 		const [token0, token1] = this.sortTokenAddresses(tokenMint0, tokenMint1)
 
 		const [address, bump] = PublicKey.findProgramAddressSync(
-			[POOL_SEED, ammConfig.toBuffer(), token0.toBuffer(), token1.toBuffer()],
-			programId
+			[
+				POOL_SEED,
+				configAddress.toBuffer(),
+				token0.toBuffer(),
+				token1.toBuffer()
+			],
+			this.program.programId
 		)
 		return [address, bump]
 	}
 
 	async fetchPoolAddress(tokenMint0: PublicKey, tokenMint1: PublicKey) {
-		const [ammConfigAddress] = await getAmmConfigAddress(
-			0,
+		const [poolAddress] = await this.getPoolAddress(tokenMint0, tokenMint1)
+
+		return poolAddress
+	}
+
+	async getPoolVaultAddress(vaultTokenMint: PublicKey): Promise<PublicKey> {
+		const poolAddress = await this.fetchPoolAddress(vaultTokenMint, NATIVE_MINT)
+
+		const [address] = await PublicKey.findProgramAddress(
+			[POOL_VAULT_SEED, poolAddress.toBuffer(), vaultTokenMint.toBuffer()],
 			this.program.programId
 		)
-
-		return this.getPoolAddress(
-			ammConfigAddress,
-			tokenMint0,
-			tokenMint1,
-			this.program.programId
-		)[0]
+		return address
 	}
 
 	async fetchPool(
@@ -828,12 +836,7 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 			: TOKEN_PROGRAM_ID
 
 		const [auth] = await getAuthAddress(this.program.programId)
-		const [poolAddress] = this.getPoolAddress(
-			configAddress,
-			inputToken,
-			outputToken,
-			this.program.programId
-		)
+		const [poolAddress] = await this.getPoolAddress(inputToken, outputToken)
 
 		const [inputVault] = await getPoolVaultAddress(
 			poolAddress,

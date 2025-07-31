@@ -14,6 +14,7 @@ import { InjectConnection } from "@root/programs/programs.module"
 import { v4 as uuidv4 } from "uuid"
 
 import { Ponz } from "@root/programs/ponz/program"
+import { Raydium } from "@root/programs/raydium/program"
 import {
 	ASSOCIATED_TOKEN_PROGRAM_ID,
 	Account,
@@ -57,7 +58,8 @@ export class CollectFeeController {
 		private readonly tokenRepository: TokenRepository,
 		private readonly rabbitMQService: RabbitMQService,
 		private readonly helius: HeliusService,
-		private ponz: Ponz
+		private ponz: Ponz,
+		private raydium: Raydium
 	) {
 		// Initialize system wallet from private key stored in environment
 		this.systemWalletKeypair = Keypair.fromSecretKey(
@@ -128,12 +130,14 @@ export class CollectFeeController {
 			)
 		)
 
-		const [tokenPool, tokenPoolLock] = await Promise.all([
-			this.ponz.getTokenPool(new PublicKey(data.address)),
-			this.ponz.getTokenPoolLockPDA(new PublicKey(data.address))
-		])
+		const [tokenPoolPonz, tokenPoolLockPonz, tokenPoolRaydium] =
+			await Promise.all([
+				this.ponz.getTokenPool(new PublicKey(data.address)),
+				this.ponz.getTokenPoolLockPDA(new PublicKey(data.address)),
+				this.raydium.getPoolVaultAddress(new PublicKey(data.address))
+			])
 
-		sourceAddress.push(tokenPool, tokenPoolLock)
+		sourceAddress.push(tokenPoolPonz, tokenPoolLockPonz, tokenPoolRaydium)
 
 		// Process holders in batches
 		for (let i = 0; i < sourceAddress.length; i += batchSize) {
