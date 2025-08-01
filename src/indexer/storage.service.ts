@@ -29,6 +29,7 @@ import {
 } from "@root/programs/ponz/events"
 import { Ponz } from "@root/programs/ponz/program"
 import { InjectConnection } from "@root/programs/programs.module"
+import { RaydiumEvent } from "@root/programs/raydium/program"
 import { SickoModeResponse } from "@root/tokens/dtos/response.dto"
 import { LAMPORTS_PER_SOL } from "@solana/web3.js"
 import { plainToInstance } from "class-transformer"
@@ -129,6 +130,192 @@ export class StorageIndexerService {
 		await this.updateToken(mint, event, tx)
 		// await this.updateBalanceUser(event, tx)
 		await this.updateTokenChart(mint, event, tx)
+	}
+
+	async updateTokenAfterTransactionRaydium(
+		mint: string,
+		event: RaydiumEvent,
+		tx?: Prisma.TransactionClient
+	) {
+		await this.updateTokenRaydium(mint, event, tx)
+		// await this.updateBalanceUser(event, tx)
+		// await this.updateTokenChart(mint, event, tx)
+	}
+
+	async handlerBuyTokenRaydium(data: RaydiumEvent) {
+		const [token, tokenTx, user] = await Promise.all([
+			this.tokenRepository.findOneByAddress(data.tokenOut),
+			this.tokenTxRepository.findBySignature(data.signature, data.type),
+			this.userRepository.createIfNotExist({
+				address: data.signer
+			})
+		])
+
+		if (!token || !user) {
+			return
+		}
+
+		if (tokenTx) {
+			return
+		}
+
+		try {
+			await this.prisma.$transaction(
+				async tx => {
+					await this.updateTokenAfterTransactionRaydium(data.tokenOut, data, tx)
+					const txCreateInput: Prisma.TokenTransactionCreateInput = {
+						signature: data.signature,
+						network: "Solana",
+						type: "Buy",
+						date: DateTime.fromSeconds(Number(data.time)).toJSDate(),
+						token: {
+							connect: {
+								address: data.tokenOut
+							}
+						},
+						price: data.price,
+						newPrice: data.price,
+						amount: BigInt(data.amountTokenOut),
+						lamports: BigInt(data.amountTokenIn),
+						createdBy: {
+							connect: {
+								address: data.signer
+							}
+						}
+					}
+
+					await this.tokenTxRepository.create(txCreateInput, tx)
+				},
+				{
+					maxWait: 50000, // 5s
+					timeout: 100000, // 10s
+					isolationLevel: Prisma.TransactionIsolationLevel.Serializable
+				}
+			)
+		} catch (e) {
+			Logger.log(e)
+			throw new InternalServerErrorException("Failed to handle buy token")
+		}
+
+		// await this.rabbitMQService.emit("socket", "new-candle", {
+		// 	address: data.mint,
+		// 	date: Number(data.timestamp)
+		// })
+
+		const transaction = {
+			type: TransactionType.BUY,
+			date: DateTime.fromSeconds(Number(data.time)).toJSDate(),
+			signature: data.signature,
+			amount: data.amountTokenOut,
+			lamports: data.amountTokenIn,
+			tokenAddress: data.tokenOut,
+			signer: data.signer,
+			price: data.price,
+			newPrice: data.price,
+			token: plainToInstance(Token, token),
+			createdBy: plainToInstance(User, user)
+		}
+
+		await this.rabbitMQService.emit(
+			"socket",
+			"new-transaction",
+			plainToInstance(TokenTransaction, transaction)
+		)
+
+		// Emit socket -> sicko mode
+		const sickoModeToken = await this.getSickoModeToken(data.tokenOut)
+		if (!sickoModeToken) return
+		await this.rabbitMQService.emit(
+			"socket",
+			"sicko-mode-tx-token",
+			sickoModeToken
+		)
+	}
+
+	async handlerSellTokenRaydium(data: RaydiumEvent) {
+		const [token, tokenTx, user] = await Promise.all([
+			this.tokenRepository.findOneByAddress(data.tokenIn),
+			this.tokenTxRepository.findBySignature(data.signature, data.type),
+			this.userRepository.createIfNotExist({
+				address: data.signer
+			})
+		])
+
+		if (!token || !user) {
+			return
+		}
+
+		if (tokenTx) {
+			return
+		}
+
+		console.log("sell", data)
+		try {
+			await this.prisma.$transaction(
+				async tx => {
+					await this.updateTokenAfterTransactionRaydium(data.tokenIn, data, tx)
+					const txCreateInput: Prisma.TokenTransactionCreateInput = {
+						signature: data.signature,
+						network: "Solana",
+						type: "Sell",
+						date: DateTime.fromSeconds(Number(data.time)).toJSDate(),
+						token: {
+							connect: {
+								address: data.tokenIn
+							}
+						},
+						price: data.price,
+						newPrice: data.price,
+						amount: BigInt(data.amountTokenIn),
+						lamports: BigInt(data.amountTokenOut),
+						createdBy: {
+							connect: {
+								address: data.signer
+							}
+						}
+					}
+
+					await this.tokenTxRepository.create(txCreateInput, tx)
+				},
+				{
+					maxWait: 50000, // 5s
+					timeout: 100000, // 10s
+					isolationLevel: Prisma.TransactionIsolationLevel.Serializable
+				}
+			)
+		} catch (e) {
+			Logger.log(e)
+			throw new InternalServerErrorException("Failed to handle buy token")
+		}
+
+		const transaction = {
+			type: TransactionType.SELL,
+			date: DateTime.fromSeconds(Number(data.time)).toJSDate(),
+			signature: data.signature,
+			amount: data.amountTokenIn,
+			lamports: data.amountTokenOut,
+			tokenAddress: data.tokenIn,
+			signer: data.signer,
+			price: data.price,
+			newPrice: data.price,
+			token: plainToInstance(Token, token),
+			createdBy: plainToInstance(User, user)
+		}
+
+		await this.rabbitMQService.emit(
+			"socket",
+			"new-transaction",
+			plainToInstance(TokenTransaction, transaction)
+		)
+
+		// Emit socket -> sicko mode
+		const sickoModeToken = await this.getSickoModeToken(data.tokenIn)
+		if (!sickoModeToken) return
+		await this.rabbitMQService.emit(
+			"socket",
+			"sicko-mode-tx-token",
+			sickoModeToken
+		)
 	}
 
 	async handlerBuyToken(data: BuyTokensEvent) {
@@ -353,6 +540,35 @@ export class StorageIndexerService {
 		updateTokenParams.isCompletedKingOfHill = await this.isKingOfHill(
 			marketCapacity.toString(),
 			token.bondingCurveTarget.toString()
+		)
+
+		await this.tokenRepository.update(address, updateTokenParams, tx)
+	}
+
+	private async updateTokenRaydium(
+		address: string,
+		event: RaydiumEvent,
+		tx?: Prisma.TransactionClient
+	) {
+		const token = await this.tokenRepository.findOneByAddress(address)
+		if (!token) throw new NotFoundException("not found token")
+
+		// const marketCapacity = await this.ponz.calculateMarketcap(address)
+		// if (!marketCapacity)
+		// 	throw new InternalServerErrorException("can not get market cap")
+		//
+		const updateTokenParams: Prisma.TokenUpdateInput = {
+			// marketCapacity,
+			// hallOfFame: marketCapacity > BigInt(LAMPORTS_PER_SOL * 75) // 75 sol
+		}
+
+		updateTokenParams.volumn =
+			BigInt(token.volumn) +
+			BigInt(event.type === "Buy" ? event.amountTokenIn : event.amountTokenOut)
+
+		updateTokenParams.price = new Decimal(event.price).toDecimalPlaces(
+			10,
+			Decimal.ROUND_DOWN
 		)
 
 		await this.tokenRepository.update(address, updateTokenParams, tx)

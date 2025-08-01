@@ -15,37 +15,19 @@ export class UserRepository {
 	) {}
 
 	async createIfNotExist(params: CreateUserIfNotExistParams) {
-		const user = await this.exist(params.address)
-
-		if (!user) {
-			return this.redis.setFunc(
-				`user-exist:${params.address}`,
-				async () => {
-					return this.prisma.user.create({
-						data: {
-							address: params.address,
-							username: params.address.slice(0, 8)
-						}
-					})
-				},
-				5
-			)
-		}
-
-		return user
-	}
-
-	async exist(address: string) {
-		return this.redis.getOrSet(
-			`user-exist:${address}`,
+		return this.redis.setFunc(
+			`user-exist:${params.address}`,
 			async () => {
-				return this.prisma.user.findFirst({
-					where: {
-						address
-					}
+				return this.prisma.user.upsert({
+					where: { address: params.address },
+					create: {
+						address: params.address,
+						username: params.address.slice(0, 8)
+					},
+					update: {}
 				})
 			},
-			3
+			5
 		)
 	}
 

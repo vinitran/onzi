@@ -12,6 +12,7 @@ import {
 	RemoveLiquidityEvent,
 	SellTokensEvent
 } from "@root/programs/ponz/events"
+import { RaydiumEvent } from "@root/programs/raydium/program"
 
 @Controller()
 export class IndexerController {
@@ -54,6 +55,42 @@ export class IndexerController {
 			channel.ack(originalMsg, false)
 		} catch (error) {
 			Logger.error(error, "buy token")
+			throw error
+		}
+	}
+
+	@EventPattern(EVENTS.BuyTokensRaydium)
+	async handleBuyTokenRaydium(
+		@Payload() data: RaydiumEvent,
+		@Ctx() context: RmqContext
+	) {
+		const channel = context.getChannelRef()
+		const originalMsg = context.getMessage()
+		channel.prefetch(1, false)
+
+		try {
+			await this.indexerService.handlerBuyTokenRaydium(data)
+			channel.ack(originalMsg)
+		} catch (error) {
+			Logger.error(error, "buy token")
+			throw error
+		}
+	}
+
+	@EventPattern(EVENTS.SellTokensRaydium)
+	async handlerSellTokenRaydium(
+		@Payload() data: RaydiumEvent,
+		@Ctx() context: RmqContext
+	) {
+		const channel = context.getChannelRef()
+		const originalMsg = context.getMessage()
+		channel.prefetch(1, false)
+
+		try {
+			await this.indexerService.handlerSellTokenRaydium(data)
+			channel.ack(originalMsg)
+		} catch (error) {
+			Logger.error(error, "sell token")
 			throw error
 		}
 	}

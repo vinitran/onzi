@@ -57,6 +57,8 @@ export const EVENTS = {
 	CreateToken: "createTokenEvent",
 	BuyTokens: "buyEvent",
 	SellTokens: "sellEvent",
+	BuyTokensRaydium: "buyEventRaydium",
+	SellTokensRaydium: "sellEventRaydium",
 	CompleteBondingCurve: "bondingCurveCompletedEvent",
 	RemoveLiquidity: "removeLiquidityEvent"
 } as const

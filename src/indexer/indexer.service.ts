@@ -16,7 +16,7 @@ import {
 	SellTokensEvent
 } from "@root/programs/ponz/events"
 import { Ponz } from "@root/programs/ponz/program"
-import { Raydium } from "@root/programs/raydium/program"
+import { Raydium, RaydiumEvent } from "@root/programs/raydium/program"
 import axios from "axios"
 import WebSocket from "ws"
 
@@ -40,6 +40,32 @@ export class IndexerService {
 		private readonly tokenTransactionRepository: TokenTransactionRepository,
 		private readonly rabbitMQService: RabbitMQService
 	) {}
+
+	private async handleRaydiumEvents(data: RaydiumEvent) {
+		switch (data.type) {
+			case "Buy":
+				if (await this.isExistEvent(data.signature, data.type)) {
+					break
+				}
+				await this.rabbitMQService.emit(
+					"blockchain",
+					EVENTS.BuyTokensRaydium,
+					data
+				)
+				break
+
+			case "Sell":
+				if (await this.isExistEvent(data.signature, data.type)) {
+					break
+				}
+				await this.rabbitMQService.emit(
+					"blockchain",
+					EVENTS.SellTokensRaydium,
+					data
+				)
+				break
+		}
+	}
 
 	private async handlePonzEvents(logData: Event[], signature: string) {
 		try {
@@ -198,7 +224,9 @@ export class IndexerService {
 		})
 
 		subcribe(this.env.RAYDIUM_CONTRACT_ADDRESS, async signature => {
-			await this.raydium.handleSwapFromSignature(signature)
+			const data = await this.raydium.handleSwapFromSignature(signature)
+			if (!data) return
+			await this.handleRaydiumEvents(data)
 		})
 	}
 

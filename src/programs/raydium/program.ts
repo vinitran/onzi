@@ -52,22 +52,24 @@ interface IToken {
 	program: PublicKey
 	amount: BN
 }
-type SwapDirection = "Buy" | "Sell"
-
-interface ISwapDetail {
-	signer?: string
-	direction?: SwapDirection
-	tokenIn?: string
-	tokenOut?: string
-	amountIn: number
-	amountOut: number
-}
 
 interface TransferInfo {
 	mint: string
 	amount: number
 	source: string
 	destination: string
+}
+
+export type RaydiumEvent = {
+	signer: string
+	tokenIn: string
+	tokenOut: string
+	amountTokenIn: string
+	amountTokenOut: string
+	signature: string
+	price: string
+	time: string
+	type: "Buy" | "Sell"
 }
 
 @Injectable()
@@ -104,21 +106,30 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 			return
 		}
 
-		const data = await this.parseSwapDetailFromLogsAndTx(logs, tx)
+		const data = this.parseSwapDetailFromLogsAndTx(logs, tx)
 		if (!data) {
 			return
 		}
+
+		return {
+			tokenIn: data.tokenIn!,
+			tokenOut: data.tokenOut!,
+			amountTokenIn: data.amountIn.toString(),
+			amountTokenOut: data.amountOut.toString(),
+			signer: data.signer!,
+			signature: signature,
+			type: data.direction,
+			price:
+				data.direction === "Buy"
+					? (data.amountIn / data.amountOut).toString()
+					: (data.amountOut / data.amountIn).toString(),
+			time: tx.blockTime?.toString()
+		} as RaydiumEvent
 	}
 
-	parseSwapDetailFromLogsAndTx(
-		logs: string[],
-		tx: ParsedTransactionWithMeta
-	): ISwapDetail | undefined {
-		let direction: SwapDirection
+	parseSwapDetailFromLogsAndTx(logs: string[], tx: ParsedTransactionWithMeta) {
 		if (logs.some(l => l.includes("Instruction: SwapBaseInput"))) {
-			direction = "Buy"
 		} else if (logs.some(l => l.includes("Instruction: SwapQuoteInput"))) {
-			direction = "Sell"
 		} else {
 			return
 		}
@@ -127,9 +138,10 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 		const signer = this.detectUserAddress(transfers)
 		const { tokenIn, tokenOut, amountIn, amountOut } =
 			this.getSwapDetailFromTransfers(transfers, signer)
+
 		return {
 			signer,
-			direction,
+			direction: tokenIn === NATIVE_MINT.toString() ? "Buy" : "Sell",
 			tokenIn,
 			tokenOut,
 			amountIn,
