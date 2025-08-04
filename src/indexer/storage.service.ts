@@ -249,7 +249,6 @@ export class StorageIndexerService {
 			return
 		}
 
-		console.log("sell", data)
 		try {
 			await this.prisma.$transaction(
 				async tx => {

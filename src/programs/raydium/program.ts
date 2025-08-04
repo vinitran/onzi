@@ -60,6 +60,15 @@ interface TransferInfo {
 	destination: string
 }
 
+export type SwapInfor = {
+	type: "Buy" | "Sell"
+	signer: string
+	amountIn: number
+	amountOut: number
+	tokenIn: string
+	tokenOut: string
+}
+
 export type RaydiumEvent = {
 	signer: string
 	tokenIn: string
@@ -106,28 +115,31 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 			return
 		}
 
-		const data = this.parseSwapDetailFromLogsAndTx(logs, tx)
+		const data = await this.parseSwapDetailFromLogsAndTx(logs, tx)
 		if (!data) {
 			return
 		}
 
 		return {
-			tokenIn: data.tokenIn!,
-			tokenOut: data.tokenOut!,
+			tokenIn: data.tokenIn,
+			tokenOut: data.tokenOut,
 			amountTokenIn: data.amountIn.toString(),
 			amountTokenOut: data.amountOut.toString(),
-			signer: data.signer!,
+			signer: data.signer,
 			signature: signature,
-			type: data.direction,
+			type: data.type,
 			price:
-				data.direction === "Buy"
+				data.type === "Buy"
 					? (data.amountIn / data.amountOut).toString()
 					: (data.amountOut / data.amountIn).toString(),
 			time: tx.blockTime?.toString()
 		} as RaydiumEvent
 	}
 
-	parseSwapDetailFromLogsAndTx(logs: string[], tx: ParsedTransactionWithMeta) {
+	async parseSwapDetailFromLogsAndTx(
+		logs: string[],
+		tx: ParsedTransactionWithMeta
+	) {
 		if (logs.some(l => l.includes("Instruction: SwapBaseInput"))) {
 		} else if (logs.some(l => l.includes("Instruction: SwapQuoteInput"))) {
 		} else {
@@ -135,71 +147,51 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 		}
 
 		const transfers = this.extractTransfersFromTx(tx)
-		const signer = this.detectUserAddress(transfers)
-		const { tokenIn, tokenOut, amountIn, amountOut } =
-			this.getSwapDetailFromTransfers(transfers, signer)
+
+		if (transfers.length !== 2) return
+
+		if (transfers[0].mint === NATIVE_MINT.toString()) {
+			return {
+				type: "Buy",
+				tokenIn: transfers[0].mint,
+				tokenOut: transfers[1].mint,
+				amountIn: transfers[0].amount,
+				amountOut: transfers[1].amount,
+				signer: await this.getTokenAccountOwner(transfers[1].destination)
+			} as SwapInfor
+		}
 
 		return {
-			signer,
-			direction: tokenIn === NATIVE_MINT.toString() ? "Buy" : "Sell",
-			tokenIn,
-			tokenOut,
-			amountIn,
-			amountOut
+			type: "Sell",
+			tokenOut: transfers[1].mint,
+			tokenIn: transfers[0].mint,
+			amountIn: transfers[0].amount,
+			amountOut: transfers[1].amount,
+			signer: await this.getTokenAccountOwner(transfers[0].source)
 		}
 	}
 
-	getSwapDetailFromTransfers(
-		transfers: TransferInfo[],
-		user: string | undefined
-	): {
-		tokenIn?: string
-		tokenOut?: string
-		amountIn: number
-		amountOut: number
-	} {
-		let tokenIn: string | undefined
-		let tokenOut: string | undefined
-		let amountIn = 0
-		let amountOut = 0
-		if (user) {
-			// Input: transfer từ user
-			const inTransfers = transfers.filter(t => t.source === user)
-			if (inTransfers.length > 0) {
-				const maxIn = inTransfers.reduce((a, b) =>
-					a.amount > b.amount ? a : b
-				)
-				tokenIn = maxIn.mint
-				amountIn = maxIn.amount
+	async getTokenAccountOwner(account: string): Promise<string | null> {
+		try {
+			const pubkey = new PublicKey(account)
+			const info = await this.connection.getParsedAccountInfo(pubkey)
+
+			if (!info.value) {
+				console.error("Account not found")
+				return null
 			}
-			// Output: transfer lớn nhất còn lại có mint khác tokenIn
-			if (tokenIn) {
-				const outTransfer = transfers
-					.filter(t => t.mint !== tokenIn)
-					.sort((a, b) => b.amount - a.amount)[0]
-				if (outTransfer) {
-					tokenOut = outTransfer.mint
-					amountOut = outTransfer.amount
-				}
+
+			const data = info.value.data
+			if ("parsed" in data && data.parsed.type === "account") {
+				return data.parsed.info.owner as string
 			}
-		} else {
-			// Fallback: lấy transfer lớn nhất mỗi chiều
-			if (transfers.length > 0) {
-				const maxIn = transfers.reduce((a, b) => (a.amount > b.amount ? a : b))
-				tokenIn = maxIn.mint
-				amountIn = maxIn.amount
-			}
-			if (tokenIn) {
-				const outTransfer = transfers
-					.filter(t => t.mint !== tokenIn)
-					.sort((a, b) => b.amount - a.amount)[0]
-				if (outTransfer) {
-					tokenOut = outTransfer.mint
-					amountOut = outTransfer.amount
-				}
-			}
+
+			console.error("Not a valid SPL Token account")
+			return null
+		} catch (err) {
+			console.error("Error fetching account:", err)
+			return null
 		}
-		return { tokenIn, tokenOut, amountIn, amountOut }
 	}
 
 	extractTransfersFromTx(tx: ParsedTransactionWithMeta): TransferInfo[] {
@@ -236,33 +228,6 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 			}
 		}
 		return transfers
-	}
-
-	detectUserAddress(transfers: TransferInfo[]): string | undefined {
-		const accountCount: Record<
-			string,
-			{ source: number; destination: number }
-		> = {}
-		for (const t of transfers) {
-			if (!accountCount[t.source])
-				accountCount[t.source] = { source: 0, destination: 0 }
-			if (!accountCount[t.destination])
-				accountCount[t.destination] = { source: 0, destination: 0 }
-			accountCount[t.source].source++
-			accountCount[t.destination].destination++
-		}
-		const userCandidates = Object.entries(accountCount)
-			.filter(
-				([_k, v]) =>
-					(v.source === 1 && v.destination === 0) ||
-					(v.destination === 1 && v.source === 0)
-			)
-			.map(([k]) => k)
-		let user: string | undefined = userCandidates.find(u =>
-			transfers.some(t => t.source === u)
-		)
-		if (!user) user = userCandidates[0]
-		return user
 	}
 
 	async createNewPair(
