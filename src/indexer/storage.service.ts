@@ -552,12 +552,14 @@ export class StorageIndexerService {
 		const token = await this.tokenRepository.findOneByAddress(address)
 		if (!token) throw new NotFoundException("not found token")
 
-		// const marketCapacity = await this.ponz.calculateMarketcap(address)
+		const marketCapacity = BigInt(
+			Math.floor(Number(event.price) * 1_000_000_000)
+		)
 		// if (!marketCapacity)
 		// 	throw new InternalServerErrorException("can not get market cap")
 		//
 		const updateTokenParams: Prisma.TokenUpdateInput = {
-			// marketCapacity,
+			marketCapacity
 			// hallOfFame: marketCapacity > BigInt(LAMPORTS_PER_SOL * 75) // 75 sol
 		}
 

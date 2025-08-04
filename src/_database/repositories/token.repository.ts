@@ -421,6 +421,9 @@ export class TokenRepository {
 			...(query.burn && {
 				burnTax: { gt: 0 }
 			}),
+			...(query.jackpot && {
+				jackpotTax: { gt: 0 }
+			}),
 			...(query.lock && {
 				lockAmount: { gt: 0 }
 			}),
@@ -1573,6 +1576,7 @@ export class TokenRepository {
 					LEFT JOIN token_favorite f ON f.token_address = t.address${userAddress ? ` AND f.user_address = '${userAddress}'` : ""}
 				WHERE t.is_deleted = false 
 					${query.burn ? "AND t.burn_tax > 0" : " "}
+					${query.jackpot ? "AND t.jackpot_tax > 0" : " "}
 					${query.lock ? "AND t.lock_amount > 0" : " "}
 					${query.lightning ? "AND t.isCompletedBondingCurve = TRUE" : " "}
 					${query.reward ? "AND t.reward_tax > 0" : " "}
