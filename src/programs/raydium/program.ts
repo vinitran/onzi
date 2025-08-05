@@ -151,23 +151,27 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 		if (transfers.length !== 2) return
 
 		if (transfers[0].mint === NATIVE_MINT.toString()) {
+			const signer = await this.getTokenAccountOwner(transfers[1].destination)
+			if (!signer) return
 			return {
 				type: "Buy",
 				tokenIn: transfers[0].mint,
 				tokenOut: transfers[1].mint,
 				amountIn: transfers[0].amount,
 				amountOut: transfers[1].amount,
-				signer: await this.getTokenAccountOwner(transfers[1].destination)
+				signer
 			} as SwapInfor
 		}
 
+		const signer = await this.getTokenAccountOwner(transfers[0].source)
+		if (!signer) return
 		return {
 			type: "Sell",
 			tokenOut: transfers[1].mint,
 			tokenIn: transfers[0].mint,
 			amountIn: transfers[0].amount,
 			amountOut: transfers[1].amount,
-			signer: await this.getTokenAccountOwner(transfers[0].source)
+			signer
 		}
 	}
 
@@ -218,6 +222,7 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 						amount = Number(info.tokenAmount.amount)
 					}
 					if (!amount) continue
+
 					transfers.push({
 						mint,
 						amount,

@@ -26,7 +26,10 @@ export class ScannerJobs implements OnModuleInit {
 
 	@Cron(CronExpression.EVERY_MINUTE)
 	async run() {
-		await this.indexer.scannerSolana()
+		await Promise.all([
+			await this.indexer.scannerPonz(),
+			await this.indexer.scannerRaydium()
+		])
 	}
 
 	@Cron(CronExpression.EVERY_MINUTE)

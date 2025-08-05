@@ -6,7 +6,6 @@ import { TokenTransactionRepository } from "@root/_database/repositories/token-t
 import { Env, InjectEnv } from "@root/_env/env.module"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
 import { SETTING_KEYS } from "@root/_shared/constants/setting"
-import { TokenAccountResponse } from "@root/indexer/dtos/tokenAccount.dto"
 import {
 	BuyTokensEvent,
 	CompleteBondingCurveEvent,
@@ -17,20 +16,12 @@ import {
 } from "@root/programs/ponz/events"
 import { Ponz } from "@root/programs/ponz/program"
 import { Raydium, RaydiumEvent } from "@root/programs/raydium/program"
-import axios from "axios"
 import WebSocket from "ws"
 
 @Injectable()
 export class IndexerService {
-	private HELIUS_RPC =
-		this.env.IS_TEST === "true"
-			? `https://devnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
-			: `https://mainnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
-
-	private HELIUS_WS =
-		this.env.IS_TEST === "true"
-			? `wss://devnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
-			: `wss://mainnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
+	private HELIUS_RPC: string
+	private HELIUS_WS: string
 
 	constructor(
 		@InjectEnv() private env: Env,
@@ -39,7 +30,17 @@ export class IndexerService {
 		private readonly settingRepository: SettingRepository,
 		private readonly tokenTransactionRepository: TokenTransactionRepository,
 		private readonly rabbitMQService: RabbitMQService
-	) {}
+	) {
+		this.HELIUS_RPC =
+			this.env.IS_TEST === "true"
+				? `https://devnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
+				: `https://mainnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
+
+		this.HELIUS_WS =
+			this.env.IS_TEST === "true"
+				? `wss://devnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
+				: `wss://mainnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
+	}
 
 	private async handleRaydiumEvents(data: RaydiumEvent) {
 		switch (data.type) {
@@ -218,21 +219,25 @@ export class IndexerService {
 			})
 		}
 
-		subcribe(this.env.CONTRACT_ADDRESS, async (signature, logs) => {
-			const logData = Array.from(this.ponz.parseLogs(logs))
-			await this.handlePonzEvents(logData, signature)
-		})
+		subcribe(this.env.CONTRACT_ADDRESS, this.getPonzLogs)
 
-		subcribe(this.env.RAYDIUM_CONTRACT_ADDRESS, async signature => {
-			const data = await this.raydium.handleSwapFromSignature(signature)
-			if (!data) return
-			await this.handleRaydiumEvents(data)
-		})
+		subcribe(this.env.RAYDIUM_CONTRACT_ADDRESS, this.getRaydiumLogs)
 	}
 
-	async scannerSolana() {
+	getPonzLogs = async (signature: string, logs?: string[]) => {
+		const logData = Array.from(this.ponz.parseLogs(logs!))
+		await this.handlePonzEvents(logData, signature)
+	}
+
+	getRaydiumLogs = async (signature: string, _logs?: string[]) => {
+		const data = await this.raydium.handleSwapFromSignature(signature)
+		if (!data) return
+		await this.handleRaydiumEvents(data)
+	}
+
+	async scannerPonz() {
 		const setting = await this.settingRepository.findByKey(
-			SETTING_KEYS.LATEST_SIGNATURE_SCANNED
+			SETTING_KEYS.LATEST_SIGNATURE_SCANNED_PONZ
 		)
 
 		let latestSignatureScanned: string
@@ -243,44 +248,45 @@ export class IndexerService {
 			latestSignatureScanned = this.env.PONZ_DEPLOYED_SIGNATURE
 
 			await this.settingRepository.set(
-				SETTING_KEYS.LATEST_SIGNATURE_SCANNED,
+				SETTING_KEYS.LATEST_SIGNATURE_SCANNED_PONZ,
 				latestSignatureScanned
 			)
 		}
 
-		await this.fetchSignatures(latestSignatureScanned)
+		await this.fetchSignatures(
+			latestSignatureScanned,
+			this.env.CONTRACT_ADDRESS,
+			SETTING_KEYS.LATEST_SIGNATURE_SCANNED_PONZ,
+			this.getPonzLogs,
+			this.processSignatures
+		)
 	}
 
-	async getUserTokenAccounts(
-		owner: string,
-		page = 1,
-		limit = 100
-	): Promise<TokenAccountResponse> {
-		try {
-			const response = await axios.post(
-				this.HELIUS_RPC,
-				{
-					jsonrpc: "2.0",
-					id: "",
-					method: "getTokenAccounts",
-					params: {
-						owner,
-						page,
-						limit
-					}
-				},
-				{
-					headers: {
-						"Content-Type": "application/json"
-					}
-				}
-			)
+	async scannerRaydium() {
+		const setting = await this.settingRepository.findByKey(
+			SETTING_KEYS.LATEST_SIGNATURE_SCANNED_RAYDIUM
+		)
 
-			return response.data.result
-		} catch (error) {
-			console.error("Error fetching token accounts:", error)
-			throw error
+		let latestSignatureScanned: string
+
+		if (setting?.value) {
+			latestSignatureScanned = setting.value
+		} else {
+			latestSignatureScanned = this.env.PONZ_DEPLOYED_SIGNATURE
+
+			await this.settingRepository.set(
+				SETTING_KEYS.LATEST_SIGNATURE_SCANNED_RAYDIUM,
+				latestSignatureScanned
+			)
 		}
+
+		await this.fetchSignatures(
+			latestSignatureScanned,
+			this.env.RAYDIUM_CONTRACT_ADDRESS,
+			SETTING_KEYS.LATEST_SIGNATURE_SCANNED_RAYDIUM,
+			this.getRaydiumLogs,
+			this.processSignatures
+		)
 	}
 
 	private async isExistEvent(signature: string, type: TransactionType) {
@@ -292,7 +298,16 @@ export class IndexerService {
 		return !!tokenBySig
 	}
 
-	private async fetchSignatures(fromSignature: string) {
+	private async fetchSignatures(
+		fromSignature: string,
+		address: string,
+		key: string,
+		getLogsFunc: (signature: string, logs?: string[]) => Promise<void>,
+		getSignatureFunc: (
+			signatures: string[],
+			getLogsFunc: (signature: string, logs?: string[]) => Promise<void>
+		) => Promise<void>
+	) {
 		let currentSignature = fromSignature
 		let hasMore = true
 
@@ -302,7 +317,7 @@ export class IndexerService {
 				id: "1",
 				method: "getSignaturesForAddress",
 				params: [
-					this.env.CONTRACT_ADDRESS,
+					address,
 					{
 						commitment: "finalized",
 						limit: 1000,
@@ -335,15 +350,12 @@ export class IndexerService {
 					)
 
 				if (nonExistentSignatures.length > 0) {
-					await this.processSignatures(nonExistentSignatures)
+					await getSignatureFunc(nonExistentSignatures, getLogsFunc)
 				}
 
 				// Update the latest signature scanned
 				const latestSignature = signatures[signatures.length - 1]
-				await this.settingRepository.set(
-					SETTING_KEYS.LATEST_SIGNATURE_SCANNED,
-					latestSignature
-				)
+				await this.settingRepository.set(key, latestSignature)
 
 				// If we got less than 1000 results, we've reached the end
 				if (result.length < 1000 || nonExistentSignatures.length === 0) {
@@ -359,7 +371,10 @@ export class IndexerService {
 		}
 	}
 
-	private async processSignatures(signatures: string[]) {
+	private processSignatures = async (
+		signatures: string[],
+		func: (signature: string, logs?: string[]) => Promise<void>
+	) => {
 		for (const signature of signatures) {
 			try {
 				const payload = {
@@ -391,8 +406,7 @@ export class IndexerService {
 
 				if (!result?.meta?.logMessages) continue
 
-				const logData = Array.from(this.ponz.parseLogs(result.meta.logMessages))
-				await this.handlePonzEvents(logData, signature)
+				await func(signature, result.meta.logMessages)
 			} catch (error) {
 				console.error(`Error processing signature ${signature}:`, error)
 			}
