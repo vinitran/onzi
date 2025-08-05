@@ -95,11 +95,21 @@ export class JackpotController {
 		await this.redis.set(this.redisKey(data.idPayload), "true", 600)
 
 		try {
-			const [keyWithHeld, poolAddress, bondingCurve] = await Promise.all([
-				this.tokenKeyWithHeld.find(data.id),
-				this.raydium.fetchPoolAddress(NATIVE_MINT, new PublicKey(data.address)),
-				this.ponz.getBondingCurve(new PublicKey(data.address))
-			])
+			const [token, keyWithHeld, poolAddress, bondingCurve] = await Promise.all(
+				[
+					await this.tokenRepository.getTaxByID(data.id),
+					this.tokenKeyWithHeld.find(data.id),
+					this.raydium.fetchPoolAddress(
+						NATIVE_MINT,
+						new PublicKey(data.address)
+					),
+					this.ponz.getBondingCurve(new PublicKey(data.address))
+				]
+			)
+
+			if (!token) {
+				throw new NotFoundException("not found token")
+			}
 
 			if (!keyWithHeld) {
 				throw new NotFoundException("not found key with held")
@@ -114,6 +124,22 @@ export class JackpotController {
 					holder.address !== bondingCurve?.toBase58() &&
 					holder.address !== this.env.RAYDIUM_TOKEN_POOL_ADDRESS
 			)
+
+			if (token.lockAmount) {
+				const creatorIndex = listHolders.findIndex(
+					h => h.address === token.creatorAddress
+				)
+
+				if (creatorIndex === -1) {
+					listHolders.push({
+						address: token.creatorAddress,
+						amount: token.lockAmount
+					})
+				} else {
+					listHolders[creatorIndex].amount =
+						listHolders[creatorIndex].amount + token.lockAmount
+				}
+			}
 
 			for (let i = 0; i < data.times; i++) {
 				// Get random user from holders
