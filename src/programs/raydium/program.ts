@@ -373,6 +373,14 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 		tx.feePayer = creator.publicKey
 		tx.sign(creator)
 
+		const simulationResult = await this.connection.simulateTransaction(tx)
+
+		if (simulationResult.value.err) {
+			throw new InternalServerErrorException(
+				`faild to simulate token:${simulationResult.value.err}`
+			)
+		}
+
 		const txSig = await this.connection.sendRawTransaction(tx.serialize(), {
 			skipPreflight: true,
 			maxRetries: 5
@@ -455,8 +463,10 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 			creator.publicKey
 		)
 
-		const lpMintAtaAccount =
-			await this.connection.getTokenAccountBalance(lpMintAta)
+		const [lpMintAtaAccount, tokenAccount] = await Promise.all([
+			this.connection.getTokenAccountBalance(lpMintAta),
+			this.findTokenAccountAndBalance(creator.publicKey, tokenAddress)
+		])
 
 		// Burn entire the amount in the creator's lpMintAta
 		const tx = new Transaction().add(
@@ -469,9 +479,30 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 			)
 		)
 
+		if (tokenAccount) {
+			tx.add(
+				createBurnCheckedInstruction(
+					tokenAccount.address,
+					tokenAddress,
+					creator.publicKey,
+					BigInt(tokenAccount.balance),
+					6,
+					[],
+					TOKEN_2022_PROGRAM_ID
+				)
+			)
+		}
+
 		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
 		tx.feePayer = creator.publicKey
 		tx.sign(creator)
+
+		const simulationResult = await this.connection.simulateTransaction(tx)
+		if (simulationResult.value.err) {
+			throw new InternalServerErrorException(
+				`faild to simulate token:${simulationResult.value.err}`
+			)
+		}
 
 		const txSig = await this.connection.sendRawTransaction(tx.serialize(), {
 			skipPreflight: true,
@@ -480,6 +511,25 @@ export class Raydium extends SolanaProgram<RaydiumCpSwap> {
 
 		await this.connection.confirmTransaction(txSig, "confirmed")
 		return txSig
+	}
+
+	async findTokenAccountAndBalance(owner: PublicKey, mint: PublicKey) {
+		const accounts = await this.connection.getParsedTokenAccountsByOwner(
+			owner,
+			{ mint }
+		)
+
+		if (accounts.value.length === 0) {
+			return
+		}
+
+		const acc = accounts.value[0]
+		const balance = acc.account.data.parsed.info.tokenAmount.amount || 0
+
+		return {
+			address: acc.pubkey,
+			balance
+		}
 	}
 
 	async createAmmConfig(

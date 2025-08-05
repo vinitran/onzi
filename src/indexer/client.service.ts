@@ -165,7 +165,7 @@ export class IndexerClientService {
 			new PublicKey(data.mint),
 			systemWalletKeypair
 		)
-		Logger.log("Transaction burn liquidity", txSignBurnLPT)
+		Logger.log(txSignBurnLPT, "Transaction burn liquidity")
 
 		try {
 			await this.prisma.$transaction(
