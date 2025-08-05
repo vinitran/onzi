@@ -1573,7 +1573,9 @@ export class TokenRepository {
 						LIMIT 1
       ) tx_latest ON true
 					LEFT JOIN "user" u ON u.address = t.creator_address
-					LEFT JOIN token_favorite f ON f.token_address = t.address${userAddress ? ` AND f.user_address = '${userAddress}'` : ""}
+					LEFT JOIN token_favorite f
+					ON f.token_address = t.address
+					AND (${userAddress ? `f.user_address = '${userAddress}'` : "1=0"})
 				WHERE t.is_deleted = false 
 					${query.burn ? "AND t.burn_tax > 0" : " "}
 					${query.jackpot ? "AND t.jackpot_tax > 0" : " "}
