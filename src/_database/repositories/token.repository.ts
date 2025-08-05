@@ -649,7 +649,8 @@ export class TokenRepository {
 				id: true,
 				address: true,
 				bondingCurveTarget: true,
-				volumn: true
+				volumn: true,
+				totalSupply: true
 			}
 		})
 	}

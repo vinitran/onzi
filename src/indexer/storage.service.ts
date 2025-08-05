@@ -552,9 +552,9 @@ export class StorageIndexerService {
 		const token = await this.tokenRepository.findOneByAddress(address)
 		if (!token) throw new NotFoundException("not found token")
 
-		const marketCapacity = BigInt(
-			Math.floor(Number(event.price) * 1_000_000_000)
-		)
+		const marketCapacity =
+			BigInt(Math.floor(Number(event.price) * LAMPORTS_PER_SOL)) *
+			token.totalSupply
 		// if (!marketCapacity)
 		// 	throw new InternalServerErrorException("can not get market cap")
 		//
