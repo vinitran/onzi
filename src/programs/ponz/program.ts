@@ -267,7 +267,7 @@ export class Ponz extends SolanaProgram<PonzSc> {
 			.buyLock(
 				new BN(data.amountSol),
 				new BN(data.minTokenOut),
-				data.lockPercent,
+				new BN(data.lockPercent),
 				new BN(data.lockTime)
 			)
 			.accountsPartial({

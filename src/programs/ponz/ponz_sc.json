@@ -1,5 +1,5 @@
 {
-	"address": "ponzYmmBCnMqAsAACpb9LBhvTja7jPN9NtAY9RWjBuE",
+	"address": "ponzuAh3oKjaSX21GZVVst7vyx3NPSVtj5Ufo8xfFSd",
 	"metadata": {
 		"name": "ponz",
 		"version": "0.1.0",
@@ -350,7 +350,7 @@
 				},
 				{
 					"name": "lock_percent",
-					"type": "f64"
+					"type": "u64"
 				},
 				{
 					"name": "lock_time",
@@ -503,7 +503,7 @@
 				},
 				{
 					"name": "ponz_program",
-					"address": "ponzYmmBCnMqAsAACpb9LBhvTja7jPN9NtAY9RWjBuE"
+					"address": "ponzuAh3oKjaSX21GZVVst7vyx3NPSVtj5Ufo8xfFSd"
 				},
 				{
 					"name": "ponz_program_data"
@@ -1284,6 +1284,11 @@
 			"code": 6027,
 			"name": "DivisionByZero",
 			"msg": "Division by zero"
+		},
+		{
+			"code": 6028,
+			"name": "InvalidTransferFeeBasisPoints",
+			"msg": "Invalid Transfer Fee Basis Points"
 		}
 	],
 	"types": [
@@ -1464,6 +1469,10 @@
 						"type": "u64"
 					},
 					{
+						"name": "bonding_curve_token_sell",
+						"type": "u64"
+					},
+					{
 						"name": "initial_virtual_sol",
 						"type": "u64"
 					},
@@ -1525,6 +1534,10 @@
 					},
 					{
 						"name": "bonding_curve_limitation",
+						"type": "u64"
+					},
+					{
+						"name": "bonding_curve_token_sell",
 						"type": "u64"
 					},
 					{
@@ -1657,6 +1670,10 @@
 					},
 					{
 						"name": "bonding_curve_limitation",
+						"type": "u64"
+					},
+					{
+						"name": "bonding_curve_token_sell",
 						"type": "u64"
 					},
 					{

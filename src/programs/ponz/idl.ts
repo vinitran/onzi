@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/ponz.json`.
  */
 export type PonzSc = {
-	address: "ponzYmmBCnMqAsAACpb9LBhvTja7jPN9NtAY9RWjBuE"
+	address: "ponzuAh3oKjaSX21GZVVst7vyx3NPSVtj5Ufo8xfFSd"
 	metadata: {
 		name: "ponz"
 		version: "0.1.0"
@@ -494,7 +494,7 @@ export type PonzSc = {
 				},
 				{
 					name: "lockPercent"
-					type: "f64"
+					type: "u64"
 				},
 				{
 					name: "lockTime"
@@ -683,7 +683,7 @@ export type PonzSc = {
 				},
 				{
 					name: "ponzProgram"
-					address: "ponzYmmBCnMqAsAACpb9LBhvTja7jPN9NtAY9RWjBuE"
+					address: "ponzuAh3oKjaSX21GZVVst7vyx3NPSVtj5Ufo8xfFSd"
 				},
 				{
 					name: "ponzProgramData"
@@ -1720,6 +1720,11 @@ export type PonzSc = {
 			code: 6027
 			name: "divisionByZero"
 			msg: "Division by zero"
+		},
+		{
+			code: 6028
+			name: "invalidTransferFeeBasisPoints"
+			msg: "Invalid Transfer Fee Basis Points"
 		}
 	]
 	types: [
@@ -1900,6 +1905,10 @@ export type PonzSc = {
 						type: "u64"
 					},
 					{
+						name: "bondingCurveTokenSell"
+						type: "u64"
+					},
+					{
 						name: "initialVirtualSol"
 						type: "u64"
 					},
@@ -1961,6 +1970,10 @@ export type PonzSc = {
 					},
 					{
 						name: "bondingCurveLimitation"
+						type: "u64"
+					},
+					{
+						name: "bondingCurveTokenSell"
 						type: "u64"
 					},
 					{
@@ -2093,6 +2106,10 @@ export type PonzSc = {
 					},
 					{
 						name: "bondingCurveLimitation"
+						type: "u64"
+					},
+					{
+						name: "bondingCurveTokenSell"
 						type: "u64"
 					},
 					{
