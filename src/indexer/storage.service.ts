@@ -197,11 +197,6 @@ export class StorageIndexerService {
 			throw new InternalServerErrorException("Failed to handle buy token")
 		}
 
-		// await this.rabbitMQService.emit("socket", "new-candle", {
-		// 	address: data.mint,
-		// 	date: Number(data.timestamp)
-		// })
-
 		const transaction = {
 			type: TransactionType.BUY,
 			date: DateTime.fromSeconds(Number(data.time)).toJSDate(),
@@ -284,7 +279,7 @@ export class StorageIndexerService {
 			)
 		} catch (e) {
 			Logger.log(e)
-			throw new InternalServerErrorException("Failed to handle buy token")
+			throw new InternalServerErrorException("Failed to handle sell token")
 		}
 
 		const transaction = {
@@ -553,11 +548,11 @@ export class StorageIndexerService {
 		if (!token) throw new NotFoundException("not found token")
 
 		const marketCapacity =
-			BigInt(Math.floor(Number(event.price) * LAMPORTS_PER_SOL)) *
-			token.totalSupply
-		// if (!marketCapacity)
+			(BigInt(Math.floor(Number(event.price) * LAMPORTS_PER_SOL)) *
+				BigInt(token.totalSupply.toString())) /
+			BigInt(LAMPORTS_PER_SOL)
 		// 	throw new InternalServerErrorException("can not get market cap")
-		//
+
 		const updateTokenParams: Prisma.TokenUpdateInput = {
 			marketCapacity
 			// hallOfFame: marketCapacity > BigInt(LAMPORTS_PER_SOL * 75) // 75 sol
