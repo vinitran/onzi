@@ -102,25 +102,32 @@ export class SwapController {
 		}
 
 		let txSign = ""
-		// Execute swap based on protocol type (Ponz or Raydium)
-		if (data.type === "ponz") {
-			txSign = await this.ponz.swapToSol(
-				new PublicKey(data.address),
-				keypairFromPrivateKey(keyWithHeld.privateKey),
-				this.systemWalletKeypair,
-				new BN(pending.distributionPending.toString())
-			)
-		}
+		try {
+			// Execute swap based on protocol type (Ponz or Raydium)
+			if (data.type === "ponz") {
+				txSign = await this.ponz.swapToSol(
+					new PublicKey(data.address),
+					keypairFromPrivateKey(keyWithHeld.privateKey),
+					this.systemWalletKeypair,
+					new BN(pending.distributionPending.toString())
+				)
+			}
 
-		if (data.type === "raydium") {
-			txSign = await this.raydium.swap(
-				keypairFromPrivateKey(keyWithHeld.privateKey),
-				this.systemWalletKeypair,
-				new PublicKey(data.address),
-				new BN(data.amount),
-				new BN(10000),
-				false,
-				2000
+			if (data.type === "raydium") {
+				txSign = await this.raydium.swap(
+					keypairFromPrivateKey(keyWithHeld.privateKey),
+					this.systemWalletKeypair,
+					new PublicKey(data.address),
+					new BN(data.amount),
+					new BN(10000),
+					false,
+					2000
+				)
+			}
+		} catch (err) {
+			Logger.error(err)
+			throw new InternalServerErrorException(
+				`can not swap token ${data.address}`
 			)
 		}
 
