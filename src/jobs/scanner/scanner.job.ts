@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from "@nestjs/common"
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common"
 import { Cron, CronExpression } from "@nestjs/schedule"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
@@ -25,11 +25,17 @@ export class ScannerJobs implements OnModuleInit {
 	}
 
 	@Cron(CronExpression.EVERY_MINUTE)
-	async run() {
-		await Promise.all([
-			await this.indexer.scannerPonz(),
-			await this.indexer.scannerRaydium()
-		])
+	async scannerPonz() {
+		Logger.log("starting scan ponz", "scanner")
+		await this.indexer.scannerPonz()
+		Logger.log("ending scan ponz", "scanner")
+	}
+
+	@Cron(CronExpression.EVERY_MINUTE)
+	async scannerRaydium() {
+		Logger.log("starting scan raydium", "scanner")
+		await this.indexer.scannerRaydium()
+		Logger.log("ending scan raydium", "scanner")
 	}
 
 	@Cron(CronExpression.EVERY_MINUTE)

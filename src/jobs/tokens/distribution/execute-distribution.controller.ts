@@ -22,6 +22,7 @@ import bs58 from "bs58"
 export type ExecuteDistributionPayload = {
 	rawTx: string
 	transactions: Transactionspayload[]
+	idPayload: string
 }
 
 export type ExecuteTxWithKeyHeldPayload = {
@@ -137,7 +138,7 @@ export class ExecuteDistributionController {
 		const originalMsg = context.getMessage()
 
 		const id = await this.redis.get(
-			this.executeDistributionRedisKey(data.rawTx)
+			this.executeDistributionRedisKey(data.idPayload)
 		)
 		if (id) {
 			channel.ack(originalMsg, false)
@@ -145,7 +146,7 @@ export class ExecuteDistributionController {
 		}
 
 		await this.redis.set(
-			this.executeDistributionRedisKey(data.rawTx),
+			this.executeDistributionRedisKey(data.idPayload),
 			"true",
 			600
 		)
@@ -199,10 +200,10 @@ export class ExecuteDistributionController {
 			await this.tokentxDistribute.insertManyWithSign(createTokenTxDistribute)
 
 			channel.ack(originalMsg, false)
-			await this.redis.del(this.executeDistributionRedisKey(data.rawTx))
+			await this.redis.del(this.executeDistributionRedisKey(data.idPayload))
 		} catch (error) {
 			Logger.error(error)
-			await this.redis.del(this.executeDistributionRedisKey(data.rawTx))
+			await this.redis.del(this.executeDistributionRedisKey(data.idPayload))
 			throw error
 		}
 	}

@@ -18,6 +18,7 @@ import { PonzVault } from "@root/programs/vault/program"
 import { NATIVE_MINT } from "@solana/spl-token"
 import { Keypair, PublicKey, SystemProgram, Transaction } from "@solana/web3.js"
 import bs58 from "bs58"
+import { v4 as uuidv4 } from "uuid"
 
 export type PrepareRewardDistributionPayload = {
 	id: string
@@ -179,7 +180,8 @@ export class DistributeSolController {
 							verifySignatures: false
 						})
 						.toString("base64"),
-					transactions: createTokenTxDistribute
+					transactions: createTokenTxDistribute,
+					idPayload: uuidv4().toString()
 				} as ExecuteDistributionPayload
 			)
 		}
@@ -220,7 +222,8 @@ export class DistributeSolController {
 							requireAllSignatures: false,
 							verifySignatures: false
 						})
-						.toString("base64")
+						.toString("base64"),
+					idPayload: uuidv4().toString()
 				} as ExecuteDistributionPayload
 			)
 		}

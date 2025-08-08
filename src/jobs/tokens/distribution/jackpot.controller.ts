@@ -17,6 +17,7 @@ import { PonzVault } from "@root/programs/vault/program"
 import { NATIVE_MINT } from "@solana/spl-token"
 import { Keypair, PublicKey, SystemProgram, Transaction } from "@solana/web3.js"
 import bs58 from "bs58"
+import { v4 as uuidv4 } from "uuid"
 
 export type JackpotPayload = {
 	id: string
@@ -180,7 +181,8 @@ export class JackpotController {
 								verifySignatures: false
 							})
 							.toString("base64"),
-						transactions: createTokenTxDistribute
+						transactions: createTokenTxDistribute,
+						idPayload: uuidv4().toString()
 					} as ExecuteDistributionPayload
 				)
 				await this.tokenRepository.resetJackpotQueue(data.id)
