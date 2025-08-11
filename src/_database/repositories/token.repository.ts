@@ -1262,11 +1262,12 @@ export class TokenRepository {
 			this.prisma.$queryRawUnsafe<RawSickoModeType[]>(
 				this.queryFindSickoMode(query, userAddress)
 			),
-			this.prisma.$queryRawUnsafe<number>(
+			this.prisma.$queryRawUnsafe<Array<{ count: bigint }>>(
 				this.queryCountCookingSickoMode(query)
 			)
 		])
-		return { tokens, total }
+
+		return { tokens, total: Number(total?.[0]?.count ?? 0n) }
 	}
 
 	private querySickoModeWhere(query: SickoModeParams, userAddress?: string) {
