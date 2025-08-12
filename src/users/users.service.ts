@@ -65,7 +65,8 @@ export class UsersService {
 						raydiumStatus: true,
 						ticker: true,
 						imageUri: true,
-						price: true
+						price: true,
+						tax: true
 					}
 				}
 			},
