@@ -37,8 +37,8 @@ import { TokensModule } from "./tokens/tokens.module"
 		AdminModule,
 		TokenReportsModule,
 		JobsModule,
-		TelegramFeedbackModule,
 		FeedbackModule,
+		TelegramFeedbackModule,
 		JwtModule.register({
 			global: true
 		})
