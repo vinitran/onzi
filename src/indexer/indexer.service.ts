@@ -221,7 +221,7 @@ export class IndexerService {
 
 		subcribe(this.env.CONTRACT_ADDRESS, this.getPonzLogs)
 
-		subcribe(this.env.RAYDIUM_CONTRACT_ADDRESS, this.getRaydiumLogs)
+		// subcribe(this.env.RAYDIUM_CONTRACT_ADDRESS, this.getRaydiumLogs)
 	}
 
 	getPonzLogs = async (signature: string, logs?: string[]) => {

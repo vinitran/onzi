@@ -1,5 +1,7 @@
 .env
-
+./src/programs/raydium/ids.ts
+./src/programs/raydium/raydium_cp_swap.ts
+.gitignoreg
 # Prisma
 prisma/migrations
 
