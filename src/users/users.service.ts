@@ -263,10 +263,7 @@ export class UsersService {
 	async getSolBalance(userId: string) {
 		const user = await this.userRepository.findById(userId)
 		if (!user) throw new NotFoundException("Not found user")
-
-		// const HELIUS_RPC = `https://mainnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
-		const isDev = this.env.IS_TEST
-
+		const isDev = this.env.IS_TEST === "true"
 		try {
 			const publicKey = new PublicKey(user.address)
 			const connection = new Connection(
@@ -286,8 +283,7 @@ export class UsersService {
 		if (!token) throw new NotFoundException("Not found token")
 		if (!token.bump) throw new BadRequestException("Token is not bumped")
 
-		// const HELIUS_RPC = `https://mainnet.helius-rpc.com/?api-key=${this.env.HELIUS_API_KEY}`
-		const isDev = this.env.IS_TEST
+		const isDev = this.env.IS_TEST === "true"
 
 		try {
 			const mintAddress = new PublicKey(token.address)

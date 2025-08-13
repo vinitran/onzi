@@ -5,6 +5,7 @@ import { TokenKeyWithHeldRepository } from "@root/_database/repositories/token-k
 import { TokenTransactionDistributeRepository } from "@root/_database/repositories/token-tx-distribute"
 import { UserConnectionRepository } from "@root/_database/repositories/user-connection.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
+import { S3Service } from "@root/file/file.service"
 import { PrismaService } from "./prisma.service"
 import { BlockReelCommentRepository } from "./repositories/block-comment-reel.repository"
 import { BlockCommentRepository } from "./repositories/block-comment.repository"
@@ -57,7 +58,7 @@ const repositories = [
 
 @Global()
 @Module({
-	providers: repositories,
+	providers: [...repositories, S3Service],
 	exports: repositories
 })
 export class DatabaseModule {}

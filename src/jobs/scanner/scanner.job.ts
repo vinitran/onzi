@@ -31,12 +31,12 @@ export class ScannerJobs implements OnModuleInit {
 		Logger.log("ending scan ponz", "scanner")
 	}
 
-	@Cron(CronExpression.EVERY_MINUTE)
-	async scannerRaydium() {
-		Logger.log("starting scan raydium", "scanner")
-		await this.indexer.scannerRaydium()
-		Logger.log("ending scan raydium", "scanner")
-	}
+	// @Cron(CronExpression.EVERY_MINUTE)
+	// async scannerRaydium() {
+	// 	Logger.log("starting scan raydium", "scanner")
+	// 	await this.indexer.scannerRaydium()
+	// 	Logger.log("ending scan raydium", "scanner")
+	// }
 
 	@Cron(CronExpression.EVERY_MINUTE)
 	async updateTokenOwner() {

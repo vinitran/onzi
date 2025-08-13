@@ -77,6 +77,10 @@ export class S3Service {
 		}
 	}
 
+	getPermanentFileUrl(key: string) {
+		return `https://${this.env.S3_BUCKET_NAME}.s3.${this.env.S3_REGION}.amazonaws.com/${key}`
+	}
+
 	async getPresignedSignedUrl(key: string) {
 		try {
 			const command = new GetObjectCommand({

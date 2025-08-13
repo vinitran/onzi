@@ -2,6 +2,8 @@ import { Injectable } from "@nestjs/common"
 import { Prisma } from "@prisma/client"
 import { PrismaService } from "@root/_database/prisma.service"
 import { RedisService } from "@root/_redis/redis.service"
+import { randomAvatar } from "@root/_shared/helpers/random-avatar"
+import { S3Service } from "@root/file/file.service"
 
 type CreateUserIfNotExistParams = {
 	address: string
@@ -11,7 +13,8 @@ type CreateUserIfNotExistParams = {
 export class UserRepository {
 	constructor(
 		private prisma: PrismaService,
-		private redis: RedisService
+		private redis: RedisService,
+		private s3Service: S3Service
 	) {}
 
 	async createIfNotExist(params: CreateUserIfNotExistParams) {
@@ -22,7 +25,8 @@ export class UserRepository {
 					where: { address: params.address },
 					create: {
 						address: params.address,
-						username: params.address.slice(0, 8)
+						username: params.address.slice(0, 8),
+						avatarUrl: this.s3Service.getPermanentFileUrl(randomAvatar())
 					},
 					update: {}
 				})
