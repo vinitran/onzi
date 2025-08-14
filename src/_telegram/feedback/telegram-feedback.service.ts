@@ -15,7 +15,6 @@ export class TelegramFeedbackService {
 	async sendMessage(content: string): Promise<any> {
 		try {
 			const groupId = this.env.TELEGRAM_FEEDBACK_GROUP_ID
-
 			return this.bot.telegram.sendMessage(groupId, content, {
 				parse_mode: "Markdown"
 			})

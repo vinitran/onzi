@@ -145,7 +145,7 @@ export class UsersService {
 		}
 
 		const updateUser: Prisma.UserUpdateInput = {
-			bio: payload.bio,
+			bio: payload.bio || "",
 			social: {
 				upsert: {
 					update: social,
