@@ -1365,7 +1365,7 @@ export class TokenRepository {
 
 	private queryFindSickoMode(query: SickoModeParams, userAddress?: string) {
 		return `
-			SELECT
+			SELECT DISTINCT ON (t.id)
 		t.id,
 		t.name,
 		t.address,
