@@ -2,7 +2,8 @@ import { PresignedPost } from "@aws-sdk/s3-presigned-post"
 import { Prisma, Token } from "@prisma/client"
 import {
 	CreateTokenOnchainPayload,
-	CreateTokenPayload
+	CreateTokenPayload,
+	SignedTxPayload
 } from "@root/tokens/dtos/payload.dto"
 
 /* Create token */
@@ -42,6 +43,13 @@ export type ICreateTokenOnchainPayload = {
 	tokenID: string
 	creatorAddress: string
 	data: CreateTokenOnchainPayload
+}
+
+/* Create token onchain */
+export type IBroadcastOnchainPayload = {
+	tokenID: string
+	creatorAddress: string
+	data: SignedTxPayload
 }
 
 export type IGetRealHolderPayload = {

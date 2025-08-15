@@ -9,7 +9,10 @@ import { TokenKeyRepository } from "@root/_database/repositories/token-key.repos
 import { TokenTransactionRepository } from "@root/_database/repositories/token-transaction.repository"
 import { TokenRepository } from "@root/_database/repositories/token.repository"
 import { UserRepository } from "@root/_database/repositories/user.repository"
-import { ICreateTokenOnchainPayload } from "@root/_shared/types/token"
+import {
+	IBroadcastOnchainPayload,
+	ICreateTokenOnchainPayload
+} from "@root/_shared/types/token"
 
 import { BN, web3 } from "@coral-xyz/anchor"
 import { Prisma, Token } from "@prisma/client"
@@ -23,6 +26,7 @@ import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
 import { RedisService } from "@root/_redis/redis.service"
 import { STOP_WORDS, TOKEN_SUMMARY_OPTION } from "@root/_shared/constants/token"
 import {
+	decodeTransaction,
 	encodeTransaction,
 	keypairFromPrivateKey
 } from "@root/_shared/helpers/encode-decode-tx"
@@ -70,6 +74,10 @@ export class TokensService {
 		private readonly tokenKeyWithHeld: TokenKeyWithHeldRepository,
 		private readonly rabbitMQService: RabbitMQService
 	) {}
+
+	private cacheInCreationTx(tokenAddress: string, userAddress: string) {
+		return `creation-token:${tokenAddress}, ${userAddress}`
+	}
 
 	// Create token
 	async createTokenInCache(
@@ -167,14 +175,46 @@ export class TokensService {
 		}
 	}
 
-	async broadcastCreateOnChain(payload: ICreateTokenOnchainPayload) {
+	async submitSignedTxAndSign(payload: IBroadcastOnchainPayload) {
+		// 1) Load cached tx (base64-encoded) built by BE earlier
+		const cachedMsgBase64 = await this.redis.get(
+			this.cacheInCreationTx(payload.tokenID, payload.creatorAddress)
+		)
+		if (!cachedMsgBase64) throw new Error("Transaction expired or not found")
+
+		const userTx = decodeTransaction(payload.data.transaction)
+
+		// 5) Load token + BE signer (if required to co-sign)
+		const token = await this.token.findWithPrivateKey(payload.tokenID)
+		if (!token) throw new NotFoundException("not found token")
+
+		// 7) BE partial-sign if needed (e.g., token key is a required signer)
+		//    If your lauchToken() created a tx requiring tokenKey to sign, sign here
+		const tokenKeypair = keypairFromPrivateKey(token.tokenKey.privateKey)
+		try {
+			userTx.partialSign(tokenKeypair)
+		} catch (e) {
+			// partialSign will succeed only if tokenKeypair is indeed a required signer; otherwise it is a no-op/error
+			throw new InternalServerErrorException(`Failed to sign server key: ${e}`)
+		}
+
+		// 9) Clean up cache (avoid replay)
+		await this.redis.del(
+			this.cacheInCreationTx(payload.tokenID, payload.creatorAddress)
+		)
+
+		// 10) Return the fully assembled transaction so the caller can broadcast
+		//     If you prefer BE to broadcast directly, call your RPC here instead and return the signature
+		return encodeTransaction(userTx)
+	}
+
+	async createTxTokenCreation(payload: ICreateTokenOnchainPayload) {
 		const token = await this.token.findWithPrivateKey(payload.tokenID)
 		if (!token) throw new NotFoundException("not found token")
 
 		if (token.bump)
 			throw new InternalServerErrorException("token already create")
 
-		const tokenKeypair = keypairFromPrivateKey(token.tokenKey.privateKey)
 		const maximumFee = new BN("1000000000000000")
 		const tokenMetadata = {
 			name: token.name,
@@ -194,7 +234,6 @@ export class TokensService {
 				tokenMetadata,
 				new PublicKey(token.address),
 				new PublicKey(payload.creatorAddress),
-				tokenKeypair,
 				new PublicKey(keyWithHeld.publicKey),
 				payload.data
 			)
@@ -212,7 +251,14 @@ export class TokensService {
 			}
 		)
 
-		return encodeTransaction(tx)
+		const encodeTx = encodeTransaction(tx)
+		await this.redis.set(
+			this.cacheInCreationTx(payload.tokenID, payload.creatorAddress),
+			encodeTx,
+			20
+		)
+
+		return encodeTx
 	}
 
 	find(userAddress: string | undefined, params: FindTokenParams) {

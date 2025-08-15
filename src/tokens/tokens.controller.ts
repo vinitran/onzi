@@ -36,6 +36,7 @@ import {
 	ListTransactionParams,
 	PaginateDistributionPayload,
 	SickoModeParams,
+	SignedTxPayload,
 	UpdateTokenPayload
 } from "@root/tokens/dtos/payload.dto"
 import {
@@ -285,7 +286,35 @@ export class TokensController {
 		@Body() payload: CreateTokenOnchainPayload,
 		@User() user: Claims
 	) {
-		const transaction = await this.tokensService.broadcastCreateOnChain({
+		const transaction = await this.tokensService.createTxTokenCreation({
+			creatorAddress: user.address,
+			tokenID: tokenId,
+			data: payload
+		})
+
+		return plainToInstance(
+			CreateTokenOnchainResponse,
+			{ transaction },
+			{
+				excludeExtraneousValues: true
+			}
+		)
+	}
+
+	@Post(":id/broadcast")
+	@Auth()
+	@ApiOperation({ summary: "broadcast token on blockchain" })
+	@ApiResponse({
+		status: 201,
+		description: "broadcast Token on blockchain successfully",
+		type: CreateTokenOnchainResponse
+	})
+	async broadcastOnchain(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) tokenId: string,
+		@Body() payload: SignedTxPayload,
+		@User() user: Claims
+	) {
+		const transaction = await this.tokensService.submitSignedTxAndSign({
 			creatorAddress: user.address,
 			tokenID: tokenId,
 			data: payload

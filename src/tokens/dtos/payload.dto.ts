@@ -546,6 +546,16 @@ export class BuyTokenOnchainPayload {
 	minTokenOut: string
 }
 
+export class SignedTxPayload {
+	@ApiProperty({
+		description: "transaction",
+		example: "abcdxyz123",
+		required: true
+	})
+	@Prop()
+	transaction: string
+}
+
 export class CreateTokenOnchainPayload extends BuyTokenOnchainPayload {
 	@ApiProperty({
 		description: "lock persent",
@@ -579,6 +589,16 @@ export class CreateTokenOnchainPayload extends BuyTokenOnchainPayload {
 			)
 		}
 	}
+}
+
+export class BroadcastOnchainPayload {
+	@ApiProperty({
+		description: "transaction",
+		example: "abcdxyz1234",
+		required: true
+	})
+	@Prop()
+	transaction: string
 }
 
 export class ListTransactionParams extends PaginatedParams {

@@ -89,7 +89,6 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		tokenMetadata: TokenMetadataArgs,
 		mint: web3.PublicKey,
 		user: web3.PublicKey,
-		tokenKeypair: web3.Keypair,
 		withheldAuthority: web3.PublicKey,
 		data: BuyTokenType
 	) {
@@ -98,7 +97,6 @@ export class Ponz extends SolanaProgram<PonzSc> {
 				tokenMetadata,
 				mint,
 				user,
-				tokenKeypair,
 				withheldAuthority,
 				data
 			)
@@ -107,7 +105,6 @@ export class Ponz extends SolanaProgram<PonzSc> {
 			tokenMetadata,
 			mint,
 			user,
-			tokenKeypair,
 			withheldAuthority,
 			data
 		)
@@ -117,7 +114,6 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		tokenMetadata: TokenMetadataArgs,
 		mint: web3.PublicKey,
 		user: web3.PublicKey,
-		tokenKeypair: web3.Keypair,
 		withheldAuthority: web3.PublicKey,
 		data: BuyTokenType
 	): Promise<web3.Transaction> {
@@ -166,7 +162,7 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		tx.add(buyTokenIx)
 		tx.feePayer = user
 		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
-		tx.partialSign(tokenKeypair)
+		// tx.partialSign(tokenKeypair)
 
 		return tx
 	}
@@ -232,7 +228,6 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		tokenMetadata: TokenMetadataArgs,
 		mint: web3.PublicKey,
 		user: web3.PublicKey,
-		tokenKeypair: web3.Keypair,
 		withheldAuthority: web3.PublicKey,
 		data: BuyTokenType
 	): Promise<web3.Transaction> {
@@ -290,7 +285,7 @@ export class Ponz extends SolanaProgram<PonzSc> {
 		tx.add(buyTokenIx)
 		tx.feePayer = user
 		tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash
-		tx.partialSign(tokenKeypair)
+		// tx.partialSign(tokenKeypair)
 
 		return tx
 	}
