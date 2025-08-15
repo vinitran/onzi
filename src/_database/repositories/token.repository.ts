@@ -1423,21 +1423,21 @@ export class TokenRepository {
 		${
 			query.sort === SickoModeType.FAVORITE
 				? `
-			ORDER BY tx_latest.date DESC
+			ORDER BY t.id,tx_latest.date DESC
 		`
 				: ""
 		}
 		${
 			query.sort === SickoModeType.GRADUATING
 				? `
-			ORDER BY t.market_capacity DESC
+			ORDER BY t.id,t.market_capacity DESC
 		`
 				: ""
 		}
 		${
 			query.sort === SickoModeType.NEWEST
 				? `
-			ORDER BY t.created_at DESC
+			ORDER BY t.id,t.created_at DESC
 		`
 				: ""
 		}
