@@ -247,8 +247,7 @@ export class TokenRepository {
 	//   Exclude wallets: bondingCurve, vault, system
 	async getRealTokenOwners({
 		excludeAddresses,
-		tokenAddress,
-		take = 10
+		tokenAddress
 	}: IGetRealHolderPayload) {
 		return this.prisma.tokenOwner.findMany({
 			where: {
@@ -257,7 +256,6 @@ export class TokenRepository {
 					notIn: excludeAddresses
 				}
 			},
-			take,
 			orderBy: {
 				amount: "desc"
 			}

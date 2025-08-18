@@ -405,7 +405,8 @@ export class TokensService {
 		const finalData = await Promise.all(
 			data.map(async token => {
 				const creatorAddress = token.creatorAddress
-				const listRealOwners = await this.getRealTokenOwners({
+				const listRealOwners = await this.token.getRealTokenOwners({
+					excludeAddresses: [],
 					tokenAddress: token.address
 				})
 
@@ -453,30 +454,6 @@ export class TokensService {
 			maxPage,
 			total
 		}
-	}
-
-	//   Exclude wallets: bondingCurve, vault, system
-	async getRealTokenOwners({
-		tokenAddress
-	}: {
-		tokenAddress: string
-	}) {
-		// const mintToken = new PublicKey(tokenAddress)
-		// // Get bondingCurve address
-		// const bondingCurveAddress = this.ponz.bondingCurvePDA(mintToken).toString()
-		// //   Get vault address
-		// const vaultAddress = this.ponzVault
-		// 	.tokenPoolPDA(new PublicKey(tokenAddress))
-		// 	.toString()
-		// //   Get system wallet
-		// const systemWallet = await this.getTokenWithHeld(tokenId)
-
-		const listRealOwners = await this.token.getRealTokenOwners({
-			excludeAddresses: [],
-			tokenAddress: tokenAddress,
-			take: 10
-		})
-		return listRealOwners
 	}
 
 	//   Get image url & authorize data to push image Aws3
