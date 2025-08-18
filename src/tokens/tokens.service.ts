@@ -1,4 +1,5 @@
 import {
+	BadRequestException,
 	ForbiddenException,
 	Injectable,
 	InternalServerErrorException,
@@ -14,6 +15,7 @@ import {
 	ICreateTokenOnchainPayload
 } from "@root/_shared/types/token"
 
+import { createHash } from "node:crypto"
 import { BN, web3 } from "@coral-xyz/anchor"
 import { Prisma, Token } from "@prisma/client"
 import { Decimal } from "@prisma/client/runtime/library"
@@ -26,7 +28,6 @@ import { RabbitMQService } from "@root/_rabbitmq/rabbitmq.service"
 import { RedisService } from "@root/_redis/redis.service"
 import { STOP_WORDS, TOKEN_SUMMARY_OPTION } from "@root/_shared/constants/token"
 import {
-	decodeTransaction,
 	encodeTransaction,
 	keypairFromPrivateKey
 } from "@root/_shared/helpers/encode-decode-tx"
@@ -51,8 +52,15 @@ import {
 	ListTransactionResponse
 } from "@root/tokens/dtos/response.dto"
 import { ChartGateway } from "@root/tokens/token.gateway"
-import { PublicKey } from "@solana/web3.js"
+import {
+	ComputeBudgetProgram,
+	Message,
+	PublicKey,
+	VersionedTransaction
+} from "@solana/web3.js"
+import bs58 from "bs58"
 import { plainToInstance } from "class-transformer"
+import nacl from "tweetnacl"
 
 @Injectable()
 export class TokensService {
@@ -175,37 +183,144 @@ export class TokensService {
 		}
 	}
 
+	/**
+	 * Fingerprint a legacy Message buffer by removing ComputeBudget instructions
+	 * and hashing {recentBlockhash, instructions[{programId, accounts[], dataB58}]}
+	 * Returns a short hex string for quick equality checks.
+	 */
+	private legacyMessageFingerprint(buf: Uint8Array): string {
+		const msg = Message.from(buf)
+
+		const items = msg.instructions
+			.filter(
+				ix =>
+					!msg.accountKeys[ix.programIdIndex].equals(
+						ComputeBudgetProgram.programId
+					)
+			)
+			.map(ix => ({
+				programId: msg.accountKeys[ix.programIdIndex].toBase58(),
+				accounts: ix.accounts.map(i => msg.accountKeys[i].toBase58()),
+				dataB58:
+					typeof (ix as any).data === "string"
+						? (ix as any).data
+						: bs58.encode((ix as any).data as Uint8Array)
+			}))
+		const payload = JSON.stringify({
+			recentBlockhash: msg.recentBlockhash,
+			instructions: items
+		})
+		const hash = createHash("sha256").update(payload).digest("hex")
+		return hash
+	}
+
+	ctEqual(a: Uint8Array, b: Uint8Array) {
+		if (a.length !== b.length) return false
+		let d = 0
+		for (let i = 0; i < a.length; i++) d |= a[i] ^ b[i]
+		return d === 0
+	}
+
 	async submitSignedTxAndSign(payload: IBroadcastOnchainPayload) {
-		// 1) Load cached tx (base64-encoded) built by BE earlier
-		const cachedMsgBase64 = await this.redis.get(
-			this.cacheInCreationTx(payload.tokenID, payload.creatorAddress)
+		// 1) Retrieve and check cache (message built by the backend)
+		const cacheKey = this.cacheInCreationTx(
+			payload.tokenID,
+			payload.creatorAddress
 		)
-		if (!cachedMsgBase64) throw new Error("Transaction expired or not found")
+		const cachedMsgBase58 = await this.redis.get(cacheKey)
+		if (!cachedMsgBase58) {
+			throw new InternalServerErrorException({
+				code: "TX_EXPIRED",
+				message: "Transaction has expired or was not found"
+			})
+		}
+		const cachedMsg = bs58.decode(cachedMsgBase58)
 
-		const userTx = decodeTransaction(payload.data.transaction)
-
-		// 5) Load token + BE signer (if required to co-sign)
-		const token = await this.token.findWithPrivateKey(payload.tokenID)
-		if (!token) throw new NotFoundException("not found token")
-
-		// 7) BE partial-sign if needed (e.g., token key is a required signer)
-		//    If your lauchToken() created a tx requiring tokenKey to sign, sign here
-		const tokenKeypair = keypairFromPrivateKey(token.tokenKey.privateKey)
+		// 2) Parse the transaction sent by the frontend (VersionedTransaction signed by the frontend)
+		let userTx: VersionedTransaction
 		try {
-			userTx.partialSign(tokenKeypair)
-		} catch (e) {
-			// partialSign will succeed only if tokenKeypair is indeed a required signer; otherwise it is a no-op/error
-			throw new InternalServerErrorException(`Failed to sign server key: ${e}`)
+			userTx = VersionedTransaction.deserialize(
+				bs58.decode(payload.data.transaction)
+			)
+		} catch (_e) {
+			throw new BadRequestException({
+				code: "TX_PARSE_ERROR",
+				message: "Failed to parse transaction encoding"
+			})
+		}
+		const userMsg = userTx.message.serialize() // v0 message bytes
+
+		// 3) Compare fingerprints (excluding ComputeBudget) to verify logic is unchanged
+		try {
+			const fUser = this.legacyMessageFingerprint(userMsg)
+			const fCached = this.legacyMessageFingerprint(cachedMsg)
+			if (fUser !== fCached) {
+				throw new ForbiddenException({
+					code: "TX_MISMATCH",
+					message:
+						"The submitted transaction does not match the server-built transaction"
+				})
+			}
+		} catch (_e) {
+			// If unable to parse legacy message, fallback to byte-to-byte comparison
+			const same = this.ctEqual(userMsg, cachedMsg)
+			if (!same) {
+				throw new ForbiddenException({
+					code: "TX_MISMATCH",
+					message:
+						"The submitted transaction does not match the server-built transaction"
+				})
+			}
 		}
 
-		// 9) Clean up cache (avoid replay)
-		await this.redis.del(
-			this.cacheInCreationTx(payload.tokenID, payload.creatorAddress)
+		// 4) Verify the creator's signature on userMsg
+		const creatorPk = new PublicKey(payload.creatorAddress)
+		const signerIndex = userTx.message.staticAccountKeys.findIndex(k =>
+			k.equals(creatorPk)
 		)
+		if (signerIndex < 0) {
+			throw new ForbiddenException({
+				code: "SIG_MISSING",
+				message: "Creator signature is missing from the transaction"
+			})
+		}
+		const sig = userTx.signatures[signerIndex]
+		if (!sig) {
+			throw new ForbiddenException({
+				code: "SIG_MISSING",
+				message: "Creator signature is missing from the transaction"
+			})
+		}
+		const ok = nacl.sign.detached.verify(userMsg, sig, creatorPk.toBytes())
+		if (!ok) {
+			throw new ForbiddenException({
+				code: "SIG_INVALID",
+				message: "Creator signature is invalid"
+			})
+		}
 
-		// 10) Return the fully assembled transaction so the caller can broadcast
-		//     If you prefer BE to broadcast directly, call your RPC here instead and return the signature
-		return encodeTransaction(userTx)
+		// 5) Server applies its own signature (required signer)
+		const token = await this.token.findWithPrivateKey(payload.tokenID)
+		if (!token) {
+			throw new NotFoundException({
+				code: "TOKEN_NOT_FOUND",
+				message: "Associated token not found"
+			})
+		}
+		const tokenKeypair = keypairFromPrivateKey(token.tokenKey.privateKey)
+		try {
+			userTx.sign([tokenKeypair])
+		} catch (_e) {
+			throw new InternalServerErrorException({
+				code: "SERVER_SIGN_FAILED",
+				message: "Server failed to apply its signature"
+			})
+		}
+
+		// 6) Delete cache to prevent replay attacks
+		await this.redis.del(cacheKey)
+
+		return bs58.encode(userTx.serialize())
 	}
 
 	async createTxTokenCreation(payload: ICreateTokenOnchainPayload) {
@@ -252,9 +367,10 @@ export class TokensService {
 		)
 
 		const encodeTx = encodeTransaction(tx)
+		const base58Message = bs58.encode(tx.serializeMessage())
 		await this.redis.set(
 			this.cacheInCreationTx(payload.tokenID, payload.creatorAddress),
-			encodeTx,
+			base58Message,
 			20
 		)
 
