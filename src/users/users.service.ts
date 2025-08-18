@@ -136,6 +136,8 @@ export class UsersService {
 	}
 
 	async setInformation(id: string, payload: SetInformationPayload) {
+		const user = await this.userRepository.findById(id)
+		if (!user) throw new NotFoundException("Not found user")
 		const social = {
 			telegramLink: payload.telegramLink,
 			twitterLink: payload.twitterLink,
@@ -143,9 +145,8 @@ export class UsersService {
 			tiktokLink: payload.tiktokLink,
 			onlyFansLink: payload.onlyFansLink
 		}
-
 		const updateUser: Prisma.UserUpdateInput = {
-			bio: payload.bio || "",
+			bio: payload.bio === undefined ? user.bio : "",
 			social: {
 				upsert: {
 					update: social,
@@ -155,18 +156,14 @@ export class UsersService {
 		}
 
 		if (payload.username) {
-			const [user, userWithUsername] = await Promise.all([
-				this.userRepository.findById(id),
-				await this.userRepository.findByUsername(payload.username)
-			])
-
-			if (!user) throw new NotFoundException("not found user")
-
+			const userWithUsername = await this.userRepository.findByUsername(
+				payload.username,
+				id
+			)
 			if (userWithUsername)
 				throw new BadRequestException(
 					"Username is already taken. Please choose another one."
 				)
-
 			updateUser.username = payload.username
 		}
 
@@ -192,12 +189,9 @@ export class UsersService {
 			updateUser.backgroundUrl = backgroundUrl
 			backgroundAttachment = { url, fields }
 		}
-
-		const user = await this.userRepository.update(id, updateUser)
-
-		if (!user) throw new InternalServerErrorException("can not update")
-
-		return { user, avatarAttachment, backgroundAttachment }
+		const updatedUser = await this.userRepository.update(id, updateUser)
+		if (!updatedUser) throw new InternalServerErrorException("can not update")
+		return { user: updatedUser, avatarAttachment, backgroundAttachment }
 	}
 
 	async setAvatarPresignedUrl(id: string, contentType: string) {

@@ -64,13 +64,16 @@ export class UserRepository {
 		)
 	}
 
-	async findByUsername(username: string) {
+	async findByUsername(username: string, notUserId?: string) {
 		return this.redis.getOrSet(
 			`findUserByUsername:${username}`,
 			async () => {
 				return this.prisma.user.findFirst({
 					where: {
-						username
+						username,
+						id: {
+							not: notUserId
+						}
 					},
 					include: {
 						social: true
