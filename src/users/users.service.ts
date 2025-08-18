@@ -146,7 +146,7 @@ export class UsersService {
 			onlyFansLink: payload.onlyFansLink
 		}
 		const updateUser: Prisma.UserUpdateInput = {
-			bio: payload.bio === undefined ? user.bio : "",
+			bio: payload.bio === undefined ? user.bio : payload.bio || "",
 			social: {
 				upsert: {
 					update: social,
