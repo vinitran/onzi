@@ -1592,7 +1592,9 @@ export class TokenRepository {
 					`
 							: ""
 					}
-				ORDER BY tx_latest.date ${orderDirection}
+				ORDER BY
+					(tx_latest.date IS NULL) ASC,
+					tx_latest.date ${orderDirection}
 					LIMIT ${query.take} OFFSET ${offset};
 			`
 	}
