@@ -1563,7 +1563,7 @@ export class TokenRepository {
 					CASE WHEN f.user_address IS NOT NULL THEN true ELSE false END AS "tokenFavorite",
 					tx_latest.date AS "latestTxDate"                        
 				FROM token t
-				JOIN LATERAL (
+				LEFT JOIN LATERAL (
 					SELECT tx.date
 					FROM token_transaction tx
 					WHERE tx.token_address = t.address
