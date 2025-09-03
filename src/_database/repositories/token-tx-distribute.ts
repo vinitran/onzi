@@ -81,4 +81,23 @@ export class TokenTransactionDistributeRepository {
 			maxPage: Math.ceil(total / take)
 		}
 	}
+
+	async last3WinnerJackpot(id: string) {
+		return this.redis.getOrSet(
+			`last-3-winner-jackpot: ${id}`,
+			() => {
+				return this.prisma.tokenTransactionDistribute.findMany({
+					where: {
+						tokenId: id,
+						type: "Jackpot"
+					},
+					orderBy: {
+						updatedAt: "desc"
+					},
+					take: 3
+				})
+			},
+			5
+		)
+	}
 }

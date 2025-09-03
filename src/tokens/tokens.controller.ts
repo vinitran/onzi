@@ -442,6 +442,16 @@ export class TokensController {
 		return this.tokensService.paginateTxDistribute(id, query)
 	}
 
+	@Get(":id/last-3-winner-jackpot")
+	@ApiOperation({
+		summary: "Get paginated list of token distributed transactions"
+	})
+	async getLast3WinnerJackpot(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+	) {
+		return this.tokensService.getLast3Winnerjackpot(id)
+	}
+
 	@Auth()
 	@Post(":address/favorite")
 	@ApiOperation({ summary: "Toggle favorite token" })
