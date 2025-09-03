@@ -1006,7 +1006,7 @@ export class TokenRepository {
 	//   Find token by address
 	jackpotProgress(id: string) {
 		return this.prisma.token.findUnique({
-			where: { id},
+			where: { id },
 			select: {
 				jackpotQueue: true,
 				jackpotPercent: true,

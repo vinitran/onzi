@@ -54,10 +54,11 @@ import {
 	PaginateTransactionDistributeResponse,
 	SimilarTokenResponse,
 	ToggleFavoriteTokenResponse,
-	TokenHolderResponse, TokenResponse,
+	TokenHolderResponse,
+	TokenResponse,
 	TrendingTopicResponse,
-	UpdateBannerResponse,
-} from '@root/tokens/dtos/response.dto';
+	UpdateBannerResponse
+} from "@root/tokens/dtos/response.dto"
 import { TokensService } from "@root/tokens/tokens.service"
 import { User } from "@root/users/user.decorator"
 import { plainToInstance } from "class-transformer"
@@ -410,17 +411,13 @@ export class TokensController {
 	@Get(":id/jackpot-progress")
 	@ApiOperation({ summary: "Get paginated list of token transactions" })
 	async getJackpotProgress(
-		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string
 	) {
 		const data = await this.tokensService.getJackpotProgress(id)
 
-		return plainToInstance(
-			TokenResponse,
-			data,
-			{
-				excludeExtraneousValues: true
-			}
-		)
+		return plainToInstance(TokenResponse, data, {
+			excludeExtraneousValues: true
+		})
 	}
 
 	@Get(":id/distribute-transactions")
