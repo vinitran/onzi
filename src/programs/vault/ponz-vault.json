@@ -1,0 +1,344 @@
+{
+	"address": "ponzDgxsuynKG8FcHU9xGygwHd9jj2c8ZjfdgxgdLHs",
+	"metadata": {
+		"name": "ponz_vault",
+		"version": "0.1.0",
+		"spec": "0.1.0",
+		"description": "Ponz Vault program created with Anchor"
+	},
+	"instructions": [
+		{
+			"name": "accept_update_ponz_multi_sig_wallet",
+			"discriminator": [212, 11, 164, 34, 156, 149, 201, 181],
+			"accounts": [
+				{
+					"name": "master",
+					"writable": true,
+					"pda": {
+						"seeds": [
+							{
+								"kind": "const",
+								"value": [109, 97, 115, 116, 101, 114]
+							}
+						]
+					}
+				},
+				{
+					"name": "signer",
+					"writable": true,
+					"signer": true
+				}
+			],
+			"args": []
+		},
+		{
+			"name": "create_token_pool",
+			"discriminator": [23, 169, 27, 122, 147, 169, 209, 152],
+			"accounts": [
+				{
+					"name": "mint",
+					"writable": true
+				},
+				{
+					"name": "token_pool",
+					"writable": true,
+					"pda": {
+						"seeds": [
+							{
+								"kind": "account",
+								"path": "mint"
+							},
+							{
+								"kind": "const",
+								"value": [116, 111, 107, 101, 110, 95, 112, 111, 111, 108]
+							}
+						]
+					}
+				},
+				{
+					"name": "payer",
+					"writable": true,
+					"signer": true
+				},
+				{
+					"name": "token_program"
+				},
+				{
+					"name": "system_program",
+					"address": "11111111111111111111111111111111"
+				}
+			],
+			"args": []
+		},
+		{
+			"name": "init_master",
+			"discriminator": [168, 49, 22, 248, 228, 56, 111, 24],
+			"accounts": [
+				{
+					"name": "master",
+					"writable": true,
+					"pda": {
+						"seeds": [
+							{
+								"kind": "const",
+								"value": [109, 97, 115, 116, 101, 114]
+							}
+						]
+					}
+				},
+				{
+					"name": "payer",
+					"writable": true,
+					"signer": true
+				},
+				{
+					"name": "system_program",
+					"address": "11111111111111111111111111111111"
+				},
+				{
+					"name": "ponz_vault_program",
+					"address": "ponzDgxsuynKG8FcHU9xGygwHd9jj2c8ZjfdgxgdLHs"
+				},
+				{
+					"name": "ponz_vault_program_data"
+				}
+			],
+			"args": [
+				{
+					"name": "param",
+					"type": {
+						"defined": {
+							"name": "InitMasterParam"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "init_sol_pool",
+			"discriminator": [101, 7, 214, 154, 142, 207, 92, 111],
+			"accounts": [
+				{
+					"name": "master",
+					"pda": {
+						"seeds": [
+							{
+								"kind": "const",
+								"value": [109, 97, 115, 116, 101, 114]
+							}
+						]
+					}
+				},
+				{
+					"name": "sol_pool",
+					"writable": true,
+					"pda": {
+						"seeds": [
+							{
+								"kind": "const",
+								"value": [115, 111, 108, 95, 112, 111, 111, 108]
+							}
+						]
+					}
+				},
+				{
+					"name": "payer",
+					"writable": true,
+					"signer": true
+				},
+				{
+					"name": "system_program",
+					"address": "11111111111111111111111111111111"
+				}
+			],
+			"args": []
+		},
+		{
+			"name": "init_update_ponz_multi_sig_wallet",
+			"discriminator": [190, 164, 142, 233, 106, 119, 247, 181],
+			"accounts": [
+				{
+					"name": "master",
+					"writable": true,
+					"pda": {
+						"seeds": [
+							{
+								"kind": "const",
+								"value": [109, 97, 115, 116, 101, 114]
+							}
+						]
+					}
+				},
+				{
+					"name": "signer",
+					"writable": true,
+					"signer": true
+				}
+			],
+			"args": [
+				{
+					"name": "new_ponz_system_wallet",
+					"type": "pubkey"
+				}
+			]
+		},
+		{
+			"name": "withdraw_sol",
+			"discriminator": [145, 131, 74, 136, 65, 137, 42, 38],
+			"accounts": [
+				{
+					"name": "master"
+				},
+				{
+					"name": "withdrawer",
+					"writable": true,
+					"signer": true
+				},
+				{
+					"name": "sol_pool",
+					"writable": true,
+					"pda": {
+						"seeds": [
+							{
+								"kind": "const",
+								"value": [115, 111, 108, 95, 112, 111, 111, 108]
+							}
+						]
+					}
+				},
+				{
+					"name": "system_program",
+					"address": "11111111111111111111111111111111"
+				}
+			],
+			"args": []
+		}
+	],
+	"accounts": [
+		{
+			"name": "Master",
+			"discriminator": [168, 213, 193, 12, 77, 162, 58, 235]
+		},
+		{
+			"name": "SolPool",
+			"discriminator": [186, 223, 129, 62, 246, 174, 145, 175]
+		}
+	],
+	"events": [
+		{
+			"name": "CreateTokenPoolEvent",
+			"discriminator": [24, 87, 56, 15, 240, 198, 223, 144]
+		},
+		{
+			"name": "WithdrawSolPoolEvent",
+			"discriminator": [12, 167, 195, 107, 209, 2, 83, 24]
+		}
+	],
+	"errors": [
+		{
+			"code": 6000,
+			"name": "InvalidPonzVaultProgram",
+			"msg": "Invalid Ponz Vault program"
+		},
+		{
+			"code": 6001,
+			"name": "InvalidPonzVaultProgramData",
+			"msg": "Invalid Ponz Vault program data"
+		},
+		{
+			"code": 6002,
+			"name": "NotPonzMultiSigWallet",
+			"msg": "You are not the Ponz Multi Sig wallet"
+		},
+		{
+			"code": 6003,
+			"name": "NotPendingPonzMultiSigWallet",
+			"msg": "You are not the Pending Ponz Multi Sig wallet"
+		},
+		{
+			"code": 6004,
+			"name": "EmptyWallet",
+			"msg": "Empty wallet"
+		}
+	],
+	"types": [
+		{
+			"name": "CreateTokenPoolEvent",
+			"type": {
+				"kind": "struct",
+				"fields": [
+					{
+						"name": "mint",
+						"type": "pubkey"
+					},
+					{
+						"name": "pool",
+						"type": "pubkey"
+					}
+				]
+			}
+		},
+		{
+			"name": "InitMasterParam",
+			"type": {
+				"kind": "struct",
+				"fields": [
+					{
+						"name": "ponz_multi_sig_wallet",
+						"type": "pubkey"
+					}
+				]
+			}
+		},
+		{
+			"name": "Master",
+			"type": {
+				"kind": "struct",
+				"fields": [
+					{
+						"name": "ponz_multi_sig_wallet",
+						"type": "pubkey"
+					},
+					{
+						"name": "pending_ponz_multi_sig_wallet",
+						"type": {
+							"option": "pubkey"
+						}
+					},
+					{
+						"name": "bump",
+						"type": "u8"
+					}
+				]
+			}
+		},
+		{
+			"name": "SolPool",
+			"type": {
+				"kind": "struct",
+				"fields": [
+					{
+						"name": "id",
+						"type": "u8"
+					}
+				]
+			}
+		},
+		{
+			"name": "WithdrawSolPoolEvent",
+			"type": {
+				"kind": "struct",
+				"fields": [
+					{
+						"name": "withdrawer",
+						"type": "pubkey"
+					},
+					{
+						"name": "lamports",
+						"type": "u64"
+					}
+				]
+			}
+		}
+	]
+}

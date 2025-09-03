@@ -1,0 +1,565 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  address       String    @unique @db.VarChar
+  username      String?   @unique @db.VarChar
+  bio           String?   @db.VarChar
+  avatarUrl     String?   @map("avatar_url") @db.VarChar
+  network       Network   @default(Solana)
+  premium       Boolean   @default(false)
+  backgroundUrl String?   @map("background_url") @db.VarChar
+  role          Role      @default(User)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tokens             Token[]
+  tokenOwners        TokenOwner[]
+  comments           Comment[]
+  commentLikes       CommentLike[]
+  tokenTransactions  TokenTransaction[]
+  follower           UserConnection[]    @relation("follower")
+  following          UserConnection[]    @relation("following")
+  config             Config?
+  tokenFavorite      TokenFavorite[]
+  stickers           Sticker[]
+  stickerOwners      StickerOwner[]
+  social             UserSocial?
+  blockComments      BlockComment[]
+  reels              Reel[]
+  reelUserActions    ReelUserAction[]
+  reelComments       ReelComment[]
+  reelCommentActions ReelCommentAction[]
+  reelCommentReports ReelCommentReport[]
+  reelReports        ReelReport[]
+  blockReelComments  BlockReelComment[]
+  blockUsers         BlockUser[]
+  tokenReports       TokenReport[]
+  reelViews          ReelView[]
+
+  @@map("user")
+}
+
+model UserSocial {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @unique @map("user_id") @db.Uuid
+
+  telegramLink  String? @map("telegram_link") @db.VarChar
+  twitterLink   String? @map("twitter_link") @db.VarChar
+  instagramLink String? @map("instagram_link") @db.VarChar
+  tiktokLink    String? @map("tiktok_link") @db.VarChar
+  onlyFansLink  String? @map("only_fans_link") @db.VarChar
+
+  user User @relation(fields: userId, references: id, onDelete: Cascade)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("user_social")
+}
+
+model UserConnection {
+  id          String @id @default(uuid()) @db.Uuid
+  followerId  String @map("follower_id") @db.Uuid
+  followingId String @map("following_id") @db.Uuid
+
+  follower  User @relation(fields: [followerId], references: [id], onDelete: Cascade, name: "follower")
+  following User @relation(fields: [followingId], references: [id], onDelete: Cascade, name: "following")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([followerId, followingId])
+  @@map("user_connection")
+}
+
+model Comment {
+  id            String        @id @default(uuid()) @db.Uuid
+  content       String?       @db.Text
+  attachmentUrl String?       @map("attachment_url") @db.VarChar
+  authorId      String        @map("author_id") @db.Uuid
+  tokenId       String        @map("token_id") @db.Uuid
+  parentId      String?       @map("parent_id") @db.Uuid
+  stickerId     String?       @map("sticker_id") @db.Uuid
+  sticker       Sticker?      @relation(fields: [stickerId], references: [id], onDelete: Cascade)
+  replies       Comment[]     @relation("CommentReplies")
+  likes         CommentLike[]
+  parent        Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  token         Token         @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  author        User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  pinnedAt  DateTime? @map("pinned_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([authorId])
+  @@index([tokenId])
+  @@map("comment")
+}
+
+model BlockComment {
+  userId  String @map("user_id") @db.Uuid
+  tokenId String @map("token_id") @db.Uuid
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token Token @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@id([userId, tokenId])
+  @@map("block_comment")
+}
+
+model CommentLike {
+  id        String @id @default(uuid()) @db.Uuid
+  userId    String @map("user_id") @db.Uuid
+  commentId String @map("comment_id") @db.Uuid
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([userId, commentId])
+  @@map("comment_like")
+}
+
+model Token {
+  id                      String    @id @default(uuid()) @db.Uuid
+  address                 String    @unique @db.VarChar
+  name                    String    @db.VarChar
+  price                   Decimal   @default(0) @db.Decimal(20, 20)
+  uri                     String    @db.VarChar
+  imageUri                String    @db.VarChar
+  bannerUri               String?   @map("banner_uri") @db.VarChar
+  ticker                  String    @db.VarChar
+  metadata                Json
+  description             String    @db.Text
+  isHighlight             Boolean   @default(false) @map("is_highlight")
+  network                 Network   @default(Solana)
+  bondingCurveTarget      BigInt    @default(115000000000) @map("bonding_curve_target") // amount to complete curve target (fetch from Contract)
+  isCompletedBondingCurve Boolean   @default(false) @map("is_completed_bonding_curve")
+  createdAtBondingCurve   DateTime? @map("created_at_bonding_curve")
+  isCompletedKingOfHill   Boolean   @default(false) @map("is_completed_king_of_hill") // True => having marketCapacity is gte the highest marketCapacity of token (not ever bonding curve => isCompxletedBondingCurve = false) AND greater than 70% its bondingCurveTarget
+  createdAtKingOfHill     DateTime? @map("created_at_king_of_hill")
+  bump                    Boolean?  @default(false) // on chain
+  creatorAddress          String    @map("creator_address") @db.VarChar
+  marketCapacity          BigInt    @default(30000000000) @map("market_capacity")
+  volumn                  BigInt    @default(0)
+  totalSupply             BigInt    @default(1000000000000000) @map("total_supply")
+  hallOfFame              Boolean   @default(false) @map("hall_of_fame")
+  tax                     Int       @default(0)
+  rewardTax               Int       @default(0) @map("reward_tax")
+  jackpotTax              Int       @default(0) @map("jackpot_tax")
+  jackpotAmount           BigInt    @default(0) @map("jackpot_amount")
+  burnTax                 Int       @default(0) @map("burn_tax")
+
+  distributionPending BigInt @default(0) @map("distribution_pending")
+  jackpotPending      BigInt @default(0) @map("jackpot_pending")
+  jackpotPercent      Float  @default(0) @map("jackpot_percent")
+  jackpotQueue        Int    @default(0) @map("jackpot_queue")
+  taxPending          Float  @default(0) @map("tax_pending")
+
+  lockAmount BigInt?   @map("lock_amount")
+  unlockAt   DateTime? @map("unlock_at") @db.Timestamptz(3)
+
+  telegramLink   String?   @map("telegram_link") @db.VarChar
+  twitterLink    String?   @map("twitter_link") @db.VarChar
+  websiteLink    String?   @map("website_link") @db.VarChar
+  instagramLink  String?   @map("instagram_link") @db.VarChar
+  youtubeLink    String?   @map("youtube_link") @db.VarChar
+  tiktokLink     String?   @map("tiktok_link") @db.VarChar
+  onlyFansLink   String?   @map("only_fans_link") @db.VarChar
+  highlightOrder Int?      @map("highlight_order") // By admin set in Popular section
+  headline       String?   @map("headline") // By admin set
+  bumpAt         DateTime? @map("pump_at") @db.Timestamptz(3) // Time on chain
+
+  token1hChange  Float @default(0) @map("1h_change")
+  token24hChange Float @default(0) @map("24h_change")
+  token7dChange  Float @default(0) @map("7d_change")
+
+  isDeleted Boolean   @default(false) @map("is_deleted") // Soft delete
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  raydiumStatus RaydiumStatusType @default(NotListed)
+
+  creator          User               @relation(fields: [creatorAddress], references: [address], onDelete: Cascade)
+  tokenOwners      TokenOwner[]
+  comments         Comment[]
+  tokenTransaction TokenTransaction[]
+  tokenKey         TokenKey           @relation(fields: [address], references: publicKey)
+  tokenFavorite    TokenFavorite[]
+  blockComments    BlockComment[]
+  chart            TokenChart[]
+  reels            Reel[]
+  tokenReports     TokenReport[]
+
+  @@index([creatorAddress, createdAt(sort: Desc)])
+  @@map("token")
+}
+
+model TokenTransactionDistribute {
+  id          String                         @id @default(uuid()) @db.Uuid
+  tokenId     String                         @db.Uuid
+  from        String?
+  to          String?
+  lamport     BigInt                         @default(0)
+  amountToken BigInt                         @default(0)
+  type        TokenTransactionDistributeType
+  signature   String?
+  updatedAt   DateTime?                      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("token_transaction_distribute")
+}
+
+model TokenKey {
+  id         String   @id @default(uuid()) @db.Uuid
+  privateKey String   @unique @map("private_key")
+  publicKey  String   @unique @map("public_key")
+  isPicked   Boolean  @default(false) @map("is_picked")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  Token Token?
+
+  @@index([publicKey])
+  @@index([isPicked])
+  @@map("token_key")
+}
+
+model TokenKeyWithHeld {
+  privateKey String   @unique @map("private_key")
+  publicKey  String   @unique @map("public_key")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  tokenId    String   @unique @db.Uuid
+
+  @@index([publicKey])
+  @@index([tokenId])
+  @@map("token_key_with_held")
+}
+
+model TokenOwner {
+  id           String @id @default(uuid()) @db.Uuid
+  userAddress  String @map("user_address") @db.VarChar
+  tokenAddress String @map("token_address") @db.VarChar
+  amount       BigInt
+
+  token Token @relation(fields: [tokenAddress], references: [address], onDelete: Cascade)
+  user  User  @relation(fields: [userAddress], references: [address], onDelete: Cascade)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([userAddress, tokenAddress])
+  @@map("token_owner")
+}
+
+model TokenFavorite {
+  tokenAddress String   @map("token_address") @db.VarChar
+  userAddress  String   @map("user_address") @db.VarChar
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  user         User     @relation(fields: [userAddress], references: [address], onDelete: Cascade)
+  token        Token    @relation(fields: [tokenAddress], references: [address], onDelete: Cascade)
+
+  @@id([tokenAddress, userAddress])
+  @@map("token_favorite")
+}
+
+model TokenReport {
+  id           String   @id @default(uuid()) @db.Uuid
+  tokenAddress String   @map("token_address") @db.VarChar
+  reporterId   String   @map("reporter_id") @db.Uuid
+  description  String   @db.Text
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  token        Token    @relation(fields: [tokenAddress], references: [address], onDelete: Cascade)
+  reporter     User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@map("token_report")
+}
+
+model Config {
+  id          String  @id @default(uuid()) @db.Uuid
+  maxSlippage Float   @default(1) @map("max_slippage")
+  priorityFee Decimal @default(0.01) @map("priority_fee")
+  userId      String  @unique @map("user_id") @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("config")
+}
+
+model TokenTransaction {
+  id           String          @id @default(uuid()) @db.Uuid
+  signature    String          @db.VarChar
+  amount       BigInt          @default(0)
+  tokenAddress String          @map("token_address") @db.VarChar
+  lamports     BigInt          @default(0)
+  date         DateTime        @db.Timestamptz(3)
+  signer       String?         @db.VarChar
+  price        Decimal         @default(0) @db.Decimal(20, 20)
+  newPrice     Decimal         @default(0) @map("new_price") @db.Decimal(20, 20)
+  type         TransactionType
+  network      Network         @default(Solana)
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime?       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy    User?           @relation(fields: [signer], references: [address], onDelete: Cascade)
+  token        Token           @relation(fields: [tokenAddress], references: [address], onDelete: Cascade)
+
+  @@unique([signature, type])
+  @@map("token_transaction")
+}
+
+model Setting {
+  key   String @id @db.VarChar(120)
+  value String @db.VarChar
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("setting")
+}
+
+model Sticker {
+  id             String   @id @default(uuid()) @db.Uuid
+  creatorAddress String   @map("creator_address") @db.VarChar
+  uri            String
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  creator       User           @relation(fields: [creatorAddress], references: [address], onDelete: Cascade)
+  stickerOwners StickerOwner[]
+  comment       Comment[]
+
+  @@index([creatorAddress])
+  @@map("sticker")
+}
+
+model StickerOwner {
+  ownerAddress String   @map("owner_address") @db.VarChar
+  stickerId    String   @map("sticker_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  owner   User    @relation(fields: [ownerAddress], references: [address], onDelete: Cascade)
+  sticker Sticker @relation(fields: [stickerId], references: [id], onDelete: Cascade)
+
+  @@id([ownerAddress, stickerId])
+  @@map("sticker_owner")
+}
+
+model TokenChart {
+  id      String  @id @default(uuid()) @db.Uuid
+  tokenId String  @map("token_id") @db.Uuid
+  step    Int
+  date    BigInt
+  open    Decimal @db.Decimal(20, 10)
+  high    Decimal @db.Decimal(20, 10)
+  low     Decimal @db.Decimal(20, 10)
+  close   Decimal @db.Decimal(20, 10)
+  volume  BigInt
+
+  token Token @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([tokenId, step, date])
+  @@index([tokenId])
+  @@index([date, step])
+  @@map("token_chart")
+}
+
+model Reel {
+  id           String    @id @default(uuid()) @db.Uuid
+  videoUri     String    @map("video_uri")
+  caption      String?   @db.Text
+  thumbnailUri String    @map("thumbnail_uri")
+  viewAmount   BigInt    @default(0) @map("view_amount")
+  creatorId    String    @map("creator_id") @db.Uuid
+  tokenId      String    @map("token_id") @db.Uuid
+  pinnedAt     DateTime? @map("pinned_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime? @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  token             Token              @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  creator           User               @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  reelUserActions   ReelUserAction[]
+  reelComments      ReelComment[]
+  reelReports       ReelReport[]
+  blockReelComments BlockReelComment[]
+  reelViews         ReelView[]
+
+  @@index([tokenId])
+  @@map("reel")
+}
+
+model ReelView {
+  id        String   @id @default(uuid()) @db.Uuid
+  reelId    String   @map("reel_id") @db.Uuid
+  viewerId  String   @map("viewer_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  viewer User @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+  reel   Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  @@index([reelId, viewerId])
+  @@map("reel_view")
+}
+
+model ReelReport {
+  id          String   @id @default(uuid()) @db.Uuid
+  reelId      String   @map("reel_id") @db.Uuid
+  reporterId  String   @map("reporter_id") @db.Uuid
+  description String   @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  reel     Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@map("reel_report")
+}
+
+// Like or Dislike reels
+model ReelUserAction {
+  id        String           @id @default(uuid()) @db.Uuid
+  reelId    String           @map("reel_id") @db.Uuid
+  creatorId String           @map("creator_id") @db.Uuid
+  status    UserActionStatus
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  reel    Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([reelId, creatorId])
+  @@map("reel_user_action")
+}
+
+// Comment in reel
+model ReelComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  content   String   @db.Text
+  authorId  String   @map("author_id") @db.Uuid
+  reelId    String   @map("reel_id") @db.Uuid
+  parentId  String?  @map("parent_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  reel               Reel                @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  author             User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent             ReelComment?        @relation("CommentReelReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies            ReelComment[]       @relation("CommentReelReplies")
+  reelCommentActions ReelCommentAction[]
+  reelCommentReports ReelCommentReport[]
+
+  @@index([reelId])
+  @@map("reel_comment")
+}
+
+model BlockReelComment {
+  reelId String @map("reel_id") @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reel Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@id([reelId, userId])
+  @@map("block_reel_comment")
+}
+
+// Like or Dislike comments in reels
+model ReelCommentAction {
+  id            String           @id @default(uuid()) @db.Uuid
+  reelCommentId String           @map("reel_comment_id") @db.Uuid
+  creatorId     String           @map("creator_id") @db.Uuid
+  status        UserActionStatus
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  creator     User        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  reelComment ReelComment @relation(fields: [reelCommentId], references: [id], onDelete: Cascade)
+
+  @@map("reel_comment_action")
+}
+
+model ReelCommentReport {
+  id            String   @id @default(uuid()) @db.Uuid
+  reelCommentId String   @map("reel_comment_id") @db.Uuid
+  reporterId    String   @map("reporter_id") @db.Uuid
+  description   String   @db.Text
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  reelComment ReelComment @relation(fields: [reelCommentId], references: [id], onDelete: Cascade)
+  reporter    User        @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@map("reel_comment_report")
+}
+
+// Document save block user with types (or reasons) for blocking
+model BlockUser {
+  id          String        @id @default(uuid()) @db.Uuid
+  userId      String        @map("user_id") @db.Uuid
+  type        BlockUserType @map("type")
+  isPermanent Boolean       @default(false) @map("is_permanent")
+  endAt       DateTime?     @map("end_at") @db.Timestamptz(3)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("block_user")
+}
+
+enum Network {
+  Solana
+}
+
+enum Role {
+  Admin
+  User
+}
+
+enum TransactionType {
+  Buy
+  Sell
+  Create
+  CompleteBondingCurve
+  RemoveLiquidity
+}
+
+enum UserActionStatus {
+  Like
+  Dislike
+}
+
+enum BlockUserType {
+  CreateTokenComment
+  CreateTokenReel
+  CreateReelComment
+}
+
+enum RaydiumStatusType {
+  NotListed
+  Listed
+  Pending
+}
+
+enum TokenTransactionDistributeType {
+  SwapToSolana
+  SwapToToken
+  Burn
+  Distribute
+  Jackpot
+  CollectFee
+  SendToVault
+}

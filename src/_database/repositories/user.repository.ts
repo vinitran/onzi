@@ -1,0 +1,109 @@
+import { Injectable } from "@nestjs/common"
+import { Prisma } from "@prisma/client"
+import { PrismaService } from "@root/_database/prisma.service"
+import { RedisService } from "@root/_redis/redis.service"
+import { randomAvatar } from "@root/_shared/helpers/random-avatar"
+import { S3Service } from "@root/file/file.service"
+
+type CreateUserIfNotExistParams = {
+	address: string
+}
+
+@Injectable()
+export class UserRepository {
+	constructor(
+		private prisma: PrismaService,
+		private redis: RedisService,
+		private s3Service: S3Service
+	) {}
+
+	async createIfNotExist(params: CreateUserIfNotExistParams) {
+		return this.redis.setFunc(
+			`user-exist:${params.address}`,
+			async () => {
+				return this.prisma.user.upsert({
+					where: { address: params.address },
+					create: {
+						address: params.address,
+						username: params.address.slice(0, 8),
+						avatarUrl: this.s3Service.getPermanentFileUrl(randomAvatar())
+					},
+					update: {}
+				})
+			},
+			5
+		)
+	}
+
+	async update(id: string, payload: Prisma.UserUpdateInput) {
+		return this.prisma.user.update({
+			where: {
+				id
+			},
+			include: {
+				social: true
+			},
+			data: payload
+		})
+	}
+
+	findByAddress(address: string) {
+		return this.redis.getOrSet(
+			`findUserByUsername:${address}`,
+			async () => {
+				return this.prisma.user.findFirst({
+					where: {
+						address
+					},
+					include: {
+						social: true
+					}
+				})
+			},
+			3
+		)
+	}
+
+	async findByUsername(username: string, notUserId?: string) {
+		return this.redis.getOrSet(
+			`findUserByUsername:${username}`,
+			async () => {
+				return this.prisma.user.findFirst({
+					where: {
+						username,
+						id: {
+							not: notUserId
+						}
+					},
+					include: {
+						social: true
+					}
+				})
+			},
+			3
+		)
+	}
+
+	async findById(
+		id: string,
+		include?: Prisma.UserInclude,
+		orderBy?: Prisma.UserOrderByWithRelationInput
+	) {
+		return this.redis.getOrSet(
+			`findUserById:${id}, include: ${include}, orderBy: ${orderBy}`,
+			async () => {
+				return this.prisma.user.findFirst({
+					where: {
+						id
+					},
+					orderBy: orderBy ?? undefined,
+					include: {
+						...include,
+						social: true
+					}
+				})
+			},
+			3
+		)
+	}
+}
