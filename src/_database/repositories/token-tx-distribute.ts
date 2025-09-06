@@ -100,4 +100,44 @@ export class TokenTransactionDistributeRepository {
 			5
 		)
 	}
+
+	async getAggregateTotals(id: string) {
+		const items = await this.prisma.tokenTransactionDistribute.groupBy({
+			by: ['type'],
+			where: { tokenId: id },
+			_sum: {
+				amountToken: true,
+				lamport: true
+			},
+		});
+
+		let burn = 0n;
+		let jackpot = 0n;
+		let distribute = 0n;
+
+		for (const item of items) {
+			const amountToken = item._sum.amountToken ?? 0n;
+			const lamport = item._sum.lamport ?? 0n;
+			switch (item.type) {
+				case 'Burn':
+					burn += amountToken;
+					break;
+				case 'Distribute':
+					distribute += lamport;
+					break;
+				case 'Jackpot':
+					jackpot += lamport;
+					break;
+				case 'SendToVault':
+					distribute += lamport;
+					break;
+			}
+		}
+
+		return {
+			Burned: burn.toString(),
+			Distributed: distribute.toString(),
+			Jackpot: jackpot.toString(),
+		};
+	}
 }

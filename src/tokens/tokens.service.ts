@@ -635,6 +635,10 @@ export class TokensService {
 		return this.tokenTxDistribute.last3WinnerJackpot(id)
 	}
 
+	async getAggregateTotals(id: string) {
+		return this.tokenTxDistribute.getAggregateTotals(id)
+	}
+
 	//   Toggle (add or remove favourite token of user)
 	async toggleFavorite(tokenAddress: string, userAddress: string) {
 		const token = await this.token.findByAddress(tokenAddress)

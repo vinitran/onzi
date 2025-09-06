@@ -452,6 +452,16 @@ export class TokensController {
 		return this.tokensService.getLast3Winnerjackpot(id)
 	}
 
+	@Get(":id/distributions/summary")
+	@ApiOperation({
+		summary: "Get distribution totals (burn, distribute, jackpot)"
+	})
+	async getAggregateTotals(
+		@Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+	) {
+		return this.tokensService.getAggregateTotals(id)
+	}
+
 	@Auth()
 	@Post(":address/favorite")
 	@ApiOperation({ summary: "Toggle favorite token" })
