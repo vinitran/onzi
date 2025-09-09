@@ -66,19 +66,22 @@ export class UserRepository {
 
 	async findByUsername(username: string, notUserId?: string) {
 		return this.redis.getOrSet(
-			`findUserByUsername:${username}`,
+			`findUserByUsername:${username.toLowerCase()}`,
 			async () => {
-				return this.prisma.user.findFirst({
-					where: {
-						username,
-						id: {
-							not: notUserId
-						}
-					},
-					include: {
-						social: true
-					}
-				})
+				const rows: any[] = await this.prisma.$queryRaw<any[]>`
+					SELECT *
+					FROM "user"
+					WHERE LOWER("username") = LOWER(${username})
+						AND (${notUserId}::uuid IS NULL OR "id" <> ${notUserId}::uuid)
+						LIMIT 1;
+				`;
+
+				const user = rows[0] ?? null;
+				if (!user) return null;
+
+				// Load related social records to mirror `include: { social: true }`
+				const social = await this.prisma.userSocial.findMany({ where: { userId: user.id } });
+				return { ...user, social };
 			},
 			3
 		)

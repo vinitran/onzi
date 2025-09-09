@@ -158,7 +158,6 @@ export class UsersService {
 		if (payload.username) {
 			const userWithUsername = await this.userRepository.findByUsername(
 				payload.username,
-				id
 			)
 			if (userWithUsername)
 				throw new BadRequestException(
