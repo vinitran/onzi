@@ -155,10 +155,11 @@ export class UsersService {
 			}
 		}
 
-		if (payload.username) {
+		if (payload.username && payload.username != user.username) {
 			const userWithUsername = await this.userRepository.findByUsername(
 				payload.username,
 			)
+
 			if (userWithUsername)
 				throw new BadRequestException(
 					"Username is already taken. Please choose another one."
