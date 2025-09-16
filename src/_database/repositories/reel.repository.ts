@@ -284,31 +284,46 @@ export class ReelRepository {
 		isWatching?: boolean
 	}) {
 		const { currentReel, userId, isWatching } = payload
+
 		if (!userId) return this.getNextByTime(currentReel)
 
 		const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
 
+		// 1) Tìm reel chưa xem **cũ hơn** current (closest older unseen)
+		const nextUnseenOlder = await this.prisma.reel.findFirst({
+			where: {
+				id: { not: currentReel.id },
+				token: { isDeleted: false },
+				createdAt: { lt: currentReel.createdAt }, // older than current
+				reelViews: {
+					none: { viewerId: userId }
+				}
+			},
+			orderBy: { createdAt: "desc" } // closest older first
+		})
+		if (nextUnseenOlder) return nextUnseenOlder
+
+		// 2) Nếu không có unseen older, thử unseen **mới hơn** current (closest newer)
+		const nextUnseenNewer = await this.prisma.reel.findFirst({
+			where: {
+				id: { not: currentReel.id },
+				token: { isDeleted: false },
+				createdAt: { gt: currentReel.createdAt }, // newer than current
+				reelViews: {
+					none: { viewerId: userId }
+				}
+			},
+			orderBy: { createdAt: "asc" } // closest newer first
+		})
+		if (nextUnseenNewer) return nextUnseenNewer
+
+		// 3) Nếu đang isWatching, thử tìm reel đã xem gần đây (within 1 hour), ưu tiên older first
 		if (isWatching) {
-			// hoặc không còn reel đã xem gần đây → lấy reel chưa xem, mới nhất (khác current)
-			const nextUnseen = await this.prisma.reel.findFirst({
+			const nextViewedRecent = await this.prisma.reel.findFirst({
 				where: {
 					id: { not: currentReel.id },
 					token: { isDeleted: false },
-					reelViews: {
-						none: { viewerId: userId }
-					}
-				},
-				orderBy: {
-					createdAt: "desc"
-				}
-			})
-
-			if (nextUnseen) return nextUnseen
-
-			const nextViewed = await this.prisma.reel.findFirst({
-				where: {
-					createdAt: { lt: currentReel.createdAt },
-					token: { isDeleted: false },
+					createdAt: { lt: currentReel.createdAt }, // prefer older viewed recently
 					reelViews: {
 						some: {
 							viewerId: userId,
@@ -319,12 +334,29 @@ export class ReelRepository {
 				orderBy: { createdAt: "desc" }
 			})
 
-			if (nextViewed) return nextViewed
+			if (nextViewedRecent) return nextViewedRecent
+
+			// fallback: if none older, try newer viewed within 1 hour
+			const nextViewedRecentNewer = await this.prisma.reel.findFirst({
+				where: {
+					id: { not: currentReel.id },
+					token: { isDeleted: false },
+					createdAt: { gt: currentReel.createdAt },
+					reelViews: {
+						some: {
+							viewerId: userId,
+							createdAt: { gte: oneHourAgo }
+						}
+					}
+				},
+				orderBy: { createdAt: "asc" }
+			})
+
+			if (nextViewedRecentNewer) return nextViewedRecentNewer
 		}
 
-		// ✅ Nếu vừa refresh (isWatching = false)
-		// hoặc không còn reel đã xem gần đây → lấy reel chưa xem, mới nhất (khác current)
-		const nextUnseen = await this.prisma.reel.findFirst({
+		// 4) Nếu thực sự không còn unseen gần current, chọn bất kỳ unseen (most recent unseen)
+		const anyUnseen = await this.prisma.reel.findFirst({
 			where: {
 				id: { not: currentReel.id },
 				token: { isDeleted: false },
@@ -332,16 +364,12 @@ export class ReelRepository {
 					none: { viewerId: userId }
 				}
 			},
-			orderBy: {
-				createdAt: "desc"
-			}
+			orderBy: { createdAt: "desc" }
 		})
+		if (anyUnseen) return anyUnseen
 
-		return (
-			nextUnseen ||
-			(await this.getNextByTime(currentReel)) ||
-			(await this.getLatest({}))
-		)
+		// 5) Fallbacks cuối cùng
+		return (await this.getNextByTime(currentReel)) || (await this.getLatest({}))
 	}
 
 	paginateByTokenId(
